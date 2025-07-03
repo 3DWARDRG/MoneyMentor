@@ -3,8 +3,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, Image, ImageBackground } from 'react-native';
 import BalanceCard from '@/components/BalanceCard';
 import RecentTransactions from '@/components/RecentTransactions';
-
-
+import { TouchableOpacity } from 'react-native';
+import { router } from 'expo-router';
 
 export default function Index() {
   return (
@@ -28,12 +28,15 @@ export default function Index() {
             />
           </View>
     </View>
-
         <BalanceCard />
       </View>
       </View>
 <View className='min-h-40 '>
 <RecentTransactions />
+<TouchableOpacity onPress={() => router.push('/register')}>
+  <Text className="text-blue-600">Regístrate aquí</Text>
+</TouchableOpacity>
+
 </View>
 </View>
     </SafeAreaView>
