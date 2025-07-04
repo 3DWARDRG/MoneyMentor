@@ -6,7 +6,17 @@ import RecentTransactions from '@/components/RecentTransactions';
 import { TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 
+import { useAuthStore } from '@/store/useAuthStore';
+import { Redirect } from 'expo-router';
 export default function Index() {
+
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  
+ if (!isAuthenticated) {
+
+   return <Redirect href= "/login" />;
+  }
+
   return (
     <SafeAreaView className='bg-gray-50 flex-1'>
       <View className='flex-1 box-border bg-white p-4'>
