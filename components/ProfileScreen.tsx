@@ -2,10 +2,17 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import ProfileOption from './ProfileOption';
 import { router } from 'expo-router';
+import { useAuthStore } from '@/store/useAuthStore';
 
-const isLogged = false;
+
+
 
 const ProfileScreen = () => {
+const LogOut = async () => {
+  useAuthStore.getState().logout();
+  router.replace('/login');
+};
+
   return (
     <View className="p-5 bg-white h-full">
       {/* Header */}
@@ -19,7 +26,7 @@ const ProfileScreen = () => {
 
       {/* Options List */}
 
-      {isLogged  ? (
+      {useAuthStore.getState().isAuthenticated  ? (
         <View className="bg-white rounded-lg shadow-sm mb-5">
           <ProfileOption
             iconSvg={`<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -57,6 +64,7 @@ const ProfileScreen = () => {
             bgColor="bg-red-100"
             text="Cerrar sesión"
             textColor="text-red-600"
+            onPress={LogOut}
           />
         </View>
       ) : (

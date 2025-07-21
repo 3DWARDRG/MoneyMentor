@@ -1,11 +1,14 @@
-import React from 'react'
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Pressable } from 'react-native'
+import React , { useState } from 'react'
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Switch } from 'react-native'
 import { Svg, Path } from 'react-native-svg'
 import SocialButton from '@/components/SocialButton'
 import { useAuthStore } from '@/store/useAuthStore';
 import { router } from 'expo-router';
+import MoneyMentorLogo from '@/components/ui/MoneyMentorLogo';
 
 export default function LoginScreen() {
+
+      const [isChecked, setIsChecked] = useState(false);
 
 const handleLogin = async () => {
   const token = 'abc123'; // el token real que recibas
@@ -13,18 +16,16 @@ const handleLogin = async () => {
   router.replace('/(tabs)'); // redirige a tu dashboard
 };
 
+const handleSwitchChange = (value: boolean) => {
+  console.log('Switch cambiado a:', value);
+  setIsChecked(value);
+};
+
   return (
     <ScrollView className='flex-grow p-8 pt-20 bg-white'>
       <View className="text-center mb-8">
         <View className="h-20 w-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <Path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </Svg>
+        <MoneyMentorLogo />
         </View>
         <View className=" items-center">
         <Text className="text-3xl font-bold text-gray-900 mb-2">MoneyMentor</Text>
@@ -53,7 +54,12 @@ const handleLogin = async () => {
 
         <View className="flex flex-row justify-between items-center">
           <View className="flex flex-row items-center">
-            <View className="h-4 w-4 border border-gray-300 rounded bg-white" />
+                        <Switch
+                value={isChecked}
+                onValueChange={handleSwitchChange}
+                trackColor={{ false: '#ccc', true: '#2563eb' }}
+                thumbColor="#fff"
+              />
             <Text className="ml-2 text-sm text-gray-600">Recordarme</Text>
           </View>
           <TouchableOpacity>
@@ -62,12 +68,12 @@ const handleLogin = async () => {
         </View>
 
         <TouchableOpacity className="bg-blue-600 py-3 rounded-lg my-4">
-          <Text className="text-white text-center font-medium">Iniciar sesión</Text>
+          <Text className="text-white text-center font-medium" onPress={handleLogin}>Iniciar sesión</Text>
         </TouchableOpacity>
       </View>
 
       <View className="mt-6 text-center">
-        <Text className="text-gray-600">
+        <Text className="text-sm text-gray-600">
           ¿No tienes una cuenta?{' '}
           <Text className="text-blue-600 font-medium" onPress={() => router.push('/register')}>Regístrate aquí</Text>
         </Text>
