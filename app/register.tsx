@@ -38,13 +38,22 @@ export default function RegisterScreen() {
         {/* Formulario */}
         <View className="space-y-6 ">
           <View className="p-4">
-            {/* Nombre completo */}
+            {/* Nombre */}
             <Text className="text-sm font-medium text-gray-700 mb-2">
-              Nombre completo
+              Nombre
             </Text>
             <TextInput
               className="px-4 py-3 border border-gray-300 rounded-lg mb-4"
-              placeholder="Tu nombre completo"
+              placeholder="Tu nombre"
+            />
+
+            {/* Apellidos */}
+            <Text className="text-sm font-medium text-gray-700 mb-2">
+              Apellidos
+            </Text>
+            <TextInput
+              className="px-4 py-3 border border-gray-300 rounded-lg mb-4"
+              placeholder="Tus Apellidos"
             />
 
             {/* Correo electrónico */}
