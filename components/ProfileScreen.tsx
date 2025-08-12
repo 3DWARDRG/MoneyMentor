@@ -89,7 +89,7 @@ const LogOut = async () => {
       )}
 
       {/* Footer */}
-      <View className="items-center">
+      <View className="items-center ">
         <Text className="text-gray-500 text-sm">Versión 1.0.0</Text>
         <Text className="text-gray-500 text-sm mt-1">© 2025 FinApp. Todos los derechos reservados.</Text>
       </View>
