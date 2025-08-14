@@ -16,6 +16,8 @@ import {
   ExpandableCalendar,
 } from "react-native-calendars";
 
+import Carrousel from "@/components/Carrousel";
+
 import { router } from "expo-router";
 export default function AddTransactionScreen() {
   const [selected, setSelected] = useState(
@@ -48,7 +50,7 @@ export default function AddTransactionScreen() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              onPress={() => router.push('/(tabs)')}
+              onPress={() => router.push("/(tabs)")}
             >
               <Path d="M15 19l-7-7 7-7" />
             </Svg>
@@ -114,14 +116,10 @@ export default function AddTransactionScreen() {
 
           {/* Category */}
           <View>
-            <Text className="text-sm font-medium text-gray-700 mb-3">
+            <Text className="text-sm font-medium text-gray-700 my-3">
               Categoría *
             </Text>
-            <View className="border border-gray-300 rounded-lg p-4 bg-gray-50">
-              <Text className="text-gray-400 italic">
-                (Selector de categoría aquí)
-              </Text>
-            </View>
+            <Carrousel />
           </View>
 
           {/* Account */}
@@ -145,10 +143,10 @@ export default function AddTransactionScreen() {
             <Text className="text-sm font-medium text-gray-700 my-2">
               Fecha
             </Text>
-            <CalendarProvider date={selected} >
+            <CalendarProvider date={selected}>
               <ExpandableCalendar
-              onDayPress={(day) => setSelected(day.dateString)}
-              enableSwipeMonths={ true }
+                onDayPress={(day) => setSelected(day.dateString)}
+                enableSwipeMonths={true}
                 pastScrollRange={2} // Meses anteriores que se pueden mostrar
                 futureScrollRange={2} // Meses futuros a precargar
                 closeOnDayPress={true}
