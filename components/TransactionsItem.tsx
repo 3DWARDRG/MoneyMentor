@@ -20,8 +20,8 @@ const TransactionItem = ({ icon, bgColor, iconColor, title, date, amount, amount
         <Text className={`${iconColor} font-bold text-base`}>{icon}</Text>
       </View>
       <View className="flex-grow">
-        <Text className="font-medium">{title}</Text>
-        <Text className="text-xs text-gray-500">{date}</Text>
+        <Text className="font-medium text-lg">{title}</Text>
+        <Text className=" text-gray-500 text-sm">{date}</Text>
       </View>
       <Text className={`${amountColor} font-medium`}>{amount}</Text>
     </View>

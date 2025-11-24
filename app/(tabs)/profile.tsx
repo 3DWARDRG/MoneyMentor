@@ -6,10 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Profile() {
   return (
-    <SafeAreaView> 
-    <View >
+    <SafeAreaView className='bg-gray-50 flex-1'> 
       <ProfileScreen />
-    </View>
     </SafeAreaView>
   );
 }

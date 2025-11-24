@@ -4,7 +4,6 @@ import { View, Text, Image, ScrollView } from "react-native";
 import BalanceCard from "@/components/BalanceCard";
 import RecentTransactions from "@/components/RecentTransactions";
 import { TouchableOpacity } from "react-native";
-import { router } from "expo-router";
 import FloatingActionButton from "@/components/FloatingActionButton";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Redirect } from "expo-router";
@@ -23,8 +22,8 @@ export default function Index() {
             <View className="p-4">
               <View className="flex-row justify-between items-center mb-6">
                 <View>
-                  <Text className="text-2xl font-bold">Hola, Edward</Text>
-                  <Text className="text-gray-950">Bienvenido de nuevo</Text>
+                  <Text className="text-2xl font-medium">Hola, Edward</Text>
+                  <Text className="text-gray-950 text-lg font-inter">Bienvenido de nuevo</Text>
                 </View>
                 <View className="min-w-20 h-20 rounded-full overflow-hidden">
                   <Image
@@ -38,11 +37,8 @@ export default function Index() {
               <BalanceCard />
             </View>
           </View>
-          <View className="min-h-40 ">
+          <View className="min-h-80 ">
             <RecentTransactions />
-            <TouchableOpacity onPress={() => router.push("/register")}>
-              <Text className="text-blue-600">Regístrate aquí</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>

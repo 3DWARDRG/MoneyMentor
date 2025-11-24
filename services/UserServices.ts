@@ -1,4 +1,7 @@
+import { useAuthStore } from '@/store/useAuthStore';
 import api from './api';
+import { useUserForm } from '@/store/useUserForm';
+
 
 export const getProfile = async () => {
   const res = await api.get('/users/me');

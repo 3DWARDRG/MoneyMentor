@@ -8,6 +8,10 @@ module.exports = {
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
+            fontFamily: {
+        inter: ["inter_300Light"],
+        interBold: ["inter_500Medium"],
+      }
     },
   },
   plugins: [],

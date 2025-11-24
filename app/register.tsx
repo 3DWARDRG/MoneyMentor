@@ -11,10 +11,22 @@ import {
 } from "react-native";
 import { Svg, Path } from "react-native-svg";
 import MoneyMentorLogo from "@/components/ui/MoneyMentorLogo";
+import { useUserForm } from "@/store/useUserForm";
+
 
 
 export default function RegisterScreen() {
       const [isChecked, setIsChecked] = useState(false);
+      const { name, last_name ,  email, password, confirmPassword, setField } = useUserForm();
+
+      const validatePassword = () => {
+        if (password !== confirmPassword) {
+          alert('Las contraseñas no coinciden' + password + '  ' + confirmPassword);
+          return false;
+        }
+        alert('Las contraseñas coinciden' + password + '  ' + confirmPassword);
+        return true;
+      }
 
   return (
     <ScrollView
@@ -45,6 +57,7 @@ export default function RegisterScreen() {
             <TextInput
               className="px-4 py-3 border border-gray-300 rounded-lg mb-4"
               placeholder="Tu nombre"
+              onChangeText={ (text)=> setField('name', text)}
             />
 
             {/* Apellidos */}
@@ -54,6 +67,7 @@ export default function RegisterScreen() {
             <TextInput
               className="px-4 py-3 border border-gray-300 rounded-lg mb-4"
               placeholder="Tus Apellidos"
+              onChangeText={ (text)=> setField('last_name', text)}
             />
 
             {/* Correo electrónico */}
@@ -74,6 +88,7 @@ export default function RegisterScreen() {
               className="px-4 py-3 border border-gray-300 rounded-lg mb-4"
               placeholder="••••••••"
               secureTextEntry
+              onChangeText={ (text)=> setField('password', text)}
             />
 
             {/* Confirmar contraseña */}
@@ -84,6 +99,7 @@ export default function RegisterScreen() {
               className="px-4 py-3 border border-gray-300 rounded-lg mb-4"
               placeholder="••••••••"
               secureTextEntry
+              onChangeText={ (text)=> setField('confirmPassword', text)}
             />
           </View>
 
@@ -107,7 +123,7 @@ export default function RegisterScreen() {
             </Text>
           </View>
 
-          <TouchableOpacity className="bg-blue-600 py-3 rounded-lg">
+          <TouchableOpacity className="bg-blue-600 py-3 rounded-lg" onPress={validatePassword}>
             <Text className="text-white text-center font-medium">
               Crear cuenta
             </Text>

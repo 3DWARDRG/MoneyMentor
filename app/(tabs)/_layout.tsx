@@ -42,21 +42,21 @@ export default function TabLayout() {
         name="reminders"
         options={{
           title: 'Recordatorios',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="alarm" color={color} />,
         }}
       />
       <Tabs.Screen
         name="statistics"
         options={{
           title: 'Estadisticas',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="chart.line.uptrend.xyaxis" color={color} />,
         }}
       />
             <Tabs.Screen
         name="profile"
         options={{
           title: 'Perfil',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person" color={color} />,
         }}
       />
     </Tabs>

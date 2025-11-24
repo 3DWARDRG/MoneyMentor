@@ -1,15 +1,15 @@
 import React from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import TransactionItem from './TransactionsItem';
-
+import { router } from "expo-router";
 const RecentTransactions = () => {
   return (
 
     <View className="mb-4">
       <View className="flex-row justify-between items-center p-3">
-        <Text className="font-bold text-base">Transacciones recientes</Text>
-        <Pressable>
-          <Text className="text-blue-600 text-sm">Ver todas</Text>
+        <Text className="font-bold  text-xl">Transacciones recientes</Text>
+        <Pressable onPress={() => router.push("/register")}>
+          <Text className="text-blue-600 text-base">Ver todas</Text>
         </Pressable>
       </View>
 

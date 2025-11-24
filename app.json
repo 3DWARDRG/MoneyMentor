@@ -8,6 +8,7 @@
     "scheme": "moneymentor",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "entryPoint": "expo-router/entry",
     "ios": {
       "supportsTablet": true
     },
@@ -16,7 +17,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "sdsad.apk"
     },
     "web": {
       "bundler": "metro",
@@ -50,10 +52,19 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font",
+      "@morrowdigital/watermelondb-expo-plugin"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1dc45b2c-a6f1-48b0-b30b-88a6a29f7b81"
+      }
+    },
+    "owner": "edwardrg"
   }
 }
