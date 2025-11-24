@@ -6,7 +6,8 @@ import com.nozbe.watermelondb.jsi.WatermelonDBJSIPackage;
 import com.facebook.react.bridge.JSIModulePackage;        
 
 import android.content.res.Configuration
-
+import com.facebook.react.bridge.JSIModulePackage
+import com.swmansion.reanimated.ReanimatedJSIModulePackage
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactNativeHost
@@ -16,7 +17,6 @@ import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.load
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
-import com.swmansion.reanimated.ReanimatedJSIModulePackage
 
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
@@ -46,6 +46,7 @@ override fun getJSIModulePackages(): List<JSIModulePackage> {
         WatermelonDBJSIPackage()
     )
 }
+        }
       }
   )
 
