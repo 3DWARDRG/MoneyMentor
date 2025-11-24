@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "moneymentor",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "entryPoint": "expo-router/entry",
     "ios": {
       "supportsTablet": true
@@ -27,7 +27,6 @@
     },
     "plugins": [
       "expo-router",
-      "react-native-reanimated/plugin",
       [
         "expo-splash-screen",
         {
@@ -55,7 +54,7 @@
       ],
       "expo-secure-store",
       "expo-font",
-      "@nozbe/watermelondb/plugin"
+      "@morrowdigital/watermelondb-expo-plugin"
     ],
     "experiments": {
       "typedRoutes": true
