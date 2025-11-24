@@ -25,44 +25,38 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
- "plugins": [
-  "expo-router",
-  [
-    "@react-native-reanimated/plugin",
-    {
-      "relativeParentPath": "./../../"
-    }
-  ],
-  [
-    "expo-splash-screen",
-    {
-      "image": "./assets/images/splash-icon.png",
-      "imageWidth": 200,
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    }
-  ],
-  [
-    "expo-sqlite",
-    {
-      "enableFTS": true,
-      "useSQLCipher": true,
-      "android": {
-        "enableFTS": false,
-        "useSQLCipher": false
-      },
-      "ios": {
-        "customBuildFlags": [
-          "-DSQLITE_ENABLE_DBSTAT_VTAB=1 -DSQLITE_ENABLE_SNAPSHOT=1"
-        ]
-      }
-    }
-  ],
-  "expo-secure-store",
-  "expo-font",
-  "@nozbe/watermelondb/plugin"
-]
-,
+    "plugins": [
+      "expo-router",
+      "react-native-reanimated/plugin",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-sqlite",
+        {
+          "enableFTS": true,
+          "useSQLCipher": true,
+          "android": {
+            "enableFTS": false,
+            "useSQLCipher": false
+          },
+          "ios": {
+            "customBuildFlags": [
+              "-DSQLITE_ENABLE_DBSTAT_VTAB=1 -DSQLITE_ENABLE_SNAPSHOT=1"
+            ]
+          }
+        }
+      ],
+      "expo-secure-store",
+      "expo-font",
+      "@nozbe/watermelondb/plugin"
+    ],
     "experiments": {
       "typedRoutes": true
     },
