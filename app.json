@@ -18,7 +18,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "sdsad.apk"
+      "package": "com.edwardrg.moneymentor"
     },
     "web": {
       "bundler": "metro",
@@ -36,25 +36,19 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      [
-        "expo-sqlite",
-        {
-          "enableFTS": true,
-          "useSQLCipher": true,
-          "android": {
-            "enableFTS": false,
-            "useSQLCipher": false
-          },
-          "ios": {
-            "customBuildFlags": [
-              "-DSQLITE_ENABLE_DBSTAT_VTAB=1 -DSQLITE_ENABLE_SNAPSHOT=1"
-            ]
-          }
-        }
-      ],
       "expo-secure-store",
       "expo-font",
-      "@morrowdigital/watermelondb-expo-plugin"
+      ["@lovesworking/watermelondb-expo-plugin-sdk-52-plus"],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "packagingOptions": {
+              "pickFirst": ["**/libc++_shared.so"]
+            }
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

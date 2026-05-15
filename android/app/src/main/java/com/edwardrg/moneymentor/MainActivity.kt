@@ -1,4 +1,4 @@
-package sdsad.apk
+package com.edwardrg.moneymentor
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

@@ -15,7 +15,7 @@ import { User } from './models/mlUser'
 const adapter = new SQLiteAdapter({
   schema,
   migrations,
-  jsi: true,
+  jsi: false,
 })
 
 export const database = new Database({

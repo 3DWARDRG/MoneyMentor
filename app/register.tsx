@@ -12,10 +12,12 @@ import {
 import { Svg, Path } from "react-native-svg";
 import MoneyMentorLogo from "@/components/ui/MoneyMentorLogo";
 import { useUserForm } from "@/store/useUserForm";
-
+import ServiceDBFacade from '@/database/serviceDb';
+import { database } from '@/database/index';
 
 
 export default function RegisterScreen() {
+      const serviceDB = new ServiceDBFacade(database)
       const [isChecked, setIsChecked] = useState(false);
       const { name, last_name ,  email, password, confirmPassword, setField } = useUserForm();
 
@@ -25,8 +27,26 @@ export default function RegisterScreen() {
           return false;
         }
         alert('Las contraseñas coinciden' + password + '  ' + confirmPassword);
+        registrarUsuario();
         return true;
       }
+
+      // donde tengas acceso a `database`
+
+
+
+
+async function registrarUsuario() {
+  const nuevoUsuario = await serviceDB.create('users', {
+    name: name,
+    last_name: last_name,
+    email: email,
+    password_hash: password,
+  })
+
+  console.log('Usuario creado:', nuevoUsuario.id)
+}
+
 
   return (
     <ScrollView
@@ -144,6 +164,4 @@ export default function RegisterScreen() {
     </ScrollView>
   );
 }
-{
-  /* Link to Login */
-}
+
