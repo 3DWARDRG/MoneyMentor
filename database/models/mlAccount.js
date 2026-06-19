@@ -8,7 +8,7 @@ export class Account extends Model {
     users: { type: 'belongs_to', key: 'user_id' },
     // categories: muchos a muchos, manejar con tabla intermedia aparte
   }
-
+  @field('user_id') user_id  
   @field('name') name
   @field('icon_image') iconImage
   @field('balance') balance

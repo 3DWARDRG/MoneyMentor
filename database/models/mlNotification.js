@@ -7,7 +7,7 @@ export class Notification extends Model {
   static associations = {
     users: { type: 'belongs_to', key: 'user_id' },
   };
-
+  @field('user_id') user_id
   @field('type') type;
   @field('message') message;
   @field('send_date') sendDate;

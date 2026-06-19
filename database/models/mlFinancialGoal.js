@@ -7,7 +7,7 @@ export class FinancialGoal extends Model {
   static associations = {
     users: { type: 'belongs_to', key: 'user_id' },
   };
-
+  @field('user_id') user_id
   @field('title') title;
   @field('description') description;
   @field('amount') amount;

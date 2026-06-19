@@ -1,117 +1,57 @@
-import React from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
-import TransactionItem from './TransactionsItem';
+import { useFinanceData } from "@/hooks/useFinanceData";
+import { useAuthStore } from "@/store/useAuthStore";
 import { router } from "expo-router";
-const RecentTransactions = () => {
-  return (
+import React from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  Text,
+  View,
+} from "react-native";
+import TransactionItem from "../components/TransactionsItem"; // asumo que existe
 
+const RecentTransactions = () => {
+  const { userId } = useAuthStore();
+  const { transactions, loading } = useFinanceData(userId || "");
+  const recent = transactions.slice(0, 5);
+
+  if (loading) {
+    return <ActivityIndicator className="my-4" />;
+  }
+
+  if (recent.length === 0) {
+    return (
+      <View className="p-4">
+        <Text className="text-center text-gray-500">
+          No hay transacciones aún
+        </Text>
+      </View>
+    );
+  }
+
+  return (
     <View className="mb-4">
       <View className="flex-row justify-between items-center p-3">
-        <Text className="font-bold  text-xl">Transacciones recientes</Text>
-        <Pressable onPress={() => router.push("/register")}>
+        <Text className="font-bold text-xl">Transacciones recientes</Text>
+        <Pressable onPress={() => router.push("/")}>
           <Text className="text-blue-600 text-base">Ver todas</Text>
         </Pressable>
       </View>
-
-      <TransactionItem
-        icon="🛒"
-        bgColor="bg-red-100"
-        iconColor="text-red-600"
-        title="Supermercado"
-        date="Hoy, 14:30"
-        amount="-$85.20"
-        amountColor="text-red-600"
+      <FlatList
+        data={recent}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <TransactionItem
+            description={item.description}
+            categoryId={item.category_id}
+            date={item.date}
+            amount={item.amount}
+            type={item.type}
+          />
+        )}
+        scrollEnabled={false}
       />
-
-      <TransactionItem
-        icon="💸"
-        bgColor="bg-blue-100"
-        iconColor="text-blue-600"
-        title="Transferencia recibida"
-        date="Ayer, 10:15"
-        amount="+$1,200.00"
-        amountColor="text-green-600"
-      />
-
-      <TransactionItem
-        icon="🎵"
-        bgColor="bg-purple-100"
-        iconColor="text-purple-600"
-        title="Spotify Premium"
-        date="24 Mar, 12:00"
-        amount="-$9.99"
-        amountColor="text-red-600"
-      />
-            <TransactionItem
-        icon="🛒"
-        bgColor="bg-red-100"
-        iconColor="text-red-600"
-        title="Supermercado"
-        date="Hoy, 14:30"
-        amount="-$85.20"
-        amountColor="text-red-600"
-      />
-
-      <TransactionItem
-        icon="💸"
-        bgColor="bg-blue-100"
-        iconColor="text-blue-600"
-        title="Transferencia recibida"
-        date="Ayer, 10:15"
-        amount="+$1,200.00"
-        amountColor="text-green-600"
-      />
-
-      <TransactionItem
-        icon="🎵"
-        bgColor="bg-purple-100"
-        iconColor="text-purple-600"
-        title="Spotify Premium"
-        date="24 Mar, 12:00"
-        amount="-$9.99"
-        amountColor="text-red-600"
-      />
-
-            <TransactionItem
-        icon="🎵"
-        bgColor="bg-purple-100"
-        iconColor="text-purple-600"
-        title="Spotify Premium"
-        date="24 Mar, 12:00"
-        amount="-$9.99"
-        amountColor="text-red-600"
-      />
-
-            <TransactionItem
-        icon="💸"
-        bgColor="bg-blue-100"
-        iconColor="text-blue-600"
-        title="Transferencia recibida"
-        date="Ayer, 10:15"
-        amount="+$1,200.00"
-        amountColor="text-green-600"
-      />
-
-      <TransactionItem
-        icon="🎵"
-        bgColor="bg-purple-100"
-        iconColor="text-purple-600"
-        title="Spotify Premium"
-        date="24 Mar, 12:00"
-        amount="-$9.99"
-        amountColor="text-red-600"
-      />
-
-            <TransactionItem
-        icon="🎵"
-        bgColor="bg-purple-100"
-        iconColor="text-purple-600"
-        title="Spotify Premium"
-        date="24 Mar, 12:00"
-        amount="-$9.99"
-        amountColor="text-red-600"
-      />
-
     </View>
   );
 };

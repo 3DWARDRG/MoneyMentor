@@ -2,7 +2,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb'
 
 export const schema = appSchema({
-  version: 1,
+  version: 3,
   tables: [
     tableSchema({
       name: 'users',
@@ -28,6 +28,7 @@ export const schema = appSchema({
     tableSchema({
       name: 'categories',
       columns: [
+        { name: 'user_id', type: 'string', isIndexed: true }, // ← nuevo
         { name: 'account_id', type: 'string', isIndexed: true }, // referencia a cuenta
         { name: 'name', type: 'string' },
         { name: 'icon_image', type: 'string' },

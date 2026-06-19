@@ -6,7 +6,7 @@ import {
 export const migrations = schemaMigrations({
   migrations: [
     {
-      toVersion: 2,
+      toVersion: 3,
       steps: [
         // USERS
         createTable({
@@ -37,6 +37,7 @@ export const migrations = schemaMigrations({
         createTable({
           name: 'categories',
           columns: [
+             { name: 'user_id', type: 'string', isIndexed: true }, // ← nuevo
             { name: 'account_id', type: 'string', isIndexed: true },
             { name: 'name', type: 'string' },
             { name: 'icon_image', type: 'string' },

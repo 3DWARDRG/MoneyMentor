@@ -8,7 +8,8 @@ export class Transaction extends Model {
     users: { type: 'belongs_to', key: 'user_id' },
     categories: { type: 'belongs_to', key: 'category_id' },
   };
-
+  @field('user_id') user_id      // ← agregar esto
+  @field('category_id') category_id
   @field('date') date;
   @field('amount') amount;
   @field('description') description;

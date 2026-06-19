@@ -8,7 +8,8 @@ export class Category extends Model {
     accounts: { type: 'belongs_to', key: 'account_id' },
     transactions: { type: 'has_many', foreignKey: 'category_id' },
   };
-
+  @field('user_id') user_id      // ← agregar esto
+  @field('category_id') category_id
   @field('name') name;
   @field('icon_image') iconImage;
   @field('type') type;
