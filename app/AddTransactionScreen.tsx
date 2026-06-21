@@ -6,7 +6,6 @@ import { router } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   Alert,
-  Dimensions,
   ScrollView,
   Text,
   TextInput,
@@ -17,19 +16,29 @@ import { Calendar } from "react-native-calendars";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Path, Svg } from "react-native-svg";
 
-const { width: PAGE_WIDTH } = Dimensions.get("window");
-
 export default function AddTransactionScreen() {
+  const formatLocalDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const localDateStringToTimestamp = (dateString: string) => {
+    const [year, month, day] = dateString.split("-").map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0, 0).getTime();
+  };
+
   const { userId } = useAuthStore();
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().slice(0, 10),
-  );
+  const todayString = formatLocalDate(new Date());
+  const [selectedDate, setSelectedDate] = useState(formatLocalDate(new Date()));
   const [transactionType, setTransactionType] = useState<
     "income" | "expense" | null
   >(null);
   const [amountRaw, setAmountRaw] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
+
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     null,
@@ -40,89 +49,46 @@ export default function AddTransactionScreen() {
     return numeric.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
-  // 🔥 Array de categorías por defecto (mismo que usas en ensureLocalUser)
-  const DEFAULT_CATEGORIES = [
-    // Gastos
-    { id: "default_1", name: "Comida", icon_image: "🍔", type: "expense" },
-    { id: "default_2", name: "Transporte", icon_image: "🚗", type: "expense" },
-    {
-      id: "default_3",
-      name: "Entretenimiento",
-      icon_image: "🎬",
-      type: "expense",
-    },
-    { id: "default_4", name: "Salud", icon_image: "🏥", type: "expense" },
-    { id: "default_5", name: "Educación", icon_image: "📚", type: "expense" },
-    { id: "default_6", name: "Servicios", icon_image: "💡", type: "expense" },
-    { id: "default_7", name: "Ropa", icon_image: "👕", type: "expense" },
-    {
-      id: "default_8",
-      name: "Supermercado",
-      icon_image: "🛒",
-      type: "expense",
-    },
-    { id: "default_9", name: "Café", icon_image: "☕", type: "expense" },
-    { id: "default_10", name: "Gimnasio", icon_image: "💪", type: "expense" },
-    // Ingresos
-    { id: "default_11", name: "Salario", icon_image: "💰", type: "income" },
-    { id: "default_12", name: "Freelance", icon_image: "💻", type: "income" },
-    { id: "default_13", name: "Regalo", icon_image: "🎁", type: "income" },
-    { id: "default_14", name: "Inversión", icon_image: "📈", type: "income" },
-    { id: "default_15", name: "Reembolso", icon_image: "🔄", type: "income" },
-    { id: "default_16", name: "Venta", icon_image: "🏷️", type: "income" },
-    {
-      id: "default_17",
-      name: "Otros ingresos",
-      icon_image: "💵",
-      type: "income",
-    },
-  ];
-
   useFocusEffect(
     useCallback(() => {
       const loadCategories = async () => {
         if (!userId) return;
+
         try {
           const catsCollection = database.get("categories");
           const dbCategories = await catsCollection
             .query(Q.where("user_id", userId))
             .fetch();
 
-          // Convertir las categorías de BD a un formato comparable (con id real)
-          const dbCategoriesFormatted = dbCategories.map((cat: any) => ({
+          const formatted = dbCategories.map((cat: any) => ({
             id: cat.id,
             name: cat.name,
-            icon_image: cat.icon_image,
+            iconImage: cat.iconImage,
             type: cat.type,
           }));
-          // Combinar con las genéricas, evitando duplicados por nombre y tipo
-          const allCategories = [...DEFAULT_CATEGORIES];
-          for (const dbCat of dbCategoriesFormatted) {
-            const exists = allCategories.some(
-              (genCat) =>
-                genCat.name === dbCat.name && genCat.type === dbCat.type,
-            );
-            if (!exists) {
-              allCategories.push(dbCat);
-            }
-          }
 
-          setCategories(allCategories);
-          if (allCategories.length > 0 && !selectedCategoryId) {
-            setSelectedCategoryId(allCategories[0].id);
+          setCategories(formatted);
+
+          if (formatted.length > 0) {
+            setSelectedCategoryId((prev) =>
+              prev && formatted.some((cat) => cat.id === prev)
+                ? prev
+                : formatted[0].id,
+            );
           }
           console.log(
-            `📦 Categorías totales: ${allCategories.length} (${DEFAULT_CATEGORIES.length} genéricas + ${dbCategoriesFormatted.length} de BD)`,
-          );
+  dbCategories.map((cat: any) => ({
+    name: cat.name,
+    iconImage: cat.iconImage,
+  }))
+);
+
+          console.log(`📦 Categorías cargadas: ${formatted.length}`);
         } catch (error) {
-          console.error("Error loading categories:", error);
-          // En caso de error, al menos mostrar las genéricas
-          setCategories(DEFAULT_CATEGORIES);
-          if (DEFAULT_CATEGORIES.length > 0 && !selectedCategoryId) {
-            setSelectedCategoryId(DEFAULT_CATEGORIES[0].id);
-          }
+          console.error("❌ Error cargando categorías:", error);
         }
       };
+
       loadCategories();
     }, [userId]),
   );
@@ -132,69 +98,45 @@ export default function AddTransactionScreen() {
   };
 
   const handleSave = async () => {
+    setLoading(true);
+    if (!userId) {
+      Alert.alert("Error", "No se encontró el usuario actual");
+      return;
+    }
+
     if (!transactionType) {
       Alert.alert("Error", "Selecciona tipo de transacción");
       return;
     }
+
     if (!selectedCategoryId) {
       Alert.alert("Error", "Selecciona una categoría");
       return;
     }
+
     const numericAmount = Number(amountRaw.replace(/\./g, ""));
     if (!amountRaw || numericAmount <= 0) {
       Alert.alert("Error", "Ingresa un monto válido");
       return;
     }
 
-    setLoading(true);
     try {
-      let finalCategoryId = selectedCategoryId;
+      const selectedDateTimestamp = localDateStringToTimestamp(selectedDate);
 
-      // Si es una categoría temporal (default_), buscamos o creamos la real
-      if (selectedCategoryId?.startsWith("default_")) {
-        const selectedCat = categories.find((c) => c.id === selectedCategoryId);
-        if (selectedCat) {
-          const catsCollection = database.get("categories");
-          // Buscar por nombre y user_id
-          const existing = await catsCollection
-            .query(
-              Q.where("user_id", userId),
-              Q.where("name", selectedCat.name),
-            )
-            .fetch();
-          if (existing.length > 0) {
-            finalCategoryId = existing[0].id;
-          } else {
-            // Crear la categoría real
-            await database.write(async () => {
-              const newCat = await catsCollection.create((record: any) => {
-                record.user_id = userId;
-                record.name = selectedCat.name;
-                record.icon_image = selectedCat.icon_image;
-                record.type = selectedCat.type;
-              });
-              finalCategoryId = newCat.id;
-            });
-          }
-        }
-      }
-
-      const dateTimestamp = Date.now();
       await database.write(async () => {
         const txCollection = database.get("transactions");
+
         await txCollection.create((record: any) => {
           record.user_id = userId;
-          record.date = dateTimestamp;
+          record.date = selectedDateTimestamp;
           record.amount = numericAmount;
           record.description = description.trim() || "Sin descripción";
           record.type = transactionType;
-          record.category_id = finalCategoryId;
+          record.category_id = selectedCategoryId;
         });
       });
 
-      Alert.alert("Éxito", "Transacción guardada", [
-        { text: "OK", onPress: () => router.back() },
-      ]);
+      router.back();
     } catch (error: any) {
       console.error("Save error:", error);
       Alert.alert("Error", error.message || "No se pudo guardar");
@@ -203,42 +145,48 @@ export default function AddTransactionScreen() {
     }
   };
 
-  // Renderizado inline de categorías (carrusel horizontal)
   const renderCategories = () => {
     if (categories.length === 0) {
       return (
         <Text className="text-gray-500 text-center">
-          No hay categorías. Reinicia la app si acabas de instalar.
+          No hay categorías disponibles para este usuario.
         </Text>
       );
     }
+
     return (
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         className="flex-row"
       >
-        {categories.map((cat) => (
-          <TouchableOpacity
-            key={cat.id}
-            onPress={() => setSelectedCategoryId(cat.id)}
-            className={`mx-2 p-3 rounded-full items-center justify-center ${
-              selectedCategoryId === cat.id ? "bg-blue-500" : "bg-gray-200"
-            }`}
-            style={{ minWidth: 70 }}
-          >
-            <Text
-              className={`text-xl ${selectedCategoryId === cat.id ? "text-white" : "text-gray-700"}`}
+        {categories
+          .filter((cat) => !transactionType || cat.type === transactionType)
+          .map((cat) => (
+            <TouchableOpacity
+              key={cat.id}
+              onPress={() => setSelectedCategoryId(cat.id)}
+              className={`mx-2 p-3 rounded-full items-center justify-center ${
+                selectedCategoryId === cat.id ? "bg-blue-500" : "bg-gray-200"
+              }`}
+              style={{ minWidth: 70 }}
             >
-              {cat.icon_image || "📁"}
-            </Text>
-            <Text
-              className={`text-xs mt-1 ${selectedCategoryId === cat.id ? "text-white" : "text-gray-700"}`}
-            >
-              {cat.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                className={`text-xl ${
+                  selectedCategoryId === cat.id ? "text-white" : "text-gray-700"
+                }`}
+              >
+                {cat.iconImage || "📁"}
+              </Text>
+              <Text
+                className={`text-xs mt-1 ${
+                  selectedCategoryId === cat.id ? "text-white" : "text-gray-700"
+                }`}
+              >
+                {cat.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
       </ScrollView>
     );
   };
@@ -246,7 +194,6 @@ export default function AddTransactionScreen() {
   return (
     <SafeAreaView className="flex-1 bg-white">
       <ScrollView className="flex-1 p-5">
-        {/* Header */}
         <View className="flex-row items-center justify-between mb-6">
           <TouchableOpacity
             onPress={() => router.back()}
@@ -271,12 +218,17 @@ export default function AddTransactionScreen() {
           <View className="w-10" />
         </View>
 
-        {/* Tipo */}
         <View className="mb-4">
           <Text className="text-sm font-medium text-gray-700 mb-2">Tipo</Text>
           <View className="flex-row gap-3">
             <TouchableOpacity
-              onPress={() => setTransactionType("income")}
+              onPress={() => {
+                setTransactionType("income");
+                const firstIncomeCategory = categories.find(
+                  (cat) => cat.type === "income",
+                );
+                setSelectedCategoryId(firstIncomeCategory?.id ?? null);
+              }}
               className={`flex-1 p-3 border-2 rounded-lg items-center ${
                 transactionType === "income"
                   ? "border-green-500 bg-green-50"
@@ -285,8 +237,15 @@ export default function AddTransactionScreen() {
             >
               <Text className="font-medium">Ingreso</Text>
             </TouchableOpacity>
+
             <TouchableOpacity
-              onPress={() => setTransactionType("expense")}
+              onPress={() => {
+                setTransactionType("expense");
+                const firstExpenseCategory = categories.find(
+                  (cat) => cat.type === "expense",
+                );
+                setSelectedCategoryId(firstExpenseCategory?.id ?? null);
+              }}
               className={`flex-1 p-3 border-2 rounded-lg items-center ${
                 transactionType === "expense"
                   ? "border-red-500 bg-red-50"
@@ -298,7 +257,6 @@ export default function AddTransactionScreen() {
           </View>
         </View>
 
-        {/* Monto */}
         <View className="mb-4">
           <Text className="text-sm font-medium text-gray-700 mb-2">
             Monto *
@@ -317,7 +275,6 @@ export default function AddTransactionScreen() {
           </View>
         </View>
 
-        {/* Categorías */}
         <View className="mb-4">
           <Text className="text-sm font-medium text-gray-700 mb-2">
             Categoría *
@@ -325,11 +282,11 @@ export default function AddTransactionScreen() {
           {renderCategories()}
         </View>
 
-        {/* Fecha */}
         <View className="mb-4">
           <Text className="text-sm font-medium text-gray-700 mb-2">Fecha</Text>
           <Calendar
             onDayPress={(day: any) => setSelectedDate(day.dateString)}
+            maxDate={todayString}
             markedDates={{
               [selectedDate]: { selected: true, selectedColor: "#2563eb" },
             }}
@@ -354,7 +311,6 @@ export default function AddTransactionScreen() {
           />
         </View>
 
-        {/* Comentarios */}
         <View className="mb-6">
           <Text className="text-sm font-medium text-gray-700 mb-2">
             Comentarios
@@ -369,9 +325,8 @@ export default function AddTransactionScreen() {
           />
         </View>
 
-        {/* Botón guardar */}
         <TouchableOpacity
-          className="bg-blue-600 py-4 rounded-lg items-center"
+          className={`${loading ? "opacity-50" : ""} bg-blue-600 py-4 rounded-lg items-center`}
           onPress={handleSave}
           disabled={loading}
         >

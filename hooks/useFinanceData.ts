@@ -48,7 +48,7 @@ useEffect(() => {
               // Query SIN filtro para ver todos
   database.get("transactions").query().fetch().then(allTx => {
     console.log("🗄️ Total en DB sin filtro:", allTx.length);
-    allTx.forEach(tx => console.log("  tx.user_id:", tx.user_id, "| userId:", userId));
+    allTx.forEach(tx => console.log("  tx.user_id:", tx.id, "| userId:", userId));
   });
           const sorted = [...all].sort((a, b) => b.date - a.date);
           setTransactions(sorted);

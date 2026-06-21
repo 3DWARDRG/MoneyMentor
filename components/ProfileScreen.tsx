@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { SvgCss, SvgXml } from 'react-native-svg';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import LogOutButton from '@/components/LogOut';
 
 const userIconSvg = `
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -248,7 +249,7 @@ const ProfileScreen = () => {
             <SvgXml xml={editIconSvg} width={20} height={20} fill="#DC2626" />
           </View>
           <View className="flex-grow">
-            <Text className="font-medium">Cerrar sesión</Text>
+            <LogOutButton />
             <Text className="text-sm text-gray-500">Salir de la aplicación</Text>
           </View>
           <SvgXml xml={editIconSvg} width={20} height={20} fill="#9CA3AF" />

@@ -14,7 +14,6 @@ export default function DebugDB({ onRefresh }: { onRefresh?: () => void }) {
   // También podemos usar el hook para ver qué dice
   const { summary, loading: summaryLoading } = useFinanceData(userId || "");
 
-
   const loadData = async () => {
     if (!userId) return;
     setLoading(true);
@@ -98,7 +97,7 @@ export default function DebugDB({ onRefresh }: { onRefresh?: () => void }) {
       {categories.slice(0, 5).map((cat) => (
         <View key={cat.id} className="bg-white p-1 mb-1 rounded flex-row">
           <Text>
-            {cat.icon_image} {cat.name} ({cat.type})
+            {cat.iconImage} {cat.name} ({cat.type})
           </Text>
         </View>
       ))}

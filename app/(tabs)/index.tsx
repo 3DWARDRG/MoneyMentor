@@ -46,9 +46,11 @@ export default function Index() {
     loadUserName();
   }, [userId]);
 
+  
+
   return (
     <SafeAreaView className="bg-gray-50 flex-1">
-      <ScrollView key={dashboardKey}>
+      <View key={dashboardKey} className="flex-1 bg-gray-700">
         <View className="flex-1 box-border bg-white p-4">
           <View className="min-h-10">
             <View className="p-4">
@@ -72,11 +74,11 @@ export default function Index() {
               <BalanceCard />
             </View>
           </View>
-          <View className="min-h-80 ">
+          <View className="flex-1 bg-slate-700 rounded-t-3xl">
             <RecentTransactions />
           </View>
         </View>
-      </ScrollView>
+      </View>
       <View className="relative">
         <FloatingActionButton />
       </View>

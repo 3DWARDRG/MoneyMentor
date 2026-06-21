@@ -1,4 +1,5 @@
 import { database } from "@/database";
+import { ensureDefaultCategoriesForUser } from "@/utils/ensureDefaultCategories";
 import * as LocalAuthentication from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
@@ -135,12 +136,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await SecureStore.setItemAsync(pinKey(selectedUserId), pin);
       await SecureStore.setItemAsync("lastSelectedUserId", selectedUserId);
 
-      set({
-        userId: selectedUserId,
-        isUnlocked: true,
-      });
+      await ensureDefaultCategoriesForUser(selectedUserId); // ← aquí
 
-      console.log("✅ PIN configurado para usuario:", selectedUserId);
+      set({ userId: selectedUserId, isUnlocked: true });
+
+      console.log("✅ PIN y categorías listas para:", selectedUserId);
       return true;
     } catch (error) {
       console.error("❌ Error en setupPinForSelectedUser:", error);
@@ -163,7 +163,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (storedPin !== pin) return false;
 
       await SecureStore.setItemAsync("lastSelectedUserId", selectedUserId);
-
+      await ensureDefaultCategoriesForUser(selectedUserId);
       set({
         userId: selectedUserId,
         isUnlocked: true,
