@@ -29,12 +29,12 @@ const RecentTransactions = () => {
 
         const map: Record<string, { name: string; icon: string }> = {};
         console.log(
-  cats.map((c: any) => ({
-    id: c.id,
-    name: c.name,
-    iconImage: c.iconImage,
-  }))
-);
+          cats.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            iconImage: c.iconImage,
+          })),
+        );
 
         cats.forEach((c: any) => {
           map[c.id] = {
@@ -67,8 +67,6 @@ const RecentTransactions = () => {
     );
   }
 
-  
-
   return (
     <View className="mb-4">
       <View className="flex-row justify-between items-center p-3">
@@ -81,10 +79,8 @@ const RecentTransactions = () => {
         renderItem={({ item }) => (
           <TransactionItem
             description={item.description}
-            categoryName={
-              categoryMap[item.category_id]?.name ?? "Sin categoría"
-            }
-            categoryIcon={categoryMap[item.category_id]?.icon ?? "📁"}
+            categoryName={categoryMap[item.categoryId]?.name ?? "Sin categoría"}
+            categoryIcon={categoryMap[item.categoryId]?.icon ?? "📁"}
             date={item.date}
             amount={item.amount}
             type={item.type}

@@ -26,7 +26,7 @@ export async function ensureDefaultCategoriesForUser(userId: string) {
     await database.write(async () => {
       for (const cat of toCreate) {
         await catsCollection.create((record: any) => {
-          record.user_id = userId;
+          record.userId = userId;
           record.name = cat.name;
           record.iconImage = cat.iconImage;
           record.type = cat.type;
@@ -34,10 +34,15 @@ export async function ensureDefaultCategoriesForUser(userId: string) {
       }
     });
 
+    const inserted = await catsCollection
+      .query(Q.where("user_id", userId))
+      .fetch();
+
     console.log(
       `✅ Creadas ${toCreate.length} categorías para usuario:`,
       userId,
     );
+    console.log("📦 Categorías verificadas:", inserted.length);
   } catch (error) {
     console.error("❌ Error en ensureDefaultCategoriesForUser:", error);
   }

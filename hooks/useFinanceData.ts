@@ -19,14 +19,14 @@ export const useFinanceData = (userId: string) => {
     balance: 0,
   });
 
-useEffect(() => {
-  console.log("🔑 useFinanceData userId:", userId); // ← agregar esto
-  if (!userId) {
-    setLoading(false);
-    return;
-  }
-  // ...
-}, [userId]);
+  useEffect(() => {
+    console.log("🔑 useFinanceData userId:", userId); // ← agregar esto
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+    // ...
+  }, [userId]);
 
   // ✅ useEffect siempre se ejecuta — el guard va ADENTRO
   useEffect(() => {
@@ -43,23 +43,43 @@ useEffect(() => {
       .observe()
       .subscribe({
         next: (all) => {
-            console.log("📡 observe emitió:", all.length, "transacciones");
+          console.log("📡 observe emitió:", all.length, "transacciones");
 
-              // Query SIN filtro para ver todos
-  database.get("transactions").query().fetch().then(allTx => {
-    console.log("🗄️ Total en DB sin filtro:", allTx.length);
-    allTx.forEach(tx => console.log("  tx.user_id:", tx.id, "| userId:", userId));
-  });
+          // Query SIN filtro para ver todos
+          database
+            .get<Transaction>("transactions")
+            .query()
+            .fetch()
+            .then((allTx) => {
+              console.log("🗄️ Total en DB sin filtro:", allTx.length);
+              allTx.forEach((tx) =>
+                console.log("tx:", {
+                  id: tx.id,
+                  userId: tx.userId,
+                  categoryId: tx.categoryId,
+                  amount: tx.amount,
+                  type: tx.type,
+                  date: tx.date,
+                }),
+              );
+            });
           const sorted = [...all].sort((a, b) => b.date - a.date);
           setTransactions(sorted);
 
           const now = new Date();
-          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+          const startOfMonth = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            1,
+          ).getTime();
           const endOfMonth = new Date(
             now.getFullYear(),
             now.getMonth() + 1,
             0,
-            23, 59, 59, 999,
+            23,
+            59,
+            59,
+            999,
           ).getTime();
 
           let income = 0;

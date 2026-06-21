@@ -77,11 +77,11 @@ export default function AddTransactionScreen() {
             );
           }
           console.log(
-  dbCategories.map((cat: any) => ({
-    name: cat.name,
-    iconImage: cat.iconImage,
-  }))
-);
+            dbCategories.map((cat: any) => ({
+              name: cat.name,
+              iconImage: cat.iconImage,
+            })),
+          );
 
           console.log(`📦 Categorías cargadas: ${formatted.length}`);
         } catch (error) {
@@ -98,7 +98,6 @@ export default function AddTransactionScreen() {
   };
 
   const handleSave = async () => {
-    setLoading(true);
     if (!userId) {
       Alert.alert("Error", "No se encontró el usuario actual");
       return;
@@ -120,6 +119,8 @@ export default function AddTransactionScreen() {
       return;
     }
 
+    setLoading(true);
+
     try {
       const selectedDateTimestamp = localDateStringToTimestamp(selectedDate);
 
@@ -127,12 +128,12 @@ export default function AddTransactionScreen() {
         const txCollection = database.get("transactions");
 
         await txCollection.create((record: any) => {
-          record.user_id = userId;
+          record.userId = userId;
           record.date = selectedDateTimestamp;
           record.amount = numericAmount;
           record.description = description.trim() || "Sin descripción";
           record.type = transactionType;
-          record.category_id = selectedCategoryId;
+          record.categoryId = selectedCategoryId;
         });
       });
 
