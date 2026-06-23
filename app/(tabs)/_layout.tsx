@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router";
 import React from "react";
 import { Platform } from "react-native";
-import "../../global.css"; // ← PRIMERA LÍNEA, antes que todo
+import "../../global.css";
 
 import { HapticTab } from "@/components/HapticTab";
 import { IconSymbol } from "@/components/ui/IconSymbol";
@@ -15,13 +15,12 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+        tabBarActiveTintColor: Colors[colorScheme ?? "dark"].tint,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
           android: {
-            // Use a transparent background on iOS to show the blur effect
             position: "absolute",
           },
           default: {},
@@ -29,7 +28,7 @@ export default function TabLayout() {
         tabBarLabelStyle: {
           fontSize: 12,
           fontFamily: "Georgia",
-          fontWeight: 300,
+          fontWeight: "300",
         },
       }}
     >
@@ -38,10 +37,11 @@ export default function TabLayout() {
         options={{
           title: "Inicio",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color } />
+            <IconSymbol size={28} name="house.fill" color={color} />
           ),
         }}
       />
+
       <Tabs.Screen
         name="reminders"
         options={{
@@ -49,6 +49,36 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="alarm" color={color} />
           ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="accounts/index"
+        options={{
+          title: "Cuentas",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="creditcard.fill" color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="accounts/new"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="accounts/[id]"
+        options={{
+          href: null,
+        }}
+      />
+
+            <Tabs.Screen
+        name="transactions/index"
+        options={{
+          href: null,
         }}
       />
       <Tabs.Screen
@@ -64,6 +94,7 @@ export default function TabLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
         name="profile"
         options={{

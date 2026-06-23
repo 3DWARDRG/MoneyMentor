@@ -2,7 +2,7 @@
 import { appSchema, tableSchema } from "@nozbe/watermelondb";
 
 export const schema = appSchema({
-  version: 1,
+  version: 5,
   tables: [
     tableSchema({
       name: "users",
@@ -31,7 +31,13 @@ export const schema = appSchema({
         { name: "credit_limit", type: "number", isOptional: true },
         { name: "interest_rate", type: "number", isOptional: true },
         { name: "payment_due_day", type: "number", isOptional: true },
-        { name: "closing_day", type: "number", isOptional: true },
+        { name: "statement_closing_day", type: "number", isOptional: true },
+        { name: "apr_annual", type: "number", isOptional: true },
+        { name: "apr_monthly", type: "number", isOptional: true },
+        { name: "card_last4", type: "string", isOptional: true },
+        { name: "credit_subtype", type: "string", isOptional: true },
+        { name: "maintenance_fee_amount", type: "number", isOptional: true },
+        { name: "maintenance_fee_frequency", type: "string", isOptional: true },
       ],
     }),
 
@@ -55,11 +61,26 @@ export const schema = appSchema({
           isIndexed: true,
           isOptional: true,
         },
-        { name: "category_id", type: "string", isIndexed: true },
+        {
+          name: "destination_account_id",
+          type: "string",
+          isIndexed: true,
+          isOptional: true,
+        },
+        {
+          name: "category_id",
+          type: "string",
+          isIndexed: true,
+          isOptional: true,
+        },
         { name: "date", type: "number", isIndexed: true },
         { name: "amount", type: "number" },
         { name: "description", type: "string" },
         { name: "type", type: "string" },
+        { name: "installments_total", type: "number", isOptional: true },
+        { name: "installments_paid", type: "number", isOptional: true },
+        { name: "transfer_target", type: "string", isOptional: true },
+        { name: "fee_type", type: "string", isOptional: true },
       ],
     }),
 

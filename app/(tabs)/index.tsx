@@ -4,15 +4,10 @@ import RecentTransactions from "@/components/RecentTransactions";
 import { database } from "@/database";
 import { User } from "@/database/models/mlUser";
 import { useAuthStore } from "@/store/useAuthStore";
-import React, { useEffect, useState , useCallback } from "react";
-import { Image, ScrollView, Text, View } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import React, { useCallback, useEffect, useState } from "react";
+import { Image, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect } from '@react-navigation/native';
-import DebugDB from '@/components/DebugDB';
-
-
-
-
 
 export default function Index() {
   const { userId } = useAuthStore();
@@ -21,15 +16,15 @@ export default function Index() {
 
   const refreshDashboard = useCallback(() => {
     console.log("🔄 Forzando refresco del dashboard desde DebugDB");
-    setDashboardKey(prev => prev + 1);
+    setDashboardKey((prev) => prev + 1);
   }, []);
 
   // También refrescar automáticamente al recibir foco
   useFocusEffect(
     useCallback(() => {
       console.log("📱 Dashboard recibió foco, refrescando...");
-      setDashboardKey(prev => prev + 1);
-    }, [])
+      setDashboardKey((prev) => prev + 1);
+    }, []),
   );
   useEffect(() => {
     const loadUserName = async () => {
@@ -45,8 +40,6 @@ export default function Index() {
     };
     loadUserName();
   }, [userId]);
-
-  
 
   return (
     <SafeAreaView className="bg-gray-50 flex-1">
@@ -80,7 +73,7 @@ export default function Index() {
         </View>
       </View>
       <View className="relative">
-        <FloatingActionButton />
+        <FloatingActionButton href="/AddTransactionScreen" />
       </View>
     </SafeAreaView>
   );

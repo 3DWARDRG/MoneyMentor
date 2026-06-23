@@ -1,0 +1,163 @@
+import { database } from "@/database";
+import { useAuthStore } from "@/store/useAuthStore";
+import { Q } from "@nozbe/watermelondb";
+import { useFocusEffect } from "@react-navigation/native";
+import { router } from "expo-router";
+import { useCallback, useState } from "react";
+import { FlatList, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+type TransactionItem = {
+  id: string;
+  description: string;
+  amount: number;
+  date: number;
+  type: "income" | "expense" | "transfer";
+};
+
+export default function TransactionsIndexScreen() {
+  const { userId } = useAuthStore();
+  const [transactions, setTransactions] = useState<TransactionItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const formatCurrency = (amount: number) =>
+    `$ ${Number(amount ?? 0).toLocaleString("es-CO")}`;
+
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString("es-CO", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadTransactions = async () => {
+        if (!userId) return;
+
+        try {
+          setLoading(true);
+
+          const txCollection = database.get("transactions");
+          const records = await txCollection
+            .query(Q.where("user_id", userId), Q.sortBy("date", Q.desc))
+            .fetch();
+
+          const formatted: TransactionItem[] = records.map((tx: any) => ({
+            id: tx.id,
+            description: tx.description ?? "Sin descripción",
+            amount: tx.amount ?? 0,
+            date: tx.date,
+            type: tx.type,
+          }));
+
+          setTransactions(formatted);
+        } catch (error) {
+          console.error("Error cargando transacciones:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadTransactions();
+    }, [userId]),
+  );
+
+  const getTypeLabel = (type: TransactionItem["type"]) => {
+    if (type === "income") return "Ingreso";
+    if (type === "expense") return "Gasto";
+    return "Transferencia";
+  };
+
+  const getAmountColor = (type: TransactionItem["type"]) => {
+    if (type === "income") return "text-green-600";
+    if (type === "expense") return "text-red-600";
+    return "text-blue-600";
+  };
+
+  return (
+    <SafeAreaView className="flex-1 bg-white">
+      <View className="flex-1 px-5 pt-4">
+        <View className="flex-row items-center justify-between mb-6">
+          <Text className="text-2xl font-bold text-gray-900">
+            Transacciones
+          </Text>
+
+          <TouchableOpacity
+            onPress={() => router.push("/transactions/new")}
+            className="bg-blue-600 px-4 py-2 rounded-lg"
+          >
+            <Text className="text-white font-medium">Nueva</Text>
+          </TouchableOpacity>
+        </View>
+
+        {loading ? (
+          <View className="flex-1 items-center justify-center">
+            <Text className="text-gray-500">Cargando transacciones...</Text>
+          </View>
+        ) : transactions.length === 0 ? (
+          <View className="flex-1 items-center justify-center px-6">
+            <Text className="text-lg font-semibold text-gray-800 mb-2">
+              Aún no hay transacciones
+            </Text>
+            <Text className="text-gray-500 text-center mb-4">
+              Crea tu primera transacción para empezar a llevar el control.
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => router.push("/transactions/new")}
+              className="bg-blue-600 px-5 py-3 rounded-lg"
+            >
+              <Text className="text-white font-medium">Crear transacción</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={transactions}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingBottom: 24 }}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({
+                    pathname: "/transactions/[id]",
+                    params: { id: item.id },
+                  })
+                }
+                className="bg-gray-50 border border-gray-200 rounded-2xl p-4 mb-3"
+              >
+                <View className="flex-row items-start justify-between mb-2">
+                  <View className="flex-1 pr-3">
+                    <Text
+                      numberOfLines={1}
+                      className="text-base font-semibold text-gray-900"
+                    >
+                      {item.description}
+                    </Text>
+
+                    <Text className="text-sm text-gray-500 mt-1">
+                      {getTypeLabel(item.type)} · {formatDate(item.date)}
+                    </Text>
+                  </View>
+
+                  <Text
+                    className={`text-base font-bold ${getAmountColor(item.type)}`}
+                  >
+                    {item.type === "expense"
+                      ? `- ${formatCurrency(item.amount)}`
+                      : item.type === "income"
+                        ? `+ ${formatCurrency(item.amount)}`
+                        : formatCurrency(item.amount)}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          />
+        )}
+      </View>
+    </SafeAreaView>
+  );
+}

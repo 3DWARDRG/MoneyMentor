@@ -11,7 +11,6 @@ export default function RootLayout() {
       <Stack.Screen name="SetupPinScreen" />
       <Stack.Screen name="UnlockScreen" />
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="AddTransactionScreen" />
       <Stack.Screen name="SelectUserScreen" />
     </Stack>
   );

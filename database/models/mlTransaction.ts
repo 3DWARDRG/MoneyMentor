@@ -12,11 +12,25 @@ export class Transaction extends Model {
 
   @field("user_id") userId!: string;
   @field("account_id") accountId!: string | null;
-  @field("category_id") categoryId!: string;
+  @field("destination_account_id") destinationAccountId!: string | null;
+  @field("category_id") categoryId!: string | null;
   @field("date") date!: number;
   @field("amount") amount!: number;
   @field("description") description!: string;
-  @field("type") type!: string;
+  @field("type") type!: "income" | "expense" | "transfer";
+
+  @field("installments_total") installmentsTotal!: number | null;
+  @field("installments_paid") installmentsPaid!: number | null;
+  @field("transfer_target") transferTarget!: "own" | "person" | "bank" | null;
+  @field("fee_type")
+  feeType!:
+    | "maintenance"
+    | "annual_fee"
+    | "late_fee"
+    | "cash_advance_fee"
+    | "atm_fee"
+    | "other_fee"
+    | null;
 
   @relation("users", "user_id") user: any;
   @relation("categories", "category_id") category: any;

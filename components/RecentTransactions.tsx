@@ -2,8 +2,15 @@ import { database } from "@/database";
 import { useFinanceData } from "@/hooks/useFinanceData";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Q } from "@nozbe/watermelondb";
-import React, { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Text, View } from "react-native";
+import { router } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import TransactionItem from "../components/TransactionsItem";
 
 const RecentTransactions = () => {
@@ -28,13 +35,6 @@ const RecentTransactions = () => {
           .fetch();
 
         const map: Record<string, { name: string; icon: string }> = {};
-        console.log(
-          cats.map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            iconImage: c.iconImage,
-          })),
-        );
 
         cats.forEach((c: any) => {
           map[c.id] = {
@@ -53,6 +53,10 @@ const RecentTransactions = () => {
     loadCategoryMap();
   }, [userId]);
 
+  const recentTransactions = useMemo(() => {
+    return transactions.slice(0, 5);
+  }, [transactions]);
+
   if (loading) {
     return <ActivityIndicator className="my-4" />;
   }
@@ -70,21 +74,37 @@ const RecentTransactions = () => {
   return (
     <View className="mb-4">
       <View className="flex-row justify-between items-center p-3">
-        <Text className="font-bold text-xl">Transacciones</Text>
+        <Text className="font-bold text-xl">Transacciones recientes</Text>
+
+        <TouchableOpacity onPress={() => router.push("/(tabs)/transactions")}>
+          <Text className="text-blue-600 font-medium">Ver todas</Text>
+        </TouchableOpacity>
       </View>
 
       <FlatList
-        data={transactions}
+        data={recentTransactions}
         keyExtractor={(item) => item.id}
+        scrollEnabled={false}
         renderItem={({ item }) => (
-          <TransactionItem
-            description={item.description}
-            categoryName={categoryMap[item.categoryId]?.name ?? "Sin categoría"}
-            categoryIcon={categoryMap[item.categoryId]?.icon ?? "📁"}
-            date={item.date}
-            amount={item.amount}
-            type={item.type}
-          />
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/(tabs)/transactions/[id]",
+                params: { id: item.id },
+              })
+            }
+          >
+            <TransactionItem
+              description={item.description}
+              categoryName={
+                categoryMap[item.categoryId]?.name ?? "Sin categoría"
+              }
+              categoryIcon={categoryMap[item.categoryId]?.icon ?? "📁"}
+              date={item.date}
+              amount={item.amount}
+              type={item.type}
+            />
+          </TouchableOpacity>
         )}
       />
     </View>
