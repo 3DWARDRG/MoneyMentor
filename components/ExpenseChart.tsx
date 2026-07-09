@@ -1,39 +1,126 @@
-import React from 'react';
-import { View, Text } from 'react-native';
-import ExpenseBar from './ExpenseBar';
+import React, { useEffect , useState } from "react";
+import { Text, View } from "react-native";
+import ExpenseBar from "./ExpenseBar";
+import { database } from "@/database";
+import { useFinanceData } from "@/hooks/useFinanceData";
+import { useAuthStore } from "@/store/useAuthStore";
+import { Q } from "@nozbe/watermelondb";
 
-const expenseData = [
-  { label: 'Comida', color: 'bg-blue-500', height: 60, value: '$540' },
-  { label: 'Trans.', color: 'bg-green-500', height: 40, value: '$360' },
-  { label: 'Hogar', color: 'bg-purple-500', height: 75, value: '$675' },
-  { label: 'Ocio', color: 'bg-amber-500', height: 25, value: '$225' },
-  { label: 'Salud', color: 'bg-red-500', height: 50, value: '$450' },
-  { label: 'Otros', color: 'bg-indigo-500', height: 30, value: '$270' },
+interface Props {
+  expenseByCategory: Record<string, number>;
+  loading: boolean;
+  categoryMap?: Record<string, { name: string; icon: string }>;
+  typeTransaction: string
+}
+
+const COLORS = [
+  "bg-blue-500",
+  "bg-green-500",
+  "bg-purple-500",
+  "bg-amber-500",
+  "bg-red-500",
+  "bg-indigo-500",
 ];
 
-const ExpenseChart: React.FC = () => {
+const formatCOP = (value: number) =>
+  `$${Number(value).toLocaleString("es-CO")}`;
+
+const ExpenseChart = ({
+  expenseByCategory, typeTransaction
+}: Props) => {
+  const entries = Object.entries(expenseByCategory).sort(
+    ([, a], [, b]) => b - a,
+  );
+
+  console.log("EXPENSE CHART",expenseByCategory)
+  const maxAmount = Math.max(...entries.map(([, v]) => v), 1);
+
+    const { userId } = useAuthStore();
+    const { transactions, loading } = useFinanceData(userId || "");
+  
+    const [categoryMap, setCategoryMap] = useState<
+      Record<string, { name: string; icon: string }>
+    >({});
+    
+    useEffect(() => {
+      const loadCategoryMap = async () => {
+        if (!userId) {
+          setCategoryMap({});
+          return;
+        }
+  
+        try {
+          const catsCollection = database.get("categories");
+          const cats = await catsCollection
+            .query(Q.where("user_id", userId))
+            .fetch();
+  
+          const map: Record<string, { name: string; icon: string }> = {};
+  
+          cats.forEach((c: any) => {
+            map[c.id] = {
+              name: c.name,
+              icon: c.iconImage || "📁",
+            };
+          });
+  
+          setCategoryMap(map);
+        } catch (error) {
+          console.error("❌ Error cargando categoryMap:", error);
+          setCategoryMap({});
+        }
+      };
+  
+      loadCategoryMap();
+    }, [userId]);
+
+
+  if (loading) {
+    return (
+      <View className="bg-white rounded-xl p-5 mb-5 shadow-sm">
+        <Text className="text-gray-400 text-center py-4">Cargando...</Text>
+      </View>
+    );
+  }
+
+  if (entries.length === 0) {
+    return (
+      <View className="bg-white rounded-xl p-5 mb-5 shadow-sm">
+        <Text className="font-bold text-base mb-2">{`${typeTransaction} por categoría`}</Text>
+        <Text className="text-gray-400 text-center py-4">
+          {`No hay ${typeTransaction} en este período`}
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View className="bg-white rounded-xl p-5 mb-5 shadow-sm">
-      <View className="flex-row justify-between items-center mb-4">
-        <Text className="font-bold text-base">Gastos por categoría</Text>
-      </View>
+      <Text className="font-bold text-base mb-4">{`${typeTransaction} por categoría`}</Text>
 
       <View className="flex-row items-end h-40 space-x-2 mb-4">
-        {expenseData.map((item) => (
-          <ExpenseBar
-            key={item.label}
-            color={item.color}
-            heightPercentage={item.height}
-            label={item.label}
-          />
-        ))}
+        {entries.slice(0, 6).map(([categoryId, amount], index) => {
+          const heightPct = Math.round((amount / maxAmount) * 100);
+          return (
+            <ExpenseBar
+              key={categoryId}
+              color={COLORS[index % COLORS.length]}
+              heightPercentage={heightPct}
+              label={categoryMap[categoryId]?.name ?? "Otro"}
+            />
+          );
+        })}
       </View>
 
       <View className="flex-row flex-wrap justify-between gap-y-2">
-        {expenseData.map((item) => (
-          <View key={item.label} className="flex-row items-center w-[48%]">
-            <View className={`w-3 h-3 ${item.color} rounded-full mr-2`} />
-            <Text className="text-xs">{`${item.label}: ${item.value}`}</Text>
+        {entries.slice(0, 6).map(([categoryId, amount], index) => (
+          <View key={categoryId} className="flex-row items-center w-[48%]">
+            <View
+              className={`w-3 h-3 ${COLORS[index % COLORS.length]} rounded-full mr-2`}
+            />
+            <Text className="text-xs">
+              {categoryMap[categoryId]?.name ?? "Otro"}: {formatCOP(amount)}
+            </Text>
           </View>
         ))}
       </View>

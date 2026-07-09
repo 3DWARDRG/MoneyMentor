@@ -50,19 +50,6 @@ export const useFinanceData = (userId: string) => {
             .get<Transaction>("transactions")
             .query()
             .fetch()
-            .then((allTx) => {
-              console.log("🗄️ Total en DB sin filtro:", allTx.length);
-              allTx.forEach((tx) =>
-                console.log("tx:", {
-                  id: tx.id,
-                  userId: tx.userId,
-                  categoryId: tx.categoryId,
-                  amount: tx.amount,
-                  type: tx.type,
-                  date: tx.date,
-                }),
-              );
-            });
           const sorted = [...all].sort((a, b) => b.date - a.date);
           setTransactions(sorted);
 

@@ -4,13 +4,16 @@ import { View, Text } from 'react-native';
 interface IncomeVsExpenseProps {
   income: number;
   expense: number;
+  typeTransaction: string
 }
 
-const IncomeVsExpense: React.FC<IncomeVsExpenseProps> = ({ income, expense }) => {
+const IncomeVsExpense: React.FC<IncomeVsExpenseProps> = ({ income, expense , typeTransaction }) => {
   const total = income + expense;
+  console.log("incomevsexpense" + income)
   const incomePercentage = total > 0 ? (income / total) * 100 : 0;
 
   return (
+    typeTransaction !== "transfer" ? (
     <View className="bg-white rounded-xl p-5 mb-5 shadow-sm">
       {/* Header */}
       <View className="flex-row justify-between items-center mb-4">
@@ -18,11 +21,12 @@ const IncomeVsExpense: React.FC<IncomeVsExpenseProps> = ({ income, expense }) =>
       </View>
 
       {/* Progress Bar */}
-      <View className="flex items-center mb-4">
-        <View className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+      <View className="flex-row items-center justify-between mb-4">
+        <View className="w-full bg-red-500 rounded-full h-4 overflow-hidden" >
           <View
             className="bg-green-500 h-4"
             style={{ width: `${incomePercentage}%` }}
+            
           />
         </View>
       </View>
@@ -35,7 +39,7 @@ const IncomeVsExpense: React.FC<IncomeVsExpenseProps> = ({ income, expense }) =>
             <View className="w-3 h-3 bg-green-500 rounded-full mr-2" />
             <Text className="text-sm font-medium">Ingresos</Text>
           </View>
-          <Text className="font-bold">${income.toLocaleString('en-US')}</Text>
+          <Text className="font-bold">${income.toLocaleString('es-CO')}</Text>
         </View>
 
         {/* Gastos */}
@@ -44,11 +48,11 @@ const IncomeVsExpense: React.FC<IncomeVsExpenseProps> = ({ income, expense }) =>
             <View className="w-3 h-3 bg-red-500 rounded-full mr-2" />
             <Text className="text-sm font-medium">Gastos</Text>
           </View>
-          <Text className="font-bold">${expense.toLocaleString('en-US')}</Text>
+          <Text className="font-bold">${expense.toLocaleString('es-CO')}</Text>
         </View>
       </View>
     </View>
-  );
-};
+) : null)}
+
 
 export default IncomeVsExpense;

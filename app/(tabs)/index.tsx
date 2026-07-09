@@ -73,7 +73,7 @@ export default function Index() {
         </View>
       </View>
       <View className="relative">
-        <FloatingActionButton href="/AddTransactionScreen" />
+        <FloatingActionButton href="/transactions/new" />
       </View>
     </SafeAreaView>
   );

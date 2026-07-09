@@ -2,13 +2,13 @@ import { Tabs } from "expo-router";
 import React from "react";
 import { Platform } from "react-native";
 import "../../global.css";
-
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { HapticTab } from "@/components/HapticTab";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import TabBarBackground from "@/components/ui/TabBarBackground";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
-
+import { Home } from "lucide-react-native";
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
@@ -37,7 +37,7 @@ export default function TabLayout() {
         options={{
           title: "Inicio",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
+            <IconSymbol color={color} size={28} name="house.fill" />
           ),
         }}
       />
@@ -57,7 +57,7 @@ export default function TabLayout() {
         options={{
           title: "Cuentas",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="creditcard.fill" color={color} />
+            <IconSymbol size={28} name="chevron.left.forwardslash.chevron.right" color={color} />
           ),
         }}
       />
@@ -76,11 +76,30 @@ export default function TabLayout() {
       />
 
             <Tabs.Screen
-        name="transactions/index"
+        name="transactions"
         options={{
           href: null,
+          tabBarStyle: { display: "none" },  // oculta barra al estar en esa pantalla
         }}
+        
       />
+
+  <Tabs.Screen
+  name="transactions/[id]"
+  options={{
+    href: null,          // no aparece en navbar
+    tabBarStyle: { display: "none" },  // oculta barra al estar en esa pantalla
+  }}
+/>
+  <Tabs.Screen
+  name="transactions/new"
+  options={{
+    href: null,          // no aparece en navbar
+    tabBarStyle: { display: "none" },  // oculta barra al estar en esa pantalla
+  }}
+/>
+
+      
       <Tabs.Screen
         name="statistics"
         options={{

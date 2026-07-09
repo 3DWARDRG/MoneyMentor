@@ -7,7 +7,7 @@ interface TransactionItemProps {
   categoryIcon: string;
   date: number;
   amount: number;
-  type: "income" | "expense";
+  type: "income" | "expense" | "transfer";
 }
 
 const TransactionItem = ({

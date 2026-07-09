@@ -304,8 +304,11 @@ export default function AddTransactionScreen() {
 
   // ─── UI ──────────────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <ScrollView className="flex-1 p-5">
+<SafeAreaView
+  className="flex-1 "
+  edges={["bottom", "left", "right"]}  // excluye top
+>
+      <ScrollView className="flex-1 px-5  mt-4">
         {/* Header */}
         <View className="flex-row items-center justify-between mb-6">
           <TouchableOpacity
@@ -327,8 +330,8 @@ export default function AddTransactionScreen() {
               />
             </Svg>
           </TouchableOpacity>
-          <Text className="text-xl font-bold">Nueva transacción</Text>
-          <View className="w-10" />
+          <Text className="text-xl font-bold ">Nueva transacción</Text>
+          <View className="w-10 " />
         </View>
 
         {/* Tipo */}

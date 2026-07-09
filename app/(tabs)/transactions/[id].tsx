@@ -252,7 +252,9 @@ export default function TransactionDetailScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white" 
+      edges={["bottom", "left", "right"]}  // excluye top
+    >
       <ScrollView className="flex-1 p-5">
         <View className="flex-row items-center justify-between mb-6">
           <TouchableOpacity onPress={() => router.back()}>
