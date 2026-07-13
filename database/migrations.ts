@@ -75,5 +75,48 @@ export default schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 6,
+      steps: [
+        addColumns({
+          table: "events",
+          columns: [
+            { name: "amount", type: "number" },
+            { name: "status", type: "string" },
+            { name: "recurrence", type: "string", isOptional: true },
+            { name: "calendar_event_id", type: "string", isOptional: true },
+          ],
+        }),
+        addColumns({
+          table: "notifications",
+          columns: [
+            {
+              name: "event_id",
+              type: "string",
+              isOptional: true,
+              isIndexed: true,
+            },
+            { name: "expo_notification_id", type: "string" },
+            { name: "is_read", type: "boolean" },
+          ],
+        }),
+      ],
+    },
+    {
+      toVersion: 7,
+      steps: [
+        addColumns({
+          table: "notifications",
+          columns: [
+            {
+              name: "goal_id",
+              type: "string",
+              isOptional: true,
+              isIndexed: true,
+            },
+          ],
+        }),
+      ],
+    },
   ],
 });

@@ -2,7 +2,7 @@
 import { appSchema, tableSchema } from "@nozbe/watermelondb";
 
 export const schema = appSchema({
-  version: 5,
+  version: 7,
   tables: [
     tableSchema({
       name: "users",
@@ -84,14 +84,18 @@ export const schema = appSchema({
       ],
     }),
 
-    tableSchema({
+tableSchema({
       name: "notifications",
       columns: [
         { name: "user_id", type: "string", isIndexed: true },
+        { name: "event_id", type: "string", isOptional: true, isIndexed: true }, // Nuevo, opcional e indexado por ser relación
+        { name: "goal_id", type: "string", isOptional: true, isIndexed: true },
+        { name: "expo_notification_id", type: "string" }, // Nuevo
         { name: "type", type: "string" },
         { name: "message", type: "string" },
         { name: "send_date", type: "number" },
         { name: "send_status", type: "boolean" },
+        { name: "is_read", type: "boolean" }, // Nuevo
       ],
     }),
 
@@ -117,9 +121,12 @@ export const schema = appSchema({
         { name: "start_date", type: "number" },
         { name: "end_date", type: "number" },
         { name: "creation_date", type: "number" },
-        { name: "google_event_id", type: "string" },
+        { name: "calendar_event_id", type: "string", isOptional: true }, // Renombrado y ahora opcional
         { name: "category", type: "string" },
-        { name: "notification", type: "boolean" },
+        { name: "amount", type: "number" }, // Nuevo
+        { name: "status", type: "string" }, // Nuevo
+        { name: "recurrence", type: "string", isOptional: true }, // Nuevo
+        // Nota: Se eliminó 'notification'
       ],
     }),
   ],

@@ -4,6 +4,12 @@ import { SvgCss, SvgXml } from 'react-native-svg';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import LogOutButton from '@/components/LogOut';
+import { NotificationButton } from './NotificactionButton';
+import { useAuthStore } from '@/store/useAuthStore';
+
+
+
+
 
 const userIconSvg = `
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -87,6 +93,9 @@ const settingsSvg = `
 
 
 const ProfileScreen = () => {
+
+  const { userId } = useAuthStore();
+
   return (
             <ScrollView>
           <View className="flex-1 box-border bg-white p-4">
@@ -192,14 +201,10 @@ const ProfileScreen = () => {
             <SvgXml xml={notificationSvg} width={20} height={20} fill="#4338CA" />
           </View>
           <View className="flex-grow">
-            <Text className="font-medium">Notificaciones</Text>
+            <NotificationButton userId={userId ?? ""} />
             <Text className="text-sm text-gray-500">Recordatorios y alertas</Text>
           </View>
-          <View className="flex items-center">
-            <View className="w-10 h-6 bg-blue-600 rounded-full relative">
-              <View className="w-4 h-4 bg-white rounded-full absolute top-1 right-1 transition-all" />
-            </View>
-          </View>
+
         </View>
 
         <View className="p-4 flex-row items-center">
