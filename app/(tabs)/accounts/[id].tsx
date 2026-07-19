@@ -301,7 +301,7 @@ export default function AccountDetailScreen() {
           onPress={() => router.back()}
           className="mt-4 rounded-xl bg-[#6C63FF] px-4 py-3"
         >
-          <Text className="font-semibold text-white">Volver</Text>
+          <Text className="font-semibold text-black">Volver</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -375,7 +375,7 @@ export default function AccountDetailScreen() {
                 >
                   <Text
                     className={`font-medium ${
-                      active ? "text-white" : "text-[#4b45b8]"
+                      active ? "text-black" : "text-[#4b45b8]"
                     }`}
                   >
                     {item}
@@ -573,7 +573,7 @@ export default function AccountDetailScreen() {
                 isActive ? "bg-[#16a34a]" : "bg-gray-200"
               }`}
             >
-              <Text className={`${isActive ? "text-white" : "text-[#444]"}`}>
+              <Text className={`${isActive ? "text-black" : "text-[#444]"}`}>
                 Activa
               </Text>
             </Pressable>
@@ -584,7 +584,7 @@ export default function AccountDetailScreen() {
                 !isActive ? "bg-[#dc2626]" : "bg-gray-200"
               }`}
             >
-              <Text className={`${!isActive ? "text-white" : "text-[#444]"}`}>
+              <Text className={`${!isActive ? "text-black" : "text-[#444]"}`}>
                 Inactiva
               </Text>
             </Pressable>
@@ -601,7 +601,7 @@ export default function AccountDetailScreen() {
           {saving ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text className="text-base font-semibold text-white">
+            <Text className="text-base font-semibold text-black">
               Guardar cambios
             </Text>
           )}

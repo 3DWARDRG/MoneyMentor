@@ -1,6 +1,5 @@
 import { Model } from "@nozbe/watermelondb";
 import { field, relation } from "@nozbe/watermelondb/decorators";
-import { FinancialGoal } from "./mlFinancialGoal";
 
 export class Notification extends Model {
   static table = "notifications";

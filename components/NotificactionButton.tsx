@@ -1,9 +1,8 @@
+import { requestPushPermissions } from "@/services/notifications"; // La función que acabas de hacer
 import { useSettingsStore } from "@/store/useSettingsStore"; // Ajusta tu ruta
-import { requestPushPermissions } from "@/utils/notifications"; // La función que acabas de hacer
+import * as Notifications from "expo-notifications";
 import React, { useEffect, useState } from "react";
-import { Alert, Switch, Text, View , Linking } from "react-native";
-import * as Notifications from 'expo-notifications';
-
+import { Alert, Linking, Switch, Text, View } from "react-native";
 
 // Asumimos que el componente recibe el userId del usuario que tiene la sesión iniciada
 export const NotificationButton = ({ userId }: { userId: string }) => {
@@ -17,10 +16,12 @@ export const NotificationButton = ({ userId }: { userId: string }) => {
   // 2. Sincronización al montar el componente (Solución a la desincronización)
   useEffect(() => {
     const checkRealStatus = async () => {
+      const currentState = await Notifications.getPermissionsAsync();
 
-        const currentState= await Notifications.getPermissionsAsync()
-
-       currentState.status !== 'granted' && userSettings.pushNotifications === true ? setPermission(userId, "pushNotifications", false) : null
+      currentState.status !== "granted" &&
+      userSettings.pushNotifications === true
+        ? setPermission(userId, "pushNotifications", false)
+        : null;
 
       // Pregunta al OS cuál es el estado REAL del permiso usando Notifications.getPermissionsAsync()
       // Si el OS dice que NO hay permiso (status !== 'granted'), pero en Zustand dice que SÍ (userSettings.pushNotifications === true):
@@ -30,14 +31,14 @@ export const NotificationButton = ({ userId }: { userId: string }) => {
   }, []); // El array vacío significa "ejecuta esto solo cuando la pantalla aparece"
 
   // 3. Crea la función que reaccionará cuando el usuario toque el Switch
-const handleTogglePush = async (newValue: boolean) => {
+  const handleTogglePush = async (newValue: boolean) => {
     setIsProcessing(true);
-    
+
     try {
       if (newValue) {
         // 1. EL USUARIO QUIERE ENCENDER (newValue es true)
         const hasPermission = await requestPushPermissions();
-        
+
         if (hasPermission) {
           // Guarda en Zustand el true
           setPermission(userId, "pushNotifications", true);
@@ -46,25 +47,22 @@ const handleTogglePush = async (newValue: boolean) => {
           // Asegúrate de guardar false en Zustand
           setPermission(userId, "pushNotifications", false);
         }
-        
       } else {
-
         Alert.alert(
           "Desactivar Permisos",
           "Hemos pausado los recordatorios. Si deseas revocar el permiso por completo, debes hacerlo desde los ajustes de tu dispositivo.",
           [
             { text: "Cancelar", style: "cancel" },
-            { 
-              text: "Ir a Ajustes", 
+            {
+              text: "Ir a Ajustes",
               onPress: () => {
                 // Escribe el código para abrir los ajustes aquí usando Linking
-                Linking.openSettings()
-              } 
-            }
-          ]
+                Linking.openSettings();
+              },
+            },
+          ],
         );
       }
-      
     } finally {
       setIsProcessing(false);
     }

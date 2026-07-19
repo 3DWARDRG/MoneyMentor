@@ -1,5 +1,5 @@
 import { database } from "@/database";
-import { ensureDefaultCategoriesForUser } from "@/utils/ensureDefaultCategories";
+import { ensureDefaultCategoriesForUser } from "@/services/ensureDefaultCategories";
 import * as LocalAuthentication from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
@@ -47,12 +47,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   hydrateAuth: async () => {
     try {
+      console.log("Paso 1: Iniciando hydrateAuth");
       set({ isHydrating: true });
+      console.log("Paso 2: Ejecutando refreshUsers...");
       await get().refreshUsers();
-
+console.log("Paso 2: Ejecutando refreshUsers...");
       const lastSelectedUserId =
         await SecureStore.getItemAsync("lastSelectedUserId");
-
+console.log("Paso 4: SecureStore leído. Usuario:", lastSelectedUserId);
       if (lastSelectedUserId) {
         const exists = get().users.some((u) => u.id === lastSelectedUserId);
         if (exists) {
@@ -62,6 +64,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (error) {
       console.error("❌ Error en hydrateAuth:", error);
     } finally {
+      console.log("Paso 5: Finalizando hydrateAuth (apagando loading)");
       set({ isHydrating: false });
     }
   },

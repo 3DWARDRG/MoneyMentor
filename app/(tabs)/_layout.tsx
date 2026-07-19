@@ -13,20 +13,29 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "dark"].tint,
+        // Ícono activo: Negro en claro, Blanco en oscuro
+        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+
+        // Ícono inactivo: Gris dinámico
+        tabBarInactiveTintColor: Colors[colorScheme ?? "light"].tabIconDefault,
+
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
+
         tabBarStyle: Platform.select({
           android: {
             position: "absolute",
+            // Fondo dinámico: Blanco en claro, Negro/Gris en oscuro
+            backgroundColor: Colors[colorScheme ?? "light"].background,
           },
-          default: {},
+          default: {
+            backgroundColor: Colors[colorScheme ?? "light"].background,
+          },
         }),
         tabBarLabelStyle: {
           fontSize: 12,
-          fontFamily: "Georgia",
-          fontWeight: "300",
+          fontFamily: "inter",
         },
       }}
     >
@@ -50,7 +59,7 @@ export default function TabLayout() {
         }}
       />
 
-            <Tabs.Screen
+      <Tabs.Screen
         name="reminders/new"
         options={{
           href: null,

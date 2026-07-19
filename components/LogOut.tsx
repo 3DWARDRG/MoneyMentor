@@ -1,6 +1,13 @@
 import { useAuthStore } from "@/store/useAuthStore";
 import { router } from "expo-router";
-import { Alert, Text, TouchableOpacity } from "react-native";
+import { Alert, Text, TouchableOpacity, View } from "react-native";
+import { SvgXml } from "react-native-svg";
+
+const editIconSvg = `
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M11 5H6a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-5"/>
+    <path d="M16.586 6.586a2 2 0 112.828 2.828L11.828 15H9v-2.828l7.586-7.586z"/>
+  </svg>`;
 
 export default function LogoutButton() {
   const { logout } = useAuthStore();
@@ -22,9 +29,16 @@ export default function LogoutButton() {
   return (
     <TouchableOpacity
       onPress={handleLogout}
-      className="bg-red-50 border border-red-200 px-4 py-2 rounded-lg"
+      className="p-4 flex-row items-center"
     >
-      <Text className="text-red-600 font-medium">Cerrar sesión</Text>
+      <View className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+        <SvgXml xml={editIconSvg} width={20} height={20} fill="#DC2626" />
+      </View>
+      <View className="flex-grow">
+        <Text className=" font-medium text-black">Cerrar sesión</Text>
+        <Text className="text-sm text-gray-500">Salir de la aplicación</Text>
+      </View>
+      <SvgXml xml={editIconSvg} width={20} height={20} fill="#9CA3AF" />
     </TouchableOpacity>
   );
 }

@@ -4,7 +4,7 @@ import { Transaction } from "@/database/models/mlTransaction";
 import {
     deleteTransactionRecord,
     updateTransactionRecord,
-} from "@/utils/transactionBalanceHelpers";
+} from "@/services/transactionBalanceHelpers";
 import { Q } from "@nozbe/watermelondb";
 import { useFocusEffect } from "@react-navigation/native";
 import { router, useLocalSearchParams } from "expo-router";
@@ -252,8 +252,9 @@ export default function TransactionDetailScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white" 
-      edges={["bottom", "left", "right"]}  // excluye top
+    <SafeAreaView
+      className="flex-1 bg-white"
+      edges={["bottom", "left", "right"]} // excluye top
     >
       <ScrollView className="flex-1 p-5">
         <View className="flex-row items-center justify-between mb-6">
@@ -305,14 +306,14 @@ export default function TransactionDetailScreen() {
                 className="bg-blue-600 py-4 rounded-lg items-center mb-3"
                 onPress={() => setEditing(true)}
               >
-                <Text className="text-white font-medium">Editar</Text>
+                <Text className="text-black font-medium">Editar</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 className="bg-red-600 py-4 rounded-lg items-center"
                 onPress={handleDelete}
               >
-                <Text className="text-white font-medium">Eliminar</Text>
+                <Text className="text-black font-medium">Eliminar</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -380,7 +381,7 @@ export default function TransactionDetailScreen() {
                     <Text
                       className={
                         selectedAccountId === account.id
-                          ? "text-white"
+                          ? "text-black"
                           : "text-gray-900"
                       }
                     >
@@ -410,7 +411,7 @@ export default function TransactionDetailScreen() {
                       <Text
                         className={
                           selectedCategoryId === cat.id
-                            ? "text-white"
+                            ? "text-black"
                             : "text-gray-900"
                         }
                       >
@@ -443,7 +444,7 @@ export default function TransactionDetailScreen() {
                         <Text
                           className={
                             destinationAccountId === account.id
-                              ? "text-white"
+                              ? "text-black"
                               : "text-gray-900"
                           }
                         >
@@ -461,7 +462,7 @@ export default function TransactionDetailScreen() {
                 onPress={handleUpdate}
                 disabled={saving}
               >
-                <Text className="text-white font-medium">
+                <Text className="text-black font-medium">
                   {saving ? "Guardando..." : "Guardar cambios"}
                 </Text>
               </TouchableOpacity>

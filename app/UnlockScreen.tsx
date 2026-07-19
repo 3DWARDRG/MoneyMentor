@@ -1,8 +1,9 @@
 import { useAuthStore } from "@/store/useAuthStore";
 import { router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
-import { Alert, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useEffect, useMemo, useState , useCallback   } from "react";
+import { Alert, Text, TextInput, TouchableOpacity, View  } from "react-native";
+import { SafeAreaView  } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function UnlockScreen() {
   const [pin, setPin] = useState("");
@@ -20,22 +21,10 @@ export default function UnlockScreen() {
   );
 
   useEffect(() => {
+    console.log(selectedUserId)
     if (!selectedUserId) {
       router.replace("/SelectUserScreen");
     }
-  }, [selectedUserId]);
-
-  useEffect(() => {
-    const tryBiometric = async () => {
-      if (!selectedUserId) return;
-
-      const success = await authenticateBiometricsForSelectedUser();
-      if (success) {
-        router.replace("/(tabs)");
-      }
-    };
-
-    tryBiometric();
   }, [selectedUserId]);
 
   const handleVerify = async () => {
@@ -59,26 +48,27 @@ export default function UnlockScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white justify-center p-6">
-      <View>
-        <Text className="text-3xl font-bold text-center mb-2">MoneyMentor</Text>
+    <SafeAreaView className="flex-1 bg-blue-400 ">
+      <View className="flex-1 bg-white justify-center p-6">
+      <View >
+        <Text className="text-3xl font-bold text-center mb-2 text-black">MoneyMentor</Text>
 
-        <Text className="text-gray-500 text-center mb-8">
+        <Text className="text-black text-center mb-8">
           Ingresa tu PIN para acceder
         </Text>
 
-        <Text className="text-gray-500 text-center mb-2">
+        <Text className="text-black text-center mb-2">
           Usuario seleccionado
         </Text>
 
-        <Text className="text-xl font-semibold text-center mb-6">
+        <Text className="text-xl font-semibold text-center mb-6 text-black">
           {selectedUser
             ? `${selectedUser.names} ${selectedUser.lastName ?? ""}`
             : "Sin usuario"}
         </Text>
 
         <TextInput
-          className="border border-gray-300 rounded-lg p-4 mb-6 text-lg text-center tracking-widest"
+          className="border border-gray-300 rounded-lg p-4 mb-6 text-lg text-center tracking-widest text-black"
           keyboardType="numeric"
           secureTextEntry
           maxLength={6}
@@ -86,7 +76,6 @@ export default function UnlockScreen() {
           value={pin}
           onChangeText={setPin}
           onSubmitEditing={handleVerify}
-          autoFocus
         />
 
         <TouchableOpacity
@@ -98,19 +87,20 @@ export default function UnlockScreen() {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity className="mt-4 py-2" onPress={handleBiometrics}>
-          <Text className="text-blue-600 text-center">
+        <TouchableOpacity className="my-2 bg-slate-300 text-center py-4 rounded-lg" onPress={handleBiometrics}>
+          <Text className="text-white text-center font-bold">
             Usar huella / Face ID
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          className="mt-2 py-2"
+          className=" py-4 bg-lime-300 rounded-lg"
           onPress={() => router.replace("/SelectUserScreen")}
         >
-          <Text className="text-gray-500 text-center">Cambiar de usuario</Text>
+          <Text className="text-gray-400 text-center">Cambiar de usuario</Text>
         </TouchableOpacity>
       </View>
+            </View>
     </SafeAreaView>
   );
 }

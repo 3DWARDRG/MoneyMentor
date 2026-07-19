@@ -97,9 +97,9 @@ const RecentTransactions = () => {
             <TransactionItem
               description={item.description}
               categoryName={
-                categoryMap[item.categoryId]?.name ?? "Sin categoría"
+                categoryMap[item.categoryId ?? ""]?.name ?? "Sin categoría"
               }
-              categoryIcon={categoryMap[item.categoryId]?.icon ?? "📁"}
+              categoryIcon={categoryMap[item.categoryId ?? ""]?.icon ?? "📁"}
               date={item.date}
               amount={item.amount}
               type={item.type}

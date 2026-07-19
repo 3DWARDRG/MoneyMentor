@@ -50,7 +50,7 @@ export default function Index() {
               <View className="flex-row justify-between items-center mb-6">
                 <View>
                   {/* 👇 SOLO CAMBIA ESTA LÍNEA: "Edward" → userName */}
-                  <Text className="text-2xl font-medium">Hola, {userName}</Text>
+                  <Text className="text-2xl font-medium text-gray-950">Hola, {userName}</Text>
                   <Text className="text-gray-950 text-lg font-inter">
                     Bienvenido de nuevo
                   </Text>

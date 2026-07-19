@@ -120,3 +120,8 @@ export const scheduleEventNotification = async (
     return null;
   }
 };
+
+
+export const cancelScheduledNotification = async (notificationId: string) => {
+
+}

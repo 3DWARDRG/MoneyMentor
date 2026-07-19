@@ -89,7 +89,7 @@ export default function TransactionsIndexScreen() {
             onPress={() => router.push("/transactions/new")}
             className="bg-blue-600 px-4 py-2 rounded-lg"
           >
-            <Text className="text-white font-medium">Nueva</Text>
+            <Text className="text-black font-medium">Nueva</Text>
           </TouchableOpacity>
         </View>
 
@@ -110,7 +110,7 @@ export default function TransactionsIndexScreen() {
               onPress={() => router.push("/transactions/new")}
               className="bg-blue-600 px-5 py-3 rounded-lg"
             >
-              <Text className="text-white font-medium">Crear transacción</Text>
+              <Text className="text-black font-medium">Crear transacción</Text>
             </TouchableOpacity>
           </View>
         ) : (

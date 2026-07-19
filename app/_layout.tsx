@@ -5,13 +5,17 @@ global.Buffer = Buffer;
 
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-
+import { useEffect } from "react";
 
 // 1. Evitamos que la pantalla de inicio desaparezca antes de tiempo
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  // 2. Cargamos estrictamente la fuente de los íconos
+  // 2. Ocultamos el Splash Screen nativo en cuanto este componente se monte
+  useEffect(() => {
+    // Si estuvieras cargando fuentes aquí, pondrías esto dentro de un if(fontsLoaded)
+    SplashScreen.hideAsync();
+  }, []);
 
   // 5. Tu navegación original intacta
   return (

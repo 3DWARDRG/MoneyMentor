@@ -7,11 +7,11 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useCallback } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  Text,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Pressable,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -66,10 +66,10 @@ export default function AccountsScreen() {
 
         <View className="mx-5 my-3 flex-row rounded-2xl bg-[#6C63FF] px-2 py-4">
           <View className="flex-1 items-center">
-            <Text className="mb-1 text-[11px] text-white/80">
+            <Text className="mb-1 text-[11px] text-black/80">
               Balance total
             </Text>
-            <Text className="text-base font-bold text-white">
+            <Text className="text-base font-bold text-black">
               ${summary.totalBalance.toLocaleString("es-CO")}
             </Text>
           </View>
@@ -77,10 +77,10 @@ export default function AccountsScreen() {
           <View className="w-[1px] bg-white/30" />
 
           <View className="flex-1 items-center">
-            <Text className="mb-1 text-[11px] text-white/80">
+            <Text className="mb-1 text-[11px] text-black/80">
               Cuentas activas
             </Text>
-            <Text className="text-base font-bold text-white">
+            <Text className="text-base font-bold text-black">
               {summary.activeAccounts}
             </Text>
           </View>
@@ -88,8 +88,8 @@ export default function AccountsScreen() {
           <View className="w-[1px] bg-white/30" />
 
           <View className="flex-1 items-center">
-            <Text className="mb-1 text-[11px] text-white/80">Créditos</Text>
-            <Text className="text-base font-bold text-white">
+            <Text className="mb-1 text-[11px] text-black/80">Créditos</Text>
+            <Text className="text-base font-bold text-black">
               {summary.creditAccounts}
             </Text>
           </View>
@@ -170,7 +170,7 @@ export default function AccountsScreen() {
                       </Text>
 
                       {item.isActive === false && (
-                        <Text className="mt-1 rounded bg-[#ccc] px-1.5 py-0.5 text-[10px] text-white">
+                        <Text className="mt-1 rounded bg-[#ccc] px-1.5 py-0.5 text-[10px] text-black">
                           Inactiva
                         </Text>
                       )}

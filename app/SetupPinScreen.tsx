@@ -66,7 +66,7 @@ export default function SetupPinScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-blue-400">
       <ScrollView
         contentContainerStyle={{
           padding: 24,
@@ -84,7 +84,7 @@ export default function SetupPinScreen() {
             Crea un usuario local y protege su información con un PIN
           </Text>
 
-          <Text className="text-sm font-medium text-gray-700 mb-2">Nombre</Text>
+          <Text className="text-sm font-medium text-black mb-2">Nombre</Text>
           <TextInput
             className="border border-gray-300 rounded-lg p-4 mb-4 text-base"
             placeholder="Edward"
@@ -131,7 +131,7 @@ export default function SetupPinScreen() {
             onPress={handleCreateUser}
             disabled={loading}
           >
-            <Text className="text-white text-center font-semibold text-lg">
+            <Text className="text-black text-center font-semibold text-lg">
               {loading ? "Creando perfil..." : "Crear usuario"}
             </Text>
           </TouchableOpacity>

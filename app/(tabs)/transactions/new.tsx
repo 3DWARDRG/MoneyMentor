@@ -1,17 +1,17 @@
 import { database } from "@/database";
+import { createTransactionRecord } from "@/services/transactionBalanceHelpers";
 import { useAuthStore } from "@/store/useAuthStore";
-import { createTransactionRecord } from "@/utils/transactionBalanceHelpers";
 import { Q } from "@nozbe/watermelondb";
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-    Alert,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -304,10 +304,10 @@ export default function AddTransactionScreen() {
 
   // ─── UI ──────────────────────────────────────────────────────────────────────
   return (
-<SafeAreaView
-  className="flex-1 "
-  edges={["bottom", "left", "right"]}  // excluye top
->
+    <SafeAreaView
+      className="flex-1 "
+      edges={["bottom", "left", "right"]} // excluye top
+    >
       <ScrollView className="flex-1 px-5  mt-4">
         {/* Header */}
         <View className="flex-row items-center justify-between mb-6">
@@ -330,13 +330,15 @@ export default function AddTransactionScreen() {
               />
             </Svg>
           </TouchableOpacity>
-          <Text className="text-xl font-bold ">Nueva transacción</Text>
+          <Text className="text-xl font-bold text-black">
+            Nueva transacción
+          </Text>
           <View className="w-10 " />
         </View>
 
         {/* Tipo */}
         <View className="mb-4">
-          <Text className="text-sm font-medium text-gray-700 mb-2">Tipo</Text>
+          <Text className="text-sm font-medium text-black mb-2">Tipo</Text>
           <View className="flex-row gap-3">
             {(["income", "expense", "transfer"] as TxType[]).map((type) => {
               const labels: Record<TxType, string> = {
@@ -357,10 +359,10 @@ export default function AddTransactionScreen() {
                   className={`flex-1 p-3 border-2 rounded-lg items-center ${
                     transactionType === type
                       ? activeColors[type]
-                      : "border-gray-200"
+                      : "border-gray-900"
                   }`}
                 >
-                  <Text className="font-medium">{labels[type]}</Text>
+                  <Text className="font-medium text-black">{labels[type]}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -369,15 +371,13 @@ export default function AddTransactionScreen() {
 
         {/* Monto */}
         <View className="mb-4">
-          <Text className="text-sm font-medium text-gray-700 mb-2">
-            Monto *
-          </Text>
+          <Text className="text-sm font-medium text-black mb-2">Monto *</Text>
           <View className="relative">
             <Text className="absolute left-3 top-3 text-gray-500 text-lg">
               $
             </Text>
             <TextInput
-              className="pl-8 pr-4 py-3 border border-gray-300 rounded-lg text-lg"
+              className="pl-8 pr-4 py-3 border border-gray-300 rounded-lg text-lg text-black"
               keyboardType="numeric"
               placeholder="0"
               value={amountRaw}
@@ -388,12 +388,12 @@ export default function AddTransactionScreen() {
 
         {/* Cuenta origen */}
         <View className="mb-4">
-          <Text className="text-sm font-medium text-gray-700 mb-2">
+          <Text className="text-sm font-medium text-black mb-2">
             Cuenta origen *
           </Text>
 
           {accounts.length === 0 ? (
-            <Text className="text-gray-500 text-center">
+            <Text className="text-black text-center">
               No hay cuentas activas disponibles.
             </Text>
           ) : (
@@ -410,19 +410,19 @@ export default function AddTransactionScreen() {
                     onPress={() => setSelectedAccountId(account.id)}
                     className={`mx-2 px-4 py-3 rounded-2xl border ${
                       isSelected
-                        ? "bg-blue-600 border-blue-600"
+                        ? "bg-blue-600 border-blue-600 "
                         : "bg-white border-gray-200"
                     }`}
                     style={{ minWidth: 150 }}
                   >
                     <Text
-                      className={`text-xl mb-1 ${isSelected ? "text-white" : "text-gray-800"}`}
+                      className={`text-xl mb-1 ${isSelected ? "text-black" : "text-gray-800"}`}
                     >
                       {account.iconImage || "🏦"}
                     </Text>
                     <Text
                       numberOfLines={1}
-                      className={`font-semibold ${isSelected ? "text-white" : "text-gray-900"}`}
+                      className={`font-semibold ${isSelected ? "text-black" : "text-gray-900"}`}
                     >
                       {account.name}
                     </Text>
@@ -457,7 +457,7 @@ export default function AddTransactionScreen() {
                       : "border-gray-200"
                   }`}
                 >
-                  <Text>
+                  <Text className="text-black border-black">
                     {target === "own" ? "Mis cuentas" : "Otra persona"}
                   </Text>
                 </TouchableOpacity>
@@ -490,13 +490,13 @@ export default function AddTransactionScreen() {
                           style={{ minWidth: 150 }}
                         >
                           <Text
-                            className={`text-xl mb-1 ${isSelected ? "text-white" : "text-gray-800"}`}
+                            className={`text-xl mb-1 ${isSelected ? "text-black" : "text-gray-800"}`}
                           >
                             {account.iconImage || "🏦"}
                           </Text>
                           <Text
                             numberOfLines={1}
-                            className={`font-semibold ${isSelected ? "text-white" : "text-gray-900"}`}
+                            className={`font-semibold ${isSelected ? "text-black" : "text-gray-900"}`}
                           >
                             {account.name}
                           </Text>
@@ -573,7 +573,7 @@ export default function AddTransactionScreen() {
                 >
                   <Text
                     className={
-                      feeType === item.value ? "text-white" : "text-gray-700"
+                      feeType === item.value ? "text-black" : "text-gray-700"
                     }
                   >
                     {item.label}
@@ -612,12 +612,12 @@ export default function AddTransactionScreen() {
                     style={{ minWidth: 70 }}
                   >
                     <Text
-                      className={`text-xl ${selectedCategoryId === cat.id ? "text-white" : "text-gray-700"}`}
+                      className={`text-xl ${selectedCategoryId === cat.id ? "text-black" : "text-gray-700"}`}
                     >
                       {cat.iconImage || "📁"}
                     </Text>
                     <Text
-                      className={`text-xs mt-1 ${selectedCategoryId === cat.id ? "text-white" : "text-gray-700"}`}
+                      className={`text-xs mt-1 ${selectedCategoryId === cat.id ? "text-black" : "text-gray-700"}`}
                     >
                       {cat.name}
                     </Text>
@@ -716,7 +716,7 @@ export default function AddTransactionScreen() {
           onPress={handleSave}
           disabled={loading}
         >
-          <Text className="text-white font-medium text-base">
+          <Text className="text-black font-medium text-base">
             {loading ? "Guardando..." : "Guardar transacción"}
           </Text>
         </TouchableOpacity>

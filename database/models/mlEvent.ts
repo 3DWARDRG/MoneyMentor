@@ -1,6 +1,6 @@
 import { Model } from "@nozbe/watermelondb";
 import { field, relation } from "@nozbe/watermelondb/decorators";
-export type EventStatus = "pending" | "paid" | "overdue" | "cancelled";
+export type EventStatus = "pending" | "paid" | "overdue" | "cancelled" ;
 export type EventRecurrence = "none" | "daily" | "weekly" | "monthly" | "yearly";
 export class Event extends Model {
   static table = "events";

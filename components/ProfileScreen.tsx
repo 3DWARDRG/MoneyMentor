@@ -1,15 +1,10 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { SvgCss, SvgXml } from 'react-native-svg';
-import { SafeAreaView } from "react-native-safe-area-context";
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import LogOutButton from '@/components/LogOut';
-import { NotificationButton } from './NotificactionButton';
-import { useAuthStore } from '@/store/useAuthStore';
-
-
-
-
+import LogOutButton from "@/components/LogOut";
+import { IconSymbol } from "@/components/ui/IconSymbol";
+import { useAuthStore } from "@/store/useAuthStore";
+import React from "react";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { SvgXml } from "react-native-svg";
+import { NotificationButton } from "./NotificactionButton";
 
 const userIconSvg = `
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -28,7 +23,7 @@ const arrowIconSvg = `
     <path d="M9 5l7 7-7 7"/>
   </svg>`;
 
-  const userManagementSvg = `
+const userManagementSvg = `
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 4.354a4 4 0 110 5.292" />
     <path d="M15 21H3v-1a6 6 0 0112 0v1z" />
@@ -91,186 +86,220 @@ const settingsSvg = `
   </svg>
 `;
 
-
 const ProfileScreen = () => {
-
   const { userId } = useAuthStore();
 
   return (
-            <ScrollView>
-          <View className="flex-1 box-border bg-white p-4">
-
-      {/* Profile Header */}
-      <View className="bg-blue-700 p-6 mb-6 rounded-2xl">
-        <View className="flex-row items-center mb-4">
-          <View className="h-20 w-20 bg-blue-600 bg-opacity-20 rounded-full flex items-center justify-center mr-4">
-            <Text className="text-white text-3xl font-bold">C</Text>
+    <ScrollView>
+      <View className="flex-1 box-border bg-white p-4">
+        {/* Profile Header */}
+        <View className="bg-blue-700 p-6 mb-6 rounded-2xl">
+          <View className="flex-row items-center mb-4">
+            <View className="h-20 w-20 bg-blue-600 bg-opacity-20 rounded-full flex items-center justify-center mr-4">
+              <Text className="text-black text-3xl font-bold">C</Text>
+            </View>
+            <View className="flex-1">
+              <Text className="text-2xl font-bold text-white">
+                Carlos Rodríguez
+              </Text>
+              <View className="flex-row items-center mt-2">
+                <Text className="px-2 py-1 bg-white bg-opacity-20 rounded-full text-xs text-gray-950">
+                  Administrador
+                </Text>
+                <Text className="ml-2 text-blue-200 text-xs">
+                  Miembro desde noviembre de 2025
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              className="h-10 w-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center"
+              onPress={() => console.log("Edit profile")}
+            >
+              <SvgXml xml={editIconSvg} width={20} height={20} />
+            </TouchableOpacity>
           </View>
-          <View className="flex-1">
-            <Text className="text-2xl font-bold text-white">Carlos Rodríguez</Text>
-            <View className="flex-row items-center mt-2">
-              <Text className="px-2 py-1 bg-white bg-opacity-20 rounded-full text-xs text-gray-950">Administrador</Text>
-              <Text className="ml-2 text-blue-200 text-xs">Miembro desde noviembre de 2025</Text>
+          {/* Quick Stats */}
+          <View className="flex-row justify-around pt-4 border-t border-white border-opacity-20">
+            <View className="items-center">
+              <Text className="text-2xl font-bold text-black">24</Text>
+              <Text className="text-blue-200 text-xs">Transacciones</Text>
+            </View>
+            <View className="items-center">
+              <Text className="text-2xl font-bold text-black">$24,562</Text>
+              <Text className="text-blue-200 text-xs">Balance actual</Text>
+            </View>
+            <View className="items-center">
+              <Text className="text-2xl font-bold text-black">3</Text>
+              <Text className="text-blue-200 text-xs">Recordatorios</Text>
             </View>
           </View>
-          <TouchableOpacity
-            className="h-10 w-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center"
-            onPress={() => console.log('Edit profile')}
-          >
-            <SvgXml xml={editIconSvg} width={20} height={20} />
-          </TouchableOpacity>
-        </View>
-        {/* Quick Stats */}
-        <View className="flex-row justify-around pt-4 border-t border-white border-opacity-20">
-          <View className="items-center">
-            <Text className="text-2xl font-bold text-white">24</Text>
-            <Text className="text-blue-200 text-xs">Transacciones</Text>
-          </View>
-          <View className="items-center">
-            <Text className="text-2xl font-bold text-white">$24,562</Text>
-            <Text className="text-blue-200 text-xs">Balance actual</Text>
-          </View>
-          <View className="items-center">
-            <Text className="text-2xl font-bold text-white">3</Text>
-            <Text className="text-blue-200 text-xs">Recordatorios</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Account Management Section */}
-<View className="mb-6">
-      <Text className="font-bold text-gray-900 mb-3">Gestión de cuenta</Text>
-      <View className="bg-white rounded-lg shadow-sm">
-        <TouchableOpacity
-          onPress={() => console.log('Manage users')}
-          className="p-4 border-b flex-row items-center"
-        >
-          <View className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-            <IconSymbol size={20} name="person.circle" color={'black'} />
-          </View>
-          <View className="flex-grow">
-            <Text className="font-medium">Gestionar usuarios</Text>
-            <Text className="text-sm text-gray-500">Crear, editar y cambiar usuarios</Text>
-          </View>
-          <View className="flex-row items-center">
-            <Text className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-2">1 usuario</Text>
-            <IconSymbol size={20} name="arrow.right" color={'black'} />
-          </View>
-        </TouchableOpacity>
-
-        <View className="p-4 border-b flex-row items-center">
-          <View className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-            <IconSymbol size={20} name="shield" color={'black'} />
-          </View>
-          <View className="flex-grow">
-            <Text className="font-medium">Seguridad y privacidad</Text>
-            <Text className="text-sm text-gray-500">Configurar PIN y opciones de seguridad</Text>
-          </View>
-           <IconSymbol size={20} name="arrow.right" color={'black'} />
         </View>
 
-        <View className="p-4 flex-row items-center">
-          <View className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
-            <SvgXml xml={paymentSvg} width={20} height={20} fill="#7C3AED" />
-          </View>
-          <View className="flex-grow">
-            <Text className="font-medium">Métodos de pago</Text>
-            <Text className="text-sm text-gray-500">Tarjetas y cuentas bancarias</Text>
-          </View>
-           <IconSymbol size={20} name="arrow.right" color={'black'} />
-        </View>
-      </View>
-    </View>
- {/* <!-- App Settings Section --> */}
-     <View className="mb-6">
-      <Text className="font-bold text-gray-900 mb-3">Configuración de la app</Text>
-      <View className="bg-white rounded-lg shadow-sm">
-        <View className="p-4 border-b flex-row items-center">
-          <View className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center mr-3">
-            <SvgXml xml={exportSvg} width={20} height={20} fill="#D97706" />
-          </View>
-          <View className="flex-grow">
-            <Text className="font-medium">Exportar datos</Text>
-            <Text className="text-sm text-gray-500">Descargar transacciones y reportes</Text>
-          </View>
-           <IconSymbol size={20} name="arrow.right" color={'black'} />
-        </View>
+        {/* Account Management Section */}
+        <View className="mb-6">
+          <Text className="font-bold text-gray-900 mb-3">
+            Gestión de cuenta
+          </Text>
+          <View className="bg-white rounded-lg shadow-sm">
+            <TouchableOpacity
+              onPress={() => console.log("Manage users")}
+              className="p-4 border-b flex-row items-center"
+            >
+              <View className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                <IconSymbol size={20} name="person.circle" color={"black"} />
+              </View>
+              <View className="flex-grow">
+                <Text className="font-medium text-black">Gestionar usuarios</Text>
+                <Text className="text-sm text-gray-500">
+                  Crear, editar y cambiar usuarios
+                </Text>
+              </View>
+              <View className="flex-row items-center">
+                <Text className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-2">
+                  1 usuario
+                </Text>
+                <IconSymbol size={20} name="arrow.right" color={"black"} />
+              </View>
+            </TouchableOpacity>
 
-        <View className="p-4 border-b flex-row items-center">
-          <View className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
-            <SvgXml xml={notificationSvg} width={20} height={20} fill="#4338CA" />
-          </View>
-          <View className="flex-grow">
-            <NotificationButton userId={userId ?? ""} />
-            <Text className="text-sm text-gray-500">Recordatorios y alertas</Text>
-          </View>
+            <View className="p-4 border-b flex-row items-center">
+              <View className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                <IconSymbol size={20} name="shield" color={"black"} />
+              </View>
+              <View className="flex-grow">
+                <Text className="font-medium text-black">Seguridad y privacidad</Text>
+                <Text className="text-sm text-gray-500">
+                  Configurar PIN y opciones de seguridad
+                </Text>
+              </View>
+              <IconSymbol size={20} name="arrow.right" color={"black"} />
+            </View>
 
+            <View className="p-4 flex-row items-center">
+              <View className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+                <SvgXml
+                  xml={paymentSvg}
+                  width={20}
+                  height={20}
+                  fill="#7C3AED"
+                />
+              </View>
+              <View className="flex-grow">
+                <Text className="font-medium text-black">Métodos de pago</Text>
+                <Text className="text-sm text-gray-500">
+                  Tarjetas y cuentas bancarias
+                </Text>
+              </View>
+              <IconSymbol size={20} name="arrow.right" color={"black"} />
+            </View>
+          </View>
         </View>
+        {/* <!-- App Settings Section --> */}
+        <View className="mb-6">
+          <Text className="font-bold text-gray-900 mb-3">
+            Configuración de la app
+          </Text>
+          <View className="bg-white rounded-lg shadow-sm">
+            <View className="p-4 border-b flex-row items-center">
+              <View className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center mr-3">
+                <SvgXml xml={exportSvg} width={20} height={20} fill="#D97706" />
+              </View>
+              <View className="flex-grow">
+                <Text className="font-medium text-black">Exportar datos</Text>
+                <Text className="text-sm text-gray-500">
+                  Descargar transacciones y reportes
+                </Text>
+              </View>
+              <IconSymbol size={20} name="arrow.right" color={"black"} />
+            </View>
 
-        <View className="p-4 flex-row items-center">
-          <View className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center mr-3">
-            <SvgXml xml={settingsSvg} width={20} height={20} fill="#4B5563" />
+            <View className="p-4 border-b flex-row items-center">
+              <View className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
+                <SvgXml
+                  xml={notificationSvg}
+                  width={20}
+                  height={20}
+                  fill="#4338CA"
+                />
+              </View>
+              <View className="flex-grow">
+                <NotificationButton userId={userId ?? ""} />
+                <Text className="text-sm text-gray-500">
+                  Recordatorios y alertas
+                </Text>
+              </View>
+            </View>
+
+            <View className="p-4 flex-row items-center">
+              <View className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                <SvgXml
+                  xml={settingsSvg}
+                  width={20}
+                  height={20}
+                  fill="#4B5563"
+                />
+              </View>
+              <View className="flex-grow">
+                <Text className="font-medium text-black">Configuración general</Text>
+                <Text className="text-sm text-gray-500">
+                  Moneda, idioma y preferencias
+                </Text>
+              </View>
+              <IconSymbol size={20} name="arrow.right" color={"black"} />
+            </View>
           </View>
-          <View className="flex-grow">
-            <Text className="font-medium">Configuración general</Text>
-            <Text className="text-sm text-gray-500">Moneda, idioma y preferencias</Text>
-          </View>
-           <IconSymbol size={20} name="arrow.right" color={'black'} />
         </View>
-      </View>
-    </View>
 
         <View className="mb-6">
-      <Text className="font-bold text-gray-900 mb-3">Soporte</Text>
-      <View className="bg-white rounded-lg shadow-sm">
+          <Text className="font-bold text-gray-900 mb-3">Soporte</Text>
+          <View className="bg-white rounded-lg shadow-sm">
+            <View className="p-4 border-b flex-row items-center">
+              <View className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                <SvgXml
+                  xml={editIconSvg}
+                  width={20}
+                  height={20}
+                  fill="#16A34A"
+                />
+              </View>
+              <View className="flex-grow">
+                <Text className="font-medium text-black">Ayuda y soporte</Text>
+                <Text className="text-sm text-gray-500">FAQ y contacto</Text>
+              </View>
+              <SvgXml xml={editIconSvg} width={20} height={20} fill="#9CA3AF" />
+            </View>
 
-        <View className="p-4 border-b flex-row items-center">
-          <View className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-            <SvgXml xml={editIconSvg} width={20} height={20} fill="#16A34A" />
-          </View>
-          <View className="flex-grow">
-            <Text className="font-medium">Ayuda y soporte</Text>
-            <Text className="text-sm text-gray-500">FAQ y contacto</Text>
-          </View>
-          <SvgXml xml={editIconSvg} width={20} height={20} fill="#9CA3AF" />
-        </View>
+            <View className="p-4 border-b flex-row items-center">
+              <View className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                <SvgXml
+                  xml={editIconSvg}
+                  width={20}
+                  height={20}
+                  fill="#2563EB"
+                />
+              </View>
+              <View className="flex-grow">
+                <Text className="font-medium text-black">Calificar la app</Text>
+                <Text className="text-sm text-gray-500">
+                  Comparte tu experiencia
+                </Text>
+              </View>
+              <SvgXml xml={editIconSvg} width={20} height={20} fill="#9CA3AF" />
+            </View>
 
-        <View className="p-4 border-b flex-row items-center">
-          <View className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-            <SvgXml xml={editIconSvg} width={20} height={20} fill="#2563EB" />
-          </View>
-          <View className="flex-grow">
-            <Text className="font-medium">Calificar la app</Text>
-            <Text className="text-sm text-gray-500">Comparte tu experiencia</Text>
-          </View>
-          <SvgXml xml={editIconSvg} width={20} height={20} fill="#9CA3AF" />
-        </View>
-
-        <TouchableOpacity
-          onPress={() => console.log("sdsadasdasdas")}
-          className="p-4 flex-row items-center"
-        >
-          <View className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
-            <SvgXml xml={editIconSvg} width={20} height={20} fill="#DC2626" />
-          </View>
-          <View className="flex-grow">
             <LogOutButton />
-            <Text className="text-sm text-gray-500">Salir de la aplicación</Text>
           </View>
-          <SvgXml xml={editIconSvg} width={20} height={20} fill="#9CA3AF" />
-        </TouchableOpacity>
+        </View>
 
+        {/* Footer */}
+        <View className="p-6 mb-6 text-gray-500 text-sm min-h-10">
+          <Text className="mt-5 text-center text-black">FinApp versión 1.0.0</Text>
+          <Text className="mt-5 h-10 text-center text-black">
+            © 2023 FinApp. Todos los derechos reservados.
+          </Text>
+        </View>
       </View>
-    </View>
-
-      {/* Footer */}
-      <View className="p-6 mb-6 text-gray-500 text-sm min-h-10">
-        <Text className='mt-5 text-center'>FinApp versión 1.0.0</Text>
-        <Text className="mt-5 h-10 text-center">© 2023 FinApp. Todos los derechos reservados.</Text>
-      </View>
-
-      </View>
-            </ScrollView>
+    </ScrollView>
   );
 };
 

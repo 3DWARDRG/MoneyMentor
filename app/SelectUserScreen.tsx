@@ -2,12 +2,13 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { router } from "expo-router";
 import { useEffect } from "react";
 import {
-    FlatList,
-    SafeAreaView,
-    Text,
-    TouchableOpacity,
-    View,
+  FlatList,
+  
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { SafeAreaView  } from "react-native-safe-area-context";
 
 export default function SelectUserScreen() {
   const { users, refreshUsers, selectUser, isHydrating } = useAuthStore();
@@ -26,11 +27,12 @@ export default function SelectUserScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white px-6 py-8">
-      <Text className="text-3xl font-bold text-center mb-2">
+    <SafeAreaView className="flex-1 bg-blue-400 ">
+      <View className="flex-1 bg-white  justify-center p-6">
+      <Text className="text-3xl font-bold text-center mb-2 text-black">
         Selecciona tu perfil
       </Text>
-      <Text className="text-gray-500 text-center mb-8">
+      <Text className="text-black text-center mb-8">
         Elige el usuario con el que quieres ingresar a MoneyMentor
       </Text>
 
@@ -81,6 +83,7 @@ export default function SelectUserScreen() {
           </TouchableOpacity>
         </>
       )}
+    </View>
     </SafeAreaView>
   );
 }

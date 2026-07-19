@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, Pressable } from 'react-native';
+import React from "react";
+import { Pressable, Text, View } from "react-native";
 
 interface ReminderItemProps {
   icon?: string;
@@ -11,12 +11,12 @@ interface ReminderItemProps {
   onPay?: () => void;
 }
 
-const ReminderItem =({
-  icon = '⏰',
+const ReminderItem = ({
+  icon = "⏰",
   title,
   subtitle,
   amount,
-  amountColor = 'text-red-600',
+  amountColor = "text-red-600",
   onSnooze,
   onPay,
 }: ReminderItemProps) => {
@@ -41,11 +41,8 @@ const ReminderItem =({
         >
           <Text className="text-sm text-gray-700">Posponer</Text>
         </Pressable>
-        <Pressable
-          className="bg-blue-600 px-3 py-1 rounded-md"
-          onPress={onPay}
-        >
-          <Text className="text-sm text-white">Pagar ahora</Text>
+        <Pressable className="bg-blue-600 px-3 py-1 rounded-md" onPress={onPay}>
+          <Text className="text-sm text-black">Pagar ahora</Text>
         </Pressable>
       </View>
     </View>

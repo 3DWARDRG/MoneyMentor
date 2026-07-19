@@ -58,10 +58,16 @@ export default function NewAccountScreen() {
     [type],
   );
 
+  const formatCOP = (text: string) => {
+    const numeric = text.replace(/\D/g, "");
+    return numeric.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
   const parsedBalance = useMemo(() => {
-    const normalized = balance.replace(",", ".").trim();
+    const normalized = balance.replace(/\./g, "").replace(",", ".").trim();
     if (!normalized) return 0;
     const value = Number(normalized);
+
     return Number.isNaN(value) ? null : value;
   }, [balance]);
 
@@ -286,7 +292,11 @@ export default function NewAccountScreen() {
           </Text>
           <TextInput
             value={balance}
-            onChangeText={setBalance}
+            onChangeText={(balance) =>
+              currency === "COP"
+                ? setBalance(formatCOP(balance))
+                : setBalance(balance)
+            }
             placeholder="0"
             keyboardType="decimal-pad"
             className="mb-4 rounded-xl border border-gray-200 bg-[#fafafa] px-4 py-3 text-base text-[#111]"
@@ -307,7 +317,7 @@ export default function NewAccountScreen() {
                 >
                   <Text
                     className={`font-medium ${
-                      active ? "text-white" : "text-[#4b45b8]"
+                      active ? "text-black" : "text-[#4b45b8]"
                     }`}
                   >
                     {item}
@@ -508,7 +518,7 @@ export default function NewAccountScreen() {
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text className="text-base font-semibold text-white">
+            <Text className="text-base font-semibold text-black">
               Guardar cuenta
             </Text>
           )}

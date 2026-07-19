@@ -59,7 +59,7 @@ export default function DebugDB({ onRefresh }: { onRefresh?: () => void }) {
           onPress={handleManualRefresh}
           className="bg-blue-500 px-4 py-1 rounded-full"
         >
-          <Text className="text-white font-bold">
+          <Text className="text-black font-bold">
             Refrescar ({refreshCount})
           </Text>
         </TouchableOpacity>
