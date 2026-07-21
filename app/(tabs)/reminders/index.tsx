@@ -1,5 +1,5 @@
 import FloatingActionButton from "@/components/FloatingActionButton";
-import UpcomingReminders from "@/components/UpcomingReminders";
+import RemindersList from "@/components/RemindersList";
 import { scheduleTestNotification } from "@/services/notifications";
 import React from "react";
 import { Button, View } from "react-native";
@@ -9,7 +9,7 @@ export default function Reminders() {
   return (
     <SafeAreaView className="  flex-1">
       <View className=" flex-1">
-        <UpcomingReminders />
+        <RemindersList />
         <Button
           title="Probar Notificación"
           onPress={() => scheduleTestNotification("Internet", 50)}

@@ -36,6 +36,8 @@ export default function CreateEventScreen() {
     return numeric.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
+  const cleanAmount =(d : string)=> parseFloat(d.replace(/\./g, '')); 
+
   const getFinalDateObject = (dateString: any) => {
     // 1. Rompemos el string "YYYY-MM-DD" en sus tres partes
     const [year, month, day] = dateString.split("-");
@@ -104,7 +106,7 @@ export default function CreateEventScreen() {
       await createExpenseEventWithNotification({
         userId: userId ?? "", // <- Reemplazar por tu usuario real
         title,
-        amount: parseFloat(amount),
+        amount: cleanAmount(amount),
         targetTimestamp,
         category: "General",
         recurrence : eventRecurrence,
