@@ -19,11 +19,29 @@ export default function RootLayout() {
 
   // 5. Tu navegación original intacta
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="SetupPinScreen" />
-      <Stack.Screen name="UnlockScreen" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="SelectUserScreen" />
+    <Stack>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+
+      <Stack.Screen name="SetupPinScreen" options={{ headerShown: false }} />
+      <Stack.Screen name="UnlockScreen" options={{ headerShown: false }} />
+      <Stack.Screen name="SelectUserScreen" options={{ headerShown: false }} />
+
+      <Stack.Screen
+        name="reminders/new"
+        options={{ title: "Nuevo recordatorio" }}
+      />
+
+      <Stack.Screen
+        name="reminders/[id]"
+        options={{ title: "Editar recordatorio" }}
+      />
+
+      <Stack.Screen name="accounts/new" options={{ title: "Nueva Cuenta" }} />
+
+      <Stack.Screen
+        name="accounts/[id]"
+        options={{ title: "Detalle Cuenta" }}
+      />
     </Stack>
   );
 }

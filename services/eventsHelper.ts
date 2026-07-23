@@ -19,6 +19,9 @@ interface CreateEventParams {
   expoNotificationId: string | null;
 }
 
+
+
+
 export const createExpenseEventWithNotification = async (
   params: CreateEventParams,
 ) => {
@@ -116,6 +119,7 @@ interface UpdateEventParams {
   amount: number;
   targetTimestamp: number;
   category: string;
+  recurrence: EventRecurrence;
 }
 
 export const updateExpenseEvent = async (params: UpdateEventParams) => {
@@ -164,6 +168,7 @@ export const updateExpenseEvent = async (params: UpdateEventParams) => {
       e.startDate = params.targetTimestamp;
       e.endDate = params.targetTimestamp;
       e.category = params.category;
+      e.recurrence = params.recurrence;
     });
     batchOperations.push(updatedEvent);
 

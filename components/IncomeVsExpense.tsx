@@ -17,7 +17,7 @@ const IncomeVsExpense: React.FC<IncomeVsExpenseProps> = ({ income, expense , typ
     <View className="bg-white rounded-xl p-5 mb-5 shadow-sm">
       {/* Header */}
       <View className="flex-row justify-between items-center mb-4">
-        <Text className="font-bold text-base">Ingresos vs Gastos</Text>
+        <Text className="font-bold text-base text-black">Ingresos vs Gastos</Text>
       </View>
 
       {/* Progress Bar */}
@@ -37,18 +37,18 @@ const IncomeVsExpense: React.FC<IncomeVsExpenseProps> = ({ income, expense , typ
         <View>
           <View className="flex-row items-center mb-1">
             <View className="w-3 h-3 bg-green-500 rounded-full mr-2" />
-            <Text className="text-sm font-medium">Ingresos</Text>
+            <Text className="text-sm font-medium text-black">Ingresos</Text>
           </View>
-          <Text className="font-bold">${income.toLocaleString('es-CO')}</Text>
+          <Text className="font-bold text-black">${income.toLocaleString('es-CO')}</Text>
         </View>
 
         {/* Gastos */}
         <View className="items-end">
           <View className="flex-row items-center mb-1">
             <View className="w-3 h-3 bg-red-500 rounded-full mr-2" />
-            <Text className="text-sm font-medium">Gastos</Text>
+            <Text className="text-sm font-medium text-black">Gastos</Text>
           </View>
-          <Text className="font-bold">${expense.toLocaleString('es-CO')}</Text>
+          <Text className="font-bold text-black">${expense.toLocaleString('es-CO')}</Text>
         </View>
       </View>
     </View>

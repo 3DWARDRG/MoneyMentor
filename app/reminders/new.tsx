@@ -1,15 +1,21 @@
 import { Dropdown } from "@/components/Dropdown";
-import { EventRecurrence } from "@/database/models/mlEvent";
-import { createExpenseEventWithNotification } from "@/services/eventsHelper";
+import { database } from "@/database";
+import { Event } from "@/database/models/mlEvent";
+import {
+  createExpenseEventWithNotification,
+  updateExpenseEvent,
+} from "@/services/eventsHelper";
 import { scheduleEventNotification } from "@/services/notifications";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import {
-  EventRecurrenceT , eventRecurrenceOptionsES
+  EventRecurrenceT,
+  eventRecurrenceOptionsES,
 } from "@/utils/translateDataDropdowns";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useLocalSearchParams, useRouter , useNavigation  } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   ScrollView,
   Text,
@@ -20,10 +26,12 @@ import {
 import { Calendar } from "react-native-calendars";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-
 export default function CreateEventScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>(); // Si hay ID, es modo Edición
+  const isEditing = !!id;
 
-  const [eventRecurrence, setEventRecurrence] = useState<EventRecurrenceT>("none");
+  const [eventRecurrence, setEventRecurrence] =
+    useState<EventRecurrenceT>("none");
 
   const formatLocalDate = (date: Date) => {
     const year = date.getFullYear();
@@ -36,7 +44,7 @@ export default function CreateEventScreen() {
     return numeric.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
-  const cleanAmount =(d : string)=> parseFloat(d.replace(/\./g, '')); 
+  const cleanAmount = (d: string) => parseFloat(d.replace(/\./g, ""));
 
   const getFinalDateObject = (dateString: any) => {
     // 1. Rompemos el string "YYYY-MM-DD" en sus tres partes
@@ -51,13 +59,14 @@ export default function CreateEventScreen() {
   const notificationsEnabled = getUserPermissions(
     userId ?? "",
   ).pushNotifications;
-
+  const [isLoading, setIsLoading] = useState(isEditing); // Cargando solo si es edición
   // 1. Estados del formulario
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   // El string que te da el calendario (ej. "2026-07-20")
   const [selectedDateStr, setSelectedDateStr] = useState("");
   const todayString = formatLocalDate(new Date());
+    const navigation = useNavigation();
   const handleSave = async () => {
     // --- BARRERA 1: Datos completos ---
     if (!title || !amount) {
@@ -91,52 +100,105 @@ export default function CreateEventScreen() {
     const targetTimestamp = finalTargetDate.getTime();
 
     try {
-      // --- FASE 3: Ejecución de Expo ---
-      const expoNotificationId = await scheduleEventNotification(
-        title,
-        parseFloat(amount),
-        targetTimestamp,
-        "Gasto",
-      );
+      if (isEditing && id) {
+        // Lógica de EDICIÓN (Llamamos al helper que hicimos antes)
+        await updateExpenseEvent({
+          eventId: id,
+          title,
+          amount: cleanAmount(amount),
+          targetTimestamp, // Calculado como siempre
+          category: "General", // O tu estado de categoría
+          recurrence: eventRecurrence,
+        });
+        Alert.alert("Actualizado", "El recordatorio fue modificado.", [
+          { text: "OK", onPress: () => router.push("/reminders") },
+        ]);
+      } else {
+        // Lógica de CREACIÓN original
+        // --- FASE 3: Ejecución de Expo ---
+        const expoNotificationId = await scheduleEventNotification(
+          title,
+          parseFloat(amount),
+          targetTimestamp,
+          "Gasto",
+        );
 
-      if (!expoNotificationId) throw new Error("Fallo al programar en Expo");
+        if (!expoNotificationId) throw new Error("Fallo al programar en Expo");
 
-      // 4. Delegamos a nuestro Helper (Base de Datos)
-      // Asumimos que obtienes el userId de tu store de Auth (ej. authStore.userId)
-      await createExpenseEventWithNotification({
-        userId: userId ?? "", // <- Reemplazar por tu usuario real
-        title,
-        amount: cleanAmount(amount),
-        targetTimestamp,
-        category: "General",
-        recurrence : eventRecurrence,
-        expoNotificationId,
-      });
+        // 4. Delegamos a nuestro Helper (Base de Datos)
+        // Asumimos que obtienes el userId de tu store de Auth (ej. authStore.userId)
+        await createExpenseEventWithNotification({
+          userId: userId ?? "", // <- Reemplazar por tu usuario real
+          title,
+          amount: cleanAmount(amount),
+          targetTimestamp,
+          category: "General",
+          recurrence: eventRecurrence,
+          expoNotificationId,
+        });
 
-      Alert.alert(
-        "¡Gasto Programado! 💸",
-        `Te recordaremos el ${selectedDateStr} a las 9:00 AM.`,
-        [{ text: "Genial", onPress: () => router.back() }],
-      );
+        Alert.alert(
+          "¡Gasto Programado! 💸",
+          `Te recordaremos el ${selectedDateStr} a las 9:00 AM.`,
+          [{ text: "Genial", onPress: () => router.push("/reminders") }],
+        );
+      }
     } catch (error) {
       console.error("Error al guardar:", error);
       Alert.alert("Error", "Hubo un problema al guardar el recordatorio.");
     }
+
+    if (isLoading) {
+      return (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#6C63FF" />
+        </View>
+      );
+    }
   };
 
+  useEffect(() => {
+    if (isEditing) {
+      navigation.setOptions({
+      title: id ? "Editar recordatorio" : "Nuevo recordatorio",
+    });
+      const loadEvent = async () => {
+        try {
+          const record = await database.get<Event>("events").find(id);
+          setTitle(record.title);
+          setAmount(String(record.amount));
+          setEventRecurrence(record.recurrence ?? "none");
+          // Convertimos el timestamp guardado al string que espera tu calendario
+          const dateObj = new Date(record.startDate);
+          // Ojo: Asegúrate de formatearlo como YYYY-MM-DD según tu utilidad
+          setSelectedDateStr(dateObj.toISOString().split("T")[0]);
+
+          // ... poblar demás campos ...
+        } catch (error) {
+          Alert.alert("Error", "No se pudo cargar el recordatorio");
+        }
+      };
+      loadEvent();
+    } else {
+      setTitle("");
+      setAmount("");
+      setEventRecurrence("none");
+
+      setSelectedDateStr("");
+    }
+  }, [id]);
+
   return (
-    <SafeAreaView className="flex-1 bg-blue-400">
-      <ScrollView className="flex-1 bg-white p-4">
-        <Text className="text-2xl font-bold text-gray-800 mb-6">
-          Nuevo Registro
-        </Text>
+    <SafeAreaView className="flex-1"       edges={["bottom", "left", "right"]} >
+      <ScrollView className="flex-1 bg-gray-200 p-4">
 
         {/* Inputs Básicos */}
         <View className="mb-4">
           <Text className="text-sm text-gray-600 mb-1">Título</Text>
           <TextInput
-            className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-gray-800"
+            className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-black"
             placeholder="Ej. Tarjeta de Crédito"
+            placeholderTextColor={"gray"}
             value={title}
             onChangeText={setTitle}
           />
@@ -146,49 +208,46 @@ export default function CreateEventScreen() {
           <Text className="text-sm text-gray-600 mb-1">Monto ($)</Text>
           <TextInput
             className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-gray-800"
-            placeholder="500.00"
+            placeholder="50.000"
+            placeholderTextColor={"gray"}
             keyboardType="numeric"
             value={amount}
             onChangeText={(amount) => setAmount(formatCOP(amount))}
           />
         </View>
 
-                  <View className="d-flex flex-col  z-50">
-                              <Text className="text-sm text-gray-600">Frecuencia:</Text>
-                    <View className="flex-1   m-2">
-                      <Dropdown
-                        options={eventRecurrenceOptionsES}
-                        value={eventRecurrence}
-                        onSelect={setEventRecurrence}
-                        placeholder="Selecciona una frecuencia"
-                      />
-                    </View>
-                  </View>
+        <View className=" z-50 flex justify-items-center">
+          <Text className="text-sm text-gray-600">Frecuencia:</Text>
 
-        <Calendar
-          onDayPress={(day: any) => setSelectedDateStr(day.dateString)}
-          minDate={todayString}
-          markedDates={{
-            [selectedDateStr]: { selected: true, selectedColor: "#2563eb" },
-          }}
-          current={selectedDateStr}
-          style={{
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: "#e5e7eb",
-            backgroundColor: "white",
-            marginBottom: 10,
-            marginTop: 10
-          }}
-          theme={{
-            todayTextColor: "#2563eb",
-            arrowColor: "#2563eb",
-            selectedDayBackgroundColor: "#2563eb",
-          }}
-        />
+          <Dropdown
+            options={eventRecurrenceOptionsES}
+            value={eventRecurrence}
+            onSelect={setEventRecurrence}
+            placeholder="Selecciona una frecuencia"
+          />
+        </View>
+        <View className="my-4">
+          <Calendar
+            onDayPress={(day: any) => setSelectedDateStr(day.dateString)}
+            minDate={todayString}
+            markedDates={{
+              [selectedDateStr]: { selected: true, selectedColor: "#2563eb" },
+            }}
+            current={selectedDateStr}
+            theme={{
+              todayTextColor: "#2563eb",
+              arrowColor: "#2563eb",
+              selectedDayBackgroundColor: "#2563eb",
+            }}
+            style={{
+              borderRadius: 10,
+              borderColor: "#2563eb",
+            }}
+          />
+        </View>
 
         {/* --- EL BANNER DINÁMICO (Feedback Visual) --- */}
-        <View className="mt-4 mb-6">
+        <View className="my-6">
           {notificationsEnabled ? (
             // Estado OK: Banner informativo azul
             <View className="bg-blue-50 border border-blue-200 p-4 rounded-lg flex-row items-center">
@@ -220,7 +279,10 @@ export default function CreateEventScreen() {
           className="bg-green-600 p-4 rounded-xl items-center"
           onPress={handleSave}
         >
-          <Text className="text-black font-bold text-lg">Guardar Registro</Text>
+          <Text className="text-white font-bold text-lg">
+            {" "}
+            {isEditing ? "Actualizar Recordatorio" : "Guardar Recordatorio"}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

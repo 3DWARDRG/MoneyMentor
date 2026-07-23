@@ -50,7 +50,7 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="reminders/index"
+        name="reminders"
         options={{
           title: "Recordatorios",
           tabBarIcon: ({ color }) => (
@@ -63,6 +63,15 @@ export default function TabLayout() {
         name="reminders/new"
         options={{
           href: null,
+           tabBarStyle: { display: "none" }, // oculta barra al estar en esa pantalla
+        }}
+      />
+
+            <Tabs.Screen
+        name="reminders/[id]"
+        options={{
+          href: null,
+           tabBarStyle: { display: "none" }, // oculta barra al estar en esa pantalla
         }}
       />
 

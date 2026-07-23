@@ -2,20 +2,20 @@ import { database } from "@/database";
 import { Account } from "@/database/models/mlAccount";
 import { Transaction } from "@/database/models/mlTransaction";
 import {
-    deleteTransactionRecord,
-    updateTransactionRecord,
+  deleteTransactionRecord,
+  updateTransactionRecord,
 } from "@/services/transactionBalanceHelpers";
 import { Q } from "@nozbe/watermelondb";
 import { useFocusEffect } from "@react-navigation/native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import {
-    Alert,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -277,28 +277,28 @@ export default function TransactionDetailScreen() {
           <View className="gap-4">
             <View className="p-4 rounded-xl bg-gray-50">
               <Text className="text-xs text-gray-500">Tipo</Text>
-              <Text className="text-base font-semibold">
+              <Text className="text-base font-semibold text-black">
                 {transaction.type}
               </Text>
             </View>
 
             <View className="p-4 rounded-xl bg-gray-50">
               <Text className="text-xs text-gray-500">Monto</Text>
-              <Text className="text-base font-semibold">
+              <Text className="text-base font-semibold text-black">
                 ${Number(transaction.amount ?? 0).toLocaleString("es-CO")}
               </Text>
             </View>
 
             <View className="p-4 rounded-xl bg-gray-50">
               <Text className="text-xs text-gray-500">Descripción</Text>
-              <Text className="text-base font-semibold">
+              <Text className="text-base font-semibold text-black">
                 {transaction.description || "Sin descripción"}
               </Text>
             </View>
 
             <View className="p-4 rounded-xl bg-gray-50">
               <Text className="text-xs text-gray-500">Fecha</Text>
-              <Text className="text-base font-semibold">{selectedDate}</Text>
+              <Text className="text-base font-semibold text-black">{selectedDate}</Text>
             </View>
 
             <View className="pt-4">

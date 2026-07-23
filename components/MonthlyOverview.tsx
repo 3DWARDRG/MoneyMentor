@@ -56,22 +56,22 @@ const getTypeTransactionValue = (e : string) => {
   return (
     <View className="bg-white rounded-xl p-5 mb-5 shadow-sm">
       <View className="flex-row justify-between items-center mb-3">
-        <Text className="font-bold text-base">Resumen del período</Text>
-        <Text className="text-sm text-gray-500 capitalize">{label}</Text>
+        <Text className="font-bold text-base text-black">Resumen del período</Text>
+        <Text className="text-sm text-black capitalize">{label}</Text>
       </View>
 
       {loading ? (
-        <Text className="text-gray-400 text-center py-4">Cargando...</Text>
+        <Text className="text-black text-center py-4">Cargando...</Text>
       ) : (
         <View className="flex-row flex-wrap justify-between gap-y-4 mt-2">
           <View className="w-[48%]">
-            <Text className="text-sm text-gray-500">{getTypeText(transactionstype)}</Text>
-            <Text className="font-bold">{getTypeTransactionValue(transactionstype)}</Text>
+            <Text className="text-sm text-black">{getTypeText(transactionstype)}</Text>
+            <Text className="font-bold text-black">{getTypeTransactionValue(transactionstype)}</Text>
           </View>
           <View className="w-[48%]">
 
-            <Text className="text-sm text-gray-500">Días restantes</Text>
-            <Text className="font-bold">{daysLeft}</Text>
+            <Text className="text-sm text-black">Días restantes</Text>
+            <Text className="font-bold text-black">{daysLeft}</Text>
           </View>
         </View>
       )}

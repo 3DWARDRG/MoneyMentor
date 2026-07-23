@@ -2,12 +2,12 @@ import FloatingActionButton from "@/components/FloatingActionButton";
 import RemindersList from "@/components/RemindersList";
 import { scheduleTestNotification } from "@/services/notifications";
 import React from "react";
-import { Button, View } from "react-native";
+import { Button, View , Text} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Reminders() {
   return (
-    <SafeAreaView className="  flex-1">
+    <SafeAreaView className="flex-1 bg-slate-200" edges={["bottom", "left", "right"]}>
       <View className=" flex-1">
         <RemindersList />
         <Button

@@ -1,13 +1,17 @@
 import { Event } from "@/database/models/mlEvent";
 import { withObservables } from '@nozbe/watermelondb/react'
+import { router } from "expo-router";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
 interface ReminderItemProps {
   event: Event;
+  id: string
 }
 
-const ReminderItem2 = ({ event }: ReminderItemProps) => {
+
+
+const ReminderItem2 = ({ event , id }: ReminderItemProps) => {
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("es-CO", {
@@ -20,6 +24,12 @@ const ReminderItem2 = ({ event }: ReminderItemProps) => {
   return (
     <TouchableOpacity
       activeOpacity={0.7}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/reminders/[id]",
+                          params: { id: id },
+                        })
+                      }
       className="bg-white p-4 rounded-xl border border-gray-200 mb-3 flex-row justify-between items-center shadow-sm"
     >
       <View className="flex-1">

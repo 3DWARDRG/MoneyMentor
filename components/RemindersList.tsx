@@ -14,16 +14,18 @@ interface RemindersListProps {
 
 const RemindersList = ({ events }: RemindersListProps) => {
   return (
-    <View className="flex-1 w-full bg-black p-6">
+    <View className="flex-1 w-full p-6">
       <FlatList
         data={events}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <ReminderItem2 event={item} />}
-        contentContainerStyle={{ paddingBottom: 20 }}
-        showsVerticalScrollIndicator={false}
+        renderItem={({ item }) => <ReminderItem2 event={item} id={item.id} />}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom: 20,
+        }}
         ListEmptyComponent={
-          <View className="py-10 items-center">
-            <Text className="text-gray-400 text-lg text-center">
+          <View className="flex-1 justify-center items-center ">
+            <Text className="text-black text-xl text-center">
               No tienes recordatorios pendientes. 🎉
             </Text>
           </View>

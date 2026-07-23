@@ -78,7 +78,7 @@ const ExpenseChart = ({
   if (loading) {
     return (
       <View className="bg-white rounded-xl p-5 mb-5 shadow-sm">
-        <Text className="text-gray-400 text-center py-4">Cargando...</Text>
+        <Text className="text-black text-center py-4">Cargando...</Text>
       </View>
     );
   }
@@ -86,8 +86,8 @@ const ExpenseChart = ({
   if (entries.length === 0) {
     return (
       <View className="bg-white rounded-xl p-5 mb-5 shadow-sm">
-        <Text className="font-bold text-base mb-2">{`${typeTransaction} por categoría`}</Text>
-        <Text className="text-gray-400 text-center py-4">
+        <Text className="font-bold text-base mb-2 text-black">{`${typeTransaction} por categoría`}</Text>
+        <Text className="text-black text-center py-4">
           {`No hay ${typeTransaction} en este período`}
         </Text>
       </View>
@@ -96,7 +96,7 @@ const ExpenseChart = ({
 
   return (
     <View className="bg-white rounded-xl p-5 mb-5 shadow-sm">
-      <Text className="font-bold text-base mb-4">{`${typeTransaction} por categoría`}</Text>
+      <Text className="font-bold text-base mb-4 text-black">{`${typeTransaction} por categoría`}</Text>
 
       <View className="flex-row items-end h-40 space-x-2 mb-4">
         {entries.slice(0, 6).map(([categoryId, amount], index) => {
@@ -118,7 +118,7 @@ const ExpenseChart = ({
             <View
               className={`w-3 h-3 ${COLORS[index % COLORS.length]} rounded-full mr-2`}
             />
-            <Text className="text-xs">
+            <Text className="text-xs text-black">
               {categoryMap[categoryId]?.name ?? "Otro"}: {formatCOP(amount)}
             </Text>
           </View>
