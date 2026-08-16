@@ -30,26 +30,26 @@ const ReminderItem2 = ({ event , id }: ReminderItemProps) => {
                           params: { id: id },
                         })
                       }
-      className="bg-white p-4 rounded-xl border border-gray-200 mb-3 flex-row justify-between items-center shadow-sm"
+      className="bg-panel dark:bg-panel-dark p-4 rounded-xl border border-black/10 dark:border-white/10 mb-3 flex-row justify-between items-center shadow-sm"
     >
       <View className="flex-1">
         <Text
-          className="font-bold text-gray-800 text-lg mb-1"
+          className="font-bold text-ink dark:text-ink-dark text-lg mb-1"
           numberOfLines={1}
         >
           {event.title}
         </Text>
-        <Text className="text-gray-500 text-sm">
+        <Text className="text-muted dark:text-muted-dark text-sm">
           🗓 {dateString} • {event.category}
         </Text>
       </View>
 
       <View className="items-end ml-2">
-        <Text className="font-bold text-red-500 text-lg">
+        <Text className="font-bold text-expense dark:text-expense-dark text-lg">
           -{formatCurrency(event.amount)}
         </Text>
         {event.recurrence !== "none" && (
-          <Text className="text-xs text-gray-400 capitalize mt-1">
+          <Text className="text-xs text-muted dark:text-muted-dark capitalize mt-1">
             {event.recurrence}
           </Text>
         )}

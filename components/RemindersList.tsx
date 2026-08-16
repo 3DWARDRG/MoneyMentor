@@ -25,7 +25,7 @@ const RemindersList = ({ events }: RemindersListProps) => {
         }}
         ListEmptyComponent={
           <View className="flex-1 justify-center items-center ">
-            <Text className="text-black text-xl text-center">
+            <Text className="text-ink dark:text-ink-dark text-xl text-center">
               No tienes recordatorios pendientes. 🎉
             </Text>
           </View>

@@ -14,12 +14,12 @@ const ProfileOption: React.FC<ProfileOptionProps> = ({
   iconSvg,
   bgColor,
   text,
-  textColor = 'text-black',
+  textColor = 'text-ink dark:text-ink-dark',
   onPress,
 }) => {
   return (
     <TouchableOpacity onPress={onPress}>
-      <View className="flex-row items-center p-4 border-b border-gray-200">
+      <View className="flex-row items-center p-4 border-b border-black/10 dark:border-white/10">
         <View className={`h-8 w-8 rounded-full ${bgColor} items-center justify-center mr-3`}>
           <SvgXml xml={iconSvg} width={10} height={10} />
         </View>

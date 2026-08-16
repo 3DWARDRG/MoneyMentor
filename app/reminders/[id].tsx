@@ -3,10 +3,9 @@ import { database } from "@/database";
 import { Event } from "@/database/models/mlEvent";
 import { deleteExpenseEvent } from "@/services/eventsHelper";
 
-import { Ionicons } from "@expo/vector-icons";
 import { withObservables } from '@nozbe/watermelondb/react'
-import { router, useLocalSearchParams } from "expo-router";
-import React from "react";
+import { router, useLocalSearchParams, useNavigation } from "expo-router";
+import React, { useCallback, useLayoutEffect } from "react";
 import { Alert, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 interface EventDetailProps {
@@ -14,6 +13,30 @@ interface EventDetailProps {
 }
 
 const EventDetailScreen = ({ event }: EventDetailProps) => {
+  const navigation = useNavigation();
+
+  const handleEdit = useCallback(() => {
+    router.push({
+      pathname: "/reminders/new",
+      params: { id: event.id },
+    });
+  }, [event]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
+          <Text className="text-accent dark:text-accent-dark font-medium">Cerrar</Text>
+        </TouchableOpacity>
+      ),
+      headerRight: () => (
+        <TouchableOpacity onPress={handleEdit} hitSlop={8}>
+          <Text className="text-accent dark:text-accent-dark font-medium">Editar</Text>
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, handleEdit]);
+
   // Función para confirmar y eliminar
   const handleDelete = () => {
     Alert.alert(
@@ -56,38 +79,16 @@ const EventDetailScreen = ({ event }: EventDetailProps) => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-300"  edges={["bottom", "left", "right"]}>
-    <View  className="flex-1 bg-gray-50">
-      {/* Header */}
-      <View className="flex-row items-center justify-between mb-8">
-        <TouchableOpacity onPress={() =>  router.push("/reminders")}>
-          <Ionicons name="arrow-back" size={24} color="black" />
-          <Text className="text-black">
-            Retroceder
-          </Text>
-        </TouchableOpacity>
-        <Text className="text-xl font-bold text-black">Detalles</Text>
-        <TouchableOpacity
-          onPress={() =>
-            router.push({
-              pathname: "/reminders/new",
-              params: { id: event.id },
-            })
-          }
-        >
-            <Text className="text-black">Editar Recordatorio</Text>
-          <Ionicons name="pencil" size={24} color="#6C63FF" />
-        </TouchableOpacity>
-      </View>
-
+    <SafeAreaView className="flex-1 bg-deep dark:bg-deep-dark"  edges={["bottom", "left", "right"]}>
+    <View  className="flex-1">
       {/* Info Principal */}
       <View className="items-center mb-10">
-        <Text className="text-black text-lg">{event.category}</Text>
-        <Text className="text-4xl font-bold mt-2 mb-2 text-black">
+        <Text className="text-muted dark:text-muted-dark text-lg">{event.category}</Text>
+        <Text className="text-4xl font-bold mt-2 mb-2 text-ink dark:text-ink-dark">
           ${event.amount.toFixed(2)}
         </Text>
-        <Text className="text-2xl text-black">{event.title}</Text>
-        <Text className="text-black mt-4">
+        <Text className="text-2xl text-ink dark:text-ink-dark">{event.title}</Text>
+        <Text className="text-muted dark:text-muted-dark mt-4">
           🗓 {new Date(event.startDate).toLocaleDateString()}
         </Text>
       </View>
@@ -96,18 +97,18 @@ const EventDetailScreen = ({ event }: EventDetailProps) => {
       <View className="mt-auto ">
         <TouchableOpacity
           onPress={handleMarkAsPaid}
-          className="bg-green-500 p-4 rounded-xl items-center mb-4"
+          className="bg-income dark:bg-income-dark p-4 rounded-xl items-center mb-4"
         >
-          <Text className="text-white font-bold text-lg">
+          <Text className="text-[#07101e] font-bold text-lg">
             ✅ Marcar como Pagado
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={handleDelete}
-          className="bg-red-50 p-4 rounded-xl items-center border border-red-200"
+          className="bg-expense/10 dark:bg-expense-dark/10 p-4 rounded-xl items-center border border-expense/20 dark:border-expense-dark/20"
         >
-          <Text className="text-red-600 font-bold text-lg">
+          <Text className="text-expense dark:text-expense-dark font-bold text-lg">
             🗑 Eliminar Recordatorio
           </Text>
         </TouchableOpacity>

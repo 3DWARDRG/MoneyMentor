@@ -1,5 +1,6 @@
 import React from "react";
 import { Text, View } from "react-native";
+import PremiumIcon from "./ui/PremiumIcon";
 
 interface TransactionItemProps {
   description: string;
@@ -19,8 +20,10 @@ const TransactionItem = ({
   type,
 }: TransactionItemProps) => {
   const isIncome = type === "income";
-  const bgColor = isIncome ? "bg-green-100" : "bg-red-100";
-  const amountColor = isIncome ? "text-green-600" : "text-red-600";
+  const bgColor = isIncome
+    ? "rgba(75,224,166,0.12)"
+    : "rgba(255,136,144,0.12)";
+  const amountColor = isIncome ? "text-income" : "text-expense";
   const amountPrefix = isIncome ? "+" : "-";
 
   const formatCurrency = (value: number) =>
@@ -45,21 +48,22 @@ const TransactionItem = ({
   };
 
   return (
-    <View className="flex-row items-center p-3 border-b border-gray-200">
+    <View className="flex-row items-center p-3 border-b border-black/10 dark:border-white/10">
       <View
-        className={`h-10 w-10 rounded-full ${bgColor} items-center justify-center mr-3`}
+        style={{ backgroundColor: bgColor }}
+        className="h-10 w-10 rounded-full items-center justify-center mr-3"
       >
-        <Text className="text-xl">{categoryIcon || "📁"}</Text>
+        <PremiumIcon token={categoryIcon} size={34} fallback="📁" />
       </View>
 
       <View className="flex-grow">
-        <Text className="font-medium text-base">
+        <Text className="font-medium text-base text-ink dark:text-ink-dark">
           {description || "Sin descripción"}
         </Text>
-        <Text className="text-gray-500 text-sm">
+        <Text className="text-muted dark:text-muted-dark text-sm">
           {categoryName || "Sin categoría"}
         </Text>
-        <Text className="text-gray-400 text-xs">{formatDate(date)}</Text>
+        <Text className="text-muted/70 dark:text-muted-dark/70 text-xs">{formatDate(date)}</Text>
       </View>
 
       <Text className={`${amountColor} font-medium ml-3`}>

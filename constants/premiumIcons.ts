@@ -1,0 +1,153 @@
+import {
+  Banknote,
+  BanknoteArrowDown,
+  BanknoteArrowUp,
+  Bitcoin,
+  Briefcase,
+  Building2,
+  Bus,
+  Car,
+  CircleDollarSign,
+  CirclePlay,
+  Clapperboard,
+  Cloud,
+  Coffee,
+  Coins,
+  CreditCard,
+  CupSoda,
+  Dog,
+  Dumbbell,
+  Film,
+  Gift,
+  Gamepad2,
+  Globe,
+  GraduationCap,
+  HandCoins,
+  HeartPulse,
+  Home,
+  Laptop,
+  Lightbulb,
+  MonitorPlay,
+  Music,
+  PawPrint,
+  Percent,
+  PiggyBank,
+  Plane,
+  Play,
+  Receipt,
+  Repeat2,
+  Rocket,
+  RotateCcw,
+  Salad,
+  Send,
+  Shirt,
+  ShoppingBag,
+  ShoppingCart,
+  Smartphone,
+  Sparkles,
+  Star,
+  Store,
+  Tag,
+  Target,
+  Ticket,
+  TrendingUp,
+  Trophy,
+  Truck,
+  Tv,
+  UtensilsCrossed,
+  Wallet,
+  Wifi,
+  Zap,
+} from "lucide-react-native";
+import { ComponentType } from "react";
+
+export interface PremiumIconDef {
+  key: string;
+  label: string;
+  icon: ComponentType<{ size?: number | string; color?: string; strokeWidth?: number | string }>;
+  color: string;
+  type: "expense" | "income" | "account" | "any";
+}
+
+export const PREMIUM_ICONS: PremiumIconDef[] = [
+  // ─── Gastos ───────────────────────────────────────────────
+  { key: "food", label: "Comida", icon: UtensilsCrossed, color: "#ff6b6b", type: "expense" },
+  { key: "restaurant", label: "Restaurante", icon: Salad, color: "#e8590c", type: "expense" },
+  { key: "transport", label: "Transporte", icon: Car, color: "#339af0", type: "expense" },
+  { key: "bus", label: "Bus / Metro", icon: Bus, color: "#1c7ed6", type: "expense" },
+  { key: "fuel", label: "Gasolina", icon: Truck, color: "#f59f00", type: "expense" },
+  { key: "entertainment", label: "Entretenimiento", icon: Clapperboard, color: "#9775fa", type: "expense" },
+  { key: "streaming", label: "Streaming", icon: CirclePlay, color: "#e50914", type: "expense" },
+  { key: "cinema", label: "Cine", icon: Film, color: "#6741d9", type: "expense" },
+  { key: "music", label: "Música", icon: Music, color: "#1db954", type: "expense" },
+  { key: "tv", label: "TV / Cable", icon: Tv, color: "#495057", type: "expense" },
+  { key: "games", label: "Videojuegos", icon: Gamepad2, color: "#9147ff", type: "expense" },
+  { key: "health", label: "Salud", icon: HeartPulse, color: "#f03e3e", type: "expense" },
+  { key: "education", label: "Educación", icon: GraduationCap, color: "#5f3dc4", type: "expense" },
+  { key: "utilities", label: "Servicios", icon: Zap, color: "#fab005", type: "expense" },
+  { key: "light", label: "Luz", icon: Lightbulb, color: "#fcc419", type: "expense" },
+  { key: "internet", label: "Internet", icon: Wifi, color: "#1971c2", type: "expense" },
+  { key: "phone", label: "Celular", icon: Smartphone, color: "#0ca678", type: "expense" },
+  { key: "clothing", label: "Ropa", icon: Shirt, color: "#e64980", type: "expense" },
+  { key: "supermarket", label: "Supermercado", icon: ShoppingCart, color: "#37b24d", type: "expense" },
+  { key: "shopping", label: "Compras", icon: ShoppingBag, color: "#f76707", type: "expense" },
+  { key: "coffee", label: "Café", icon: Coffee, color: "#a0522d", type: "expense" },
+  { key: "drink", label: "Bebida", icon: CupSoda, color: "#1098ad", type: "expense" },
+  { key: "gym", label: "Gimnasio", icon: Dumbbell, color: "#fa5252", type: "expense" },
+  { key: "pets", label: "Mascotas", icon: PawPrint, color: "#cc5de8", type: "expense" },
+  { key: "dog", label: "Perro", icon: Dog, color: "#8d6e63", type: "expense" },
+  { key: "home", label: "Hogar", icon: Home, color: "#20c997", type: "expense" },
+  { key: "rent", label: "Arriendo", icon: Building2, color: "#4263eb", type: "expense" },
+  { key: "travel", label: "Viajes", icon: Plane, color: "#15aabf", type: "expense" },
+  { key: "ticket", label: "Entradas", icon: Ticket, color: "#ff922b", type: "expense" },
+  { key: "grocery_delivery", label: "Domicilios", icon: Truck, color: "#e8590c", type: "expense" },
+  { key: "events", label: "Eventos", icon: Sparkles, color: "#f783ac", type: "expense" },
+  { key: "other_expense", label: "Otros gastos", icon: Receipt, color: "#868e96", type: "expense" },
+
+  // ─── Ingresos ─────────────────────────────────────────────
+  { key: "salary", label: "Salario", icon: Banknote, color: "#37b24d", type: "income" },
+  { key: "freelance", label: "Freelance", icon: Laptop, color: "#7048e8", type: "income" },
+  { key: "gift", label: "Regalo", icon: Gift, color: "#f06595", type: "income" },
+  { key: "investment", label: "Inversión", icon: TrendingUp, color: "#099268", type: "income" },
+  { key: "refund", label: "Reembolso", icon: RotateCcw, color: "#339af0", type: "income" },
+  { key: "sale", label: "Venta", icon: Tag, color: "#f08c00", type: "income" },
+  { key: "dividends", label: "Dividendos", icon: Percent, color: "#0ca678", type: "income" },
+  { key: "interest", label: "Intereses", icon: CircleDollarSign, color: "#2f9e44", type: "income" },
+  { key: "bonus", label: "Bonificación", icon: Star, color: "#fab005", type: "income" },
+  { key: "crypto", label: "Cripto", icon: Bitcoin, color: "#f59f00", type: "income" },
+  { key: "award", label: "Premio", icon: Trophy, color: "#f59f00", type: "income" },
+  { key: "other_income", label: "Otros ingresos", icon: Coins, color: "#adb5bd", type: "income" },
+
+  // ─── Cuentas ──────────────────────────────────────────────
+  { key: "cash", label: "Efectivo", icon: BanknoteArrowDown, color: "#37b24d", type: "account" },
+  { key: "savings", label: "Ahorros", icon: PiggyBank, color: "#1c7ed6", type: "account" },
+  { key: "checking", label: "Corriente", icon: Wallet, color: "#0ca678", type: "account" },
+  { key: "credit_card", label: "Tarjeta de crédito", icon: CreditCard, color: "#7048e8", type: "account" },
+  { key: "loan", label: "Libre inversión", icon: Briefcase, color: "#e8590c", type: "account" },
+  { key: "mortgage", label: "Hipotecario", icon: Home, color: "#15aabf", type: "account" },
+  { key: "credit_line", label: "Línea de crédito", icon: BanknoteArrowUp, color: "#4263eb", type: "account" },
+  { key: "bank", label: "Banco", icon: Building2, color: "#4263eb", type: "account" },
+  { key: "nequi", label: "App de pagos", icon: Smartphone, color: "#7048e8", type: "account" },
+  { key: "crypto_wallet", label: "Cartera cripto", icon: Bitcoin, color: "#f59f00", type: "account" },
+  { key: "hand_coin", label: "Efectivo vario", icon: HandCoins, color: "#2f9e44", type: "account" },
+
+  // ─── Universales / suscripciones ──────────────────────────
+  { key: "subscription", label: "Suscripción", icon: Repeat2, color: "#495057", type: "any" },
+  { key: "cloud", label: "Nube", icon: Cloud, color: "#1971c2", type: "any" },
+  { key: "apps", label: "Apps", icon: Send, color: "#495057", type: "any" },
+  { key: "store", label: "Tienda", icon: Store, color: "#e8590c", type: "any" },
+  { key: "goal", label: "Meta", icon: Target, color: "#4b9aff", type: "any" },
+  { key: "rocket", label: "Emprendimiento", icon: Rocket, color: "#d6336c", type: "any" },
+  { key: "globe", label: "Servicios web", icon: Globe, color: "#1971c2", type: "any" },
+  { key: "play", label: "Recreación", icon: Play, color: "#e50914", type: "any" },
+  { key: "video", label: "Video", icon: MonitorPlay, color: "#d6336c", type: "any" },
+];
+
+export const PREMIUM_ICON_MAP: Record<string, PremiumIconDef> = Object.fromEntries(
+  PREMIUM_ICONS.map((def) => [def.key, def]),
+);
+
+export function getPremiumIcon(key: string | null | undefined): PremiumIconDef | undefined {
+  if (!key) return undefined;
+  return PREMIUM_ICON_MAP[key];
+}

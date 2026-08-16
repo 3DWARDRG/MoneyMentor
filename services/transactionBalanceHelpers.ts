@@ -289,6 +289,7 @@ export const createTransactionRecord = async ({
   accountId,
   destinationAccountId,
   categoryId,
+  goalId,
   transferTarget,
   installmentsTotal,
   installmentsPaid,
@@ -302,6 +303,7 @@ export const createTransactionRecord = async ({
   accountId: string;
   destinationAccountId: string | null;
   categoryId: string | null;
+  goalId?: string | null;
   transferTarget: "own" | "person" | "bank" | null;
   installmentsTotal: number | null;
   installmentsPaid: number | null;
@@ -324,6 +326,7 @@ export const createTransactionRecord = async ({
       record.accountId = accountId;
       record.destinationAccountId = destinationAccountId;
       record.categoryId = categoryId;
+      record.goalId = goalId ?? null;
       record.transferTarget = transferTarget;
       record.installmentsTotal = installmentsTotal;
       record.installmentsPaid = installmentsPaid;

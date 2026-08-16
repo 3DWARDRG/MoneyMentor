@@ -1,6 +1,7 @@
 import ExpenseChart from "@/components/ExpenseChart";
 import IncomeVsExpense from "@/components/IncomeVsExpense";
 import MonthlyOverview from "@/components/MonthlyOverview";
+import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
 import { Dropdown, DropdownOption } from "@/components/Dropdown";
 import { database } from "@/database";
 import {
@@ -57,7 +58,8 @@ export default function Statistics() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1">
+      <ScreenBackdrop />
       <ScrollView
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}

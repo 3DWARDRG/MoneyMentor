@@ -1,23 +1,20 @@
 import { HapticTab } from "@/components/HapticTab";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import TabBarBackground from "@/components/ui/TabBarBackground";
-import { Colors } from "@/constants/Colors";
-import { useColorScheme } from "@/hooks/useColorScheme";
+import { useColorScheme } from "nativewind";
 import { Tabs } from "expo-router";
 import React from "react";
 import { Platform } from "react-native";
 import "../../global.css";
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
 
   return (
     <Tabs
       screenOptions={{
-        // Ícono activo: Negro en claro, Blanco en oscuro
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-
-        // Ícono inactivo: Gris dinámico
-        tabBarInactiveTintColor: Colors[colorScheme ?? "light"].tabIconDefault,
+        tabBarActiveTintColor: isDark ? "#58a5ff" : "#2563eb",
+        tabBarInactiveTintColor: isDark ? "#97a4bb" : "#8a8278",
 
         headerShown: false,
         tabBarButton: HapticTab,
@@ -26,11 +23,20 @@ export default function TabLayout() {
         tabBarStyle: Platform.select({
           android: {
             position: "absolute",
-            // Fondo dinámico: Blanco en claro, Negro/Gris en oscuro
-            backgroundColor: Colors[colorScheme ?? "light"].background,
+            backgroundColor: isDark
+              ? "rgba(10,17,31,0.86)"
+              : "rgba(255,255,255,0.92)",
+            borderTopColor: isDark
+              ? "rgba(255,255,255,0.08)"
+              : "rgba(0,0,0,0.08)",
           },
           default: {
-            backgroundColor: Colors[colorScheme ?? "light"].background,
+            backgroundColor: isDark
+              ? "rgba(10,17,31,0.86)"
+              : "rgba(255,255,255,0.92)",
+            borderTopColor: isDark
+              ? "rgba(255,255,255,0.08)"
+              : "rgba(0,0,0,0.08)",
           },
         }),
         tabBarLabelStyle: {
@@ -76,16 +82,19 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
+        name="ai"
+        options={{
+          title: "Asistente",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="sparkles" color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
         name="accounts/index"
         options={{
-          title: "Cuentas",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol
-              size={28}
-              name="chevron.left.forwardslash.chevron.right"
-              color={color}
-            />
-          ),
+          href: null,
         }}
       />
 
@@ -103,24 +112,17 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="transactions"
+        name="goals"
         options={{
           href: null,
-          tabBarStyle: { display: "none" }, // oculta barra al estar en esa pantalla
+          tabBarStyle: { display: "none" },
         }}
       />
 
       <Tabs.Screen
-        name="transactions/[id]"
+        name="transactions"
         options={{
-          href: null, // no aparece en navbar
-          tabBarStyle: { display: "none" }, // oculta barra al estar en esa pantalla
-        }}
-      />
-      <Tabs.Screen
-        name="transactions/new"
-        options={{
-          href: null, // no aparece en navbar
+          href: null,
           tabBarStyle: { display: "none" }, // oculta barra al estar en esa pantalla
         }}
       />

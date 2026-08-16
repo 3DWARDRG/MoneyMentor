@@ -14,11 +14,11 @@ interface Props {
 }
 
 const COLORS = [
-  "bg-blue-500",
-  "bg-green-500",
+  "bg-accent dark:bg-accent-dark",
+  "bg-income dark:bg-income-dark",
   "bg-purple-500",
-  "bg-amber-500",
-  "bg-red-500",
+  "bg-accent dark:bg-accent-dark",
+  "bg-expense dark:bg-expense-dark",
   "bg-indigo-500",
 ];
 
@@ -77,17 +77,17 @@ const ExpenseChart = ({
 
   if (loading) {
     return (
-      <View className="bg-white rounded-xl p-5 mb-5 shadow-sm">
-        <Text className="text-black text-center py-4">Cargando...</Text>
+      <View className="bg-panel dark:bg-panel-dark border border-black/10 dark:border-white/10 rounded-xl p-5 mb-5 shadow-sm">
+        <Text className="text-ink dark:text-ink-dark text-center py-4">Cargando...</Text>
       </View>
     );
   }
 
   if (entries.length === 0) {
     return (
-      <View className="bg-white rounded-xl p-5 mb-5 shadow-sm">
-        <Text className="font-bold text-base mb-2 text-black">{`${typeTransaction} por categoría`}</Text>
-        <Text className="text-black text-center py-4">
+      <View className="bg-panel dark:bg-panel-dark border border-black/10 dark:border-white/10 rounded-xl p-5 mb-5 shadow-sm">
+        <Text className="font-bold text-base mb-2 text-ink dark:text-ink-dark">{`${typeTransaction} por categoría`}</Text>
+        <Text className="text-muted dark:text-muted-dark text-center py-4">
           {`No hay ${typeTransaction} en este período`}
         </Text>
       </View>
@@ -95,8 +95,8 @@ const ExpenseChart = ({
   }
 
   return (
-    <View className="bg-white rounded-xl p-5 mb-5 shadow-sm">
-      <Text className="font-bold text-base mb-4 text-black">{`${typeTransaction} por categoría`}</Text>
+    <View className="bg-panel dark:bg-panel-dark border border-black/10 dark:border-white/10 rounded-xl p-5 mb-5 shadow-sm">
+      <Text className="font-bold text-base mb-4 text-ink dark:text-ink-dark">{`${typeTransaction} por categoría`}</Text>
 
       <View className="flex-row items-end h-40 space-x-2 mb-4">
         {entries.slice(0, 6).map(([categoryId, amount], index) => {
@@ -118,7 +118,7 @@ const ExpenseChart = ({
             <View
               className={`w-3 h-3 ${COLORS[index % COLORS.length]} rounded-full mr-2`}
             />
-            <Text className="text-xs text-black">
+            <Text className="text-xs text-muted dark:text-muted-dark">
               {categoryMap[categoryId]?.name ?? "Otro"}: {formatCOP(amount)}
             </Text>
           </View>

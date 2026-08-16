@@ -1,20 +1,19 @@
 import { Stack } from "expo-router";
-import { Colors } from "@/constants/Colors";
-import { useColorScheme } from "@/hooks/useColorScheme";
+import { useColorScheme } from "nativewind";
 import "../../../global.css"
 
 
 
 export default function TransactionsLayout() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   return (
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false,
       headerStyle:{
-        backgroundColor: "#fff"
+        backgroundColor: isDark ? "#0c1324" : "#ffffff"
       }
        }}/>
-      <Stack.Screen name="[id]" options={{ title: "Detalle transacción" }} />
-      <Stack.Screen name="new" options={{ title: "Nueva transacción"  }} />
     </Stack>
   );
 }

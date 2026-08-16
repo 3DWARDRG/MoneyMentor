@@ -69,9 +69,9 @@ export const NotificationButton = ({ userId }: { userId: string }) => {
   };
 
   return (
-    <View className="p-4 bg-white flex-1">
-      <View className="flex-row items-center justify-between p-4 bg-gray-50 rounded-xl">
-        <Text className="text-sm font-medium text-gray-800">
+    <View className="p-4 flex-1">
+      <View className="flex-row items-center justify-between p-4 bg-deepSoft dark:bg-deepSoft-dark rounded-xl border border-black/10 dark:border-white/10">
+        <Text className="text-sm font-medium text-ink dark:text-ink-dark">
           Notificaciones de Pagos
         </Text>
 
@@ -82,7 +82,7 @@ export const NotificationButton = ({ userId }: { userId: string }) => {
           // 5. Conecta el evento de cambio a tu función handleTogglePush
           // onValueChange={...}
 
-          trackColor={{ false: "#d1d5db", true: "#16a34a" }}
+          trackColor={{ false: "#5c6b84", true: "#4be0a6" }}
           thumbColor="#ffffff"
           disabled={isProcessing}
         />

@@ -14,17 +14,17 @@ const IncomeVsExpense: React.FC<IncomeVsExpenseProps> = ({ income, expense , typ
 
   return (
     typeTransaction !== "transfer" ? (
-    <View className="bg-white rounded-xl p-5 mb-5 shadow-sm">
+    <View className="bg-panel dark:bg-panel-dark border border-black/10 dark:border-white/10 rounded-xl p-5 mb-5 shadow-sm">
       {/* Header */}
       <View className="flex-row justify-between items-center mb-4">
-        <Text className="font-bold text-base text-black">Ingresos vs Gastos</Text>
+        <Text className="font-bold text-base text-ink dark:text-ink-dark">Ingresos vs Gastos</Text>
       </View>
 
       {/* Progress Bar */}
       <View className="flex-row items-center justify-between mb-4">
-        <View className="w-full bg-red-500 rounded-full h-4 overflow-hidden" >
+        <View className="w-full bg-expense dark:bg-expense-dark rounded-full h-4 overflow-hidden" >
           <View
-            className="bg-green-500 h-4"
+            className="bg-income dark:bg-income-dark h-4"
             style={{ width: `${incomePercentage}%` }}
             
           />
@@ -36,19 +36,19 @@ const IncomeVsExpense: React.FC<IncomeVsExpenseProps> = ({ income, expense , typ
         {/* Ingresos */}
         <View>
           <View className="flex-row items-center mb-1">
-            <View className="w-3 h-3 bg-green-500 rounded-full mr-2" />
-            <Text className="text-sm font-medium text-black">Ingresos</Text>
+            <View className="w-3 h-3 bg-income dark:bg-income-dark rounded-full mr-2" />
+            <Text className="text-sm font-medium text-ink dark:text-ink-dark">Ingresos</Text>
           </View>
-          <Text className="font-bold text-black">${income.toLocaleString('es-CO')}</Text>
+          <Text className="font-bold text-ink dark:text-ink-dark">${income.toLocaleString('es-CO')}</Text>
         </View>
 
         {/* Gastos */}
         <View className="items-end">
           <View className="flex-row items-center mb-1">
-            <View className="w-3 h-3 bg-red-500 rounded-full mr-2" />
-            <Text className="text-sm font-medium text-black">Gastos</Text>
+            <View className="w-3 h-3 bg-expense dark:bg-expense-dark rounded-full mr-2" />
+            <Text className="text-sm font-medium text-ink dark:text-ink-dark">Gastos</Text>
           </View>
-          <Text className="font-bold text-black">${expense.toLocaleString('es-CO')}</Text>
+          <Text className="font-bold text-ink dark:text-ink-dark">${expense.toLocaleString('es-CO')}</Text>
         </View>
       </View>
     </View>

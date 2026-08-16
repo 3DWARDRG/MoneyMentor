@@ -13,7 +13,7 @@ import { schema } from "./schema";
 const adapter = new SQLiteAdapter({
   schema,
   migrations,
-  jsi: false,
+  jsi: true,
 });
 
 export const database = new Database({

@@ -16,10 +16,12 @@ const FilterButton = ({
     <Pressable
       onPress={onPress}
       className={`px-4 py-2 rounded-full text-sm whitespace-nowrap ${
-        isActive ? "bg-blue-600 text-black" : "bg-gray-100 text-gray-700"
+        isActive
+          ? "bg-accent dark:bg-accent-dark"
+          : "bg-panel dark:bg-panel-dark border border-black/10 dark:border-white/10"
       }`}
     >
-      <Text className={isActive ? "text-black" : "text-gray-700"}>{label}</Text>
+      <Text className={isActive ? "text-white" : "text-muted dark:text-muted-dark"}>{label}</Text>
     </Pressable>
   );
 };

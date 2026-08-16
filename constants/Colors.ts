@@ -3,25 +3,25 @@
  * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
  */
 
-// 1. Cambiamos el azul por defecto de Expo por negro puro
-const tintColorLight = "#000000";
-const tintColorDark = "#fff";
+// 1. Paleta moderna: navy profundo con acentos azul
+const tintColorLight = "#4b9aff";
+const tintColorDark = "#58a5ff";
 
 export const Colors = {
   light: {
-    text: "#11181C",
-    background: "#fff",
+    text: "#f6f8ff",
+    background: "#07101e",
     tint: tintColorLight,
-    icon: "#687076",
-    tabIconDefault: "#687076",
-    tabIconSelected: tintColorLight, // Tomará el negro automáticamente
+    icon: "#97a4bb",
+    tabIconDefault: "#97a4bb",
+    tabIconSelected: tintColorLight,
   },
   dark: {
-    text: "#ECEDEE",
-    background: "#151718",
+    text: "#f6f8ff",
+    background: "#07101e",
     tint: tintColorDark,
-    icon: "#9BA1A6",
-    tabIconDefault: "#9BA1A6",
-    tabIconSelected: tintColorDark, // Tomará el blanco automáticamente
+    icon: "#97a4bb",
+    tabIconDefault: "#97a4bb",
+    tabIconSelected: tintColorDark,
   },
 };

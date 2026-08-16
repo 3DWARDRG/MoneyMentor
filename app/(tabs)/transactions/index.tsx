@@ -1,5 +1,6 @@
 import { database } from "@/database";
 import { useAuthStore } from "@/store/useAuthStore";
+import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
 import { Q } from "@nozbe/watermelondb";
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
@@ -72,45 +73,46 @@ export default function TransactionsIndexScreen() {
   };
 
   const getAmountColor = (type: TransactionItem["type"]) => {
-    if (type === "income") return "text-green-600";
-    if (type === "expense") return "text-red-600";
-    return "text-blue-600";
+    if (type === "income") return "text-income dark:text-income-dark";
+    if (type === "expense") return "text-expense dark:text-expense-dark";
+    return "text-accent dark:text-accent-dark";
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1">
+      <ScreenBackdrop />
       <View className="flex-1 px-5 pt-4">
         <View className="flex-row items-center justify-between mb-6">
-          <Text className="text-2xl font-bold text-gray-900">
+          <Text className="text-2xl font-bold text-ink dark:text-ink-dark">
             Transacciones
           </Text>
 
           <TouchableOpacity
             onPress={() => router.push("/transactions/new")}
-            className="bg-blue-600 px-4 py-2 rounded-lg"
+            className="bg-accent dark:bg-accent-dark px-4 py-2 rounded-lg"
           >
-            <Text className="text-black font-medium">Nueva</Text>
+            <Text className="text-white font-medium">Nueva</Text>
           </TouchableOpacity>
         </View>
 
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <Text className="text-gray-500">Cargando transacciones...</Text>
+            <Text className="text-muted dark:text-muted-dark">Cargando transacciones...</Text>
           </View>
         ) : transactions.length === 0 ? (
           <View className="flex-1 items-center justify-center px-6">
-            <Text className="text-lg font-semibold text-gray-800 mb-2">
+            <Text className="text-lg font-semibold text-ink dark:text-ink-dark mb-2">
               Aún no hay transacciones
             </Text>
-            <Text className="text-gray-500 text-center mb-4">
+            <Text className="text-muted dark:text-muted-dark text-center mb-4">
               Crea tu primera transacción para empezar a llevar el control.
             </Text>
 
             <TouchableOpacity
               onPress={() => router.push("/transactions/new")}
-              className="bg-blue-600 px-5 py-3 rounded-lg"
+              className="bg-accent dark:bg-accent-dark px-5 py-3 rounded-lg"
             >
-              <Text className="text-black font-medium">Crear transacción</Text>
+              <Text className="text-white font-medium">Crear transacción</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -127,18 +129,18 @@ export default function TransactionsIndexScreen() {
                     params: { id: item.id },
                   })
                 }
-                className="bg-gray-50 border border-gray-200 rounded-2xl p-4 mb-3"
+                className="bg-panel dark:bg-panel-dark border border-black/10 dark:border-white/10 rounded-2xl p-4 mb-3"
               >
                 <View className="flex-row items-start justify-between mb-2">
                   <View className="flex-1 pr-3">
                     <Text
                       numberOfLines={1}
-                      className="text-base font-semibold text-gray-900"
+                      className="text-base font-semibold text-ink dark:text-ink-dark"
                     >
                       {item.description}
                     </Text>
 
-                    <Text className="text-sm text-gray-500 mt-1">
+                    <Text className="text-sm text-muted dark:text-muted-dark mt-1">
                       {getTypeLabel(item.type)} · {formatDate(item.date)}
                     </Text>
                   </View>

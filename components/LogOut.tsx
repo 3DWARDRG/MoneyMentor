@@ -31,14 +31,14 @@ export default function LogoutButton() {
       onPress={handleLogout}
       className="p-4 flex-row items-center"
     >
-      <View className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
-        <SvgXml xml={editIconSvg} width={20} height={20} fill="#DC2626" />
+      <View className="h-10 w-10 rounded-full bg-expense/10 dark:bg-expense-dark/10 flex items-center justify-center mr-3">
+        <SvgXml xml={editIconSvg} width={20} height={20} fill="#ff8890" />
       </View>
       <View className="flex-grow">
-        <Text className=" font-medium text-black">Cerrar sesión</Text>
-        <Text className="text-sm text-gray-500">Salir de la aplicación</Text>
+        <Text className=" font-medium text-ink dark:text-ink-dark">Cerrar sesión</Text>
+        <Text className="text-sm text-muted dark:text-muted-dark">Salir de la aplicación</Text>
       </View>
-      <SvgXml xml={editIconSvg} width={20} height={20} fill="#9CA3AF" />
+      <SvgXml xml={editIconSvg} width={20} height={20} fill="#97a4bb" />
     </TouchableOpacity>
   );
 }

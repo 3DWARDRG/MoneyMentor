@@ -10,15 +10,15 @@ export const getDateRange = (
   period: Period,
 ): { start: number; end: number } => {
   const now = new Date();
-  const end = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    0,
-    23,
-    59,
-    59,
-    999,
-  ).getTime();
+const end = new Date(
+      now.getFullYear(),
+      11, // December
+      30, // Last day of the year
+      23,
+      59,
+      59,
+      999,
+    ).getTime();
 
   let start: number;
 
@@ -47,7 +47,7 @@ export const useStatisticsData = (
 
   const filtered = useMemo(
     () => transactions.filter((tx) => tx.date >= start && tx.date <= end),
-    [transactions, start, end, TransactionType],
+    [transactions, start, end],
   );
 
   const totalIncome = useMemo(() => 

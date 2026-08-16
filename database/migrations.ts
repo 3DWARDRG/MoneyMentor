@@ -118,5 +118,27 @@ export default schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 8,
+      steps: [
+        addColumns({
+          table: "financial_goals",
+          columns: [
+            { name: "saved_amount", type: "number", isOptional: true },
+          ],
+        }),
+        addColumns({
+          table: "transactions",
+          columns: [
+            {
+              name: "goal_id",
+              type: "string",
+              isOptional: true,
+              isIndexed: true,
+            },
+          ],
+        }),
+      ],
+    },
   ],
 });

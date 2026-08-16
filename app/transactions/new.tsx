@@ -1,11 +1,17 @@
 import { database } from "@/database";
-import { createTransactionRecord } from "@/services/transactionBalanceHelpers";
+import { Transaction } from "@/database/models/mlTransaction"; // <-- 1. Importar el modelo
+import {
+  createTransactionRecord,
+  updateTransactionRecord, // <-- 2. Importar la función de actualización
+} from "@/services/transactionBalanceHelpers";
 import { useAuthStore } from "@/store/useAuthStore";
-import { Q } from "@nozbe/watermelondb";
-import { useFocusEffect } from "@react-navigation/native";
-import { router } from "expo-router";
+import { useFinanceCacheStore } from "@/store/useFinanceCacheStore";
+import { useConfirmLeave } from "@/hooks/useConfirmLeave";
+import { useDirtyState } from "@/hooks/useDirtyState";
+import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   ScrollView,
   Text,
@@ -15,7 +21,10 @@ import {
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Path, Svg } from "react-native-svg";
+import { useColorScheme } from "nativewind";
+import KeyboardAvoidingScrollView from "@/components/KeyboardAvoidingScrollView";
+import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
+import PremiumIcon from "@/components/ui/PremiumIcon";
 
 type TxType = "income" | "expense" | "transfer";
 type TransferTarget = "own" | "person" | "bank";
@@ -28,6 +37,15 @@ type FeeType =
   | "other_fee";
 
 export default function AddTransactionScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+  // 3. Detección del modo Edición
+  const { id, accountId: presetAccountId } = useLocalSearchParams<{
+    id?: string;
+    accountId?: string;
+  }>();
+  const isEditing = !!id;
+
   const formatLocalDate = (date: Date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -49,7 +67,11 @@ export default function AddTransactionScreen() {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [accounts, setAccounts] = useState<any[]>([]);
+  const accounts = useFinanceCacheStore((s) => s.accounts);
+  const categories = useFinanceCacheStore((s) => s.categories);
+  const cacheLoading = useFinanceCacheStore((s) => s.loading);
+  const loadFinanceCache = useFinanceCacheStore((s) => s.load);
+
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
     null,
   );
@@ -57,7 +79,6 @@ export default function AddTransactionScreen() {
     string | null
   >(null);
 
-  const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     null,
   );
@@ -71,6 +92,84 @@ export default function AddTransactionScreen() {
 
   const [isFinancialFee, setIsFinancialFee] = useState(false);
   const [feeType, setFeeType] = useState<FeeType | null>(null);
+
+  const formatCOP = useCallback((text: string) => {
+    const numeric = text.replace(/\D/g, "");
+    return numeric.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }, []);
+
+  const { isDirty, resetBaseline } = useDirtyState([
+    transactionType,
+    amountRaw,
+    description,
+    selectedAccountId,
+    destinationAccountId,
+    selectedCategoryId,
+    transferTarget,
+    installmentsTotal,
+    installmentsPaid,
+    isFinancialFee,
+    feeType,
+    selectedDate,
+  ]);
+
+  const resetForm = () => {
+    setTransactionType(null);
+    setAmountRaw("");
+    setDescription("");
+    setSelectedAccountId(null);
+    setDestinationAccountId(null);
+    setSelectedCategoryId(null);
+    setTransferTarget("own");
+    setInstallmentsTotal(null);
+    setInstallmentsPaid(0);
+    setIsFinancialFee(false);
+    setFeeType(null);
+    setSelectedDate(formatLocalDate(new Date()));
+    resetBaseline();
+  };
+
+  const { allowLeave } = useConfirmLeave({
+    enabled: isDirty,
+    message: isEditing
+      ? "Si sales ahora, los cambios de la transacción no se guardarán."
+      : "Si sales ahora, la transacción no se guardará.",
+    onDiscard: resetForm,
+  });
+
+  // 4. Cargar datos iniciales SI es edición
+  useEffect(() => {
+    const loadTransaction = async () => {
+      if (isEditing && id) {
+        try {
+          const tx = await database.get<Transaction>("transactions").find(id);
+
+          setTransactionType(tx.type as TxType);
+          setAmountRaw(formatCOP(String(tx.amount)));
+          setDescription(tx.description ?? "");
+          setSelectedDate(formatLocalDate(new Date(tx.date)));
+
+          setSelectedAccountId(tx.accountId ?? null);
+          setDestinationAccountId(tx.destinationAccountId ?? null);
+          setSelectedCategoryId(tx.categoryId ?? null);
+          setTransferTarget((tx.transferTarget ?? "own") as TransferTarget);
+
+          setInstallmentsTotal(tx.installmentsTotal ?? null);
+          setInstallmentsPaid(tx.installmentsPaid ?? 0);
+
+          setIsFinancialFee(!!tx.feeType);
+          setFeeType((tx.feeType as FeeType) ?? null);
+          setTimeout(() => resetBaseline(), 150);
+        } catch (error) {
+          console.error("Error cargando la transacción a editar:", error);
+          Alert.alert("Error", "No se pudo cargar la transacción.");
+          allowLeave();
+          router.back();
+        }
+      }
+    };
+    loadTransaction();
+  }, [id, isEditing, formatCOP, allowLeave, resetBaseline]);
 
   // Sincroniza categoría seleccionada al cambiar tipo
   useEffect(() => {
@@ -88,6 +187,8 @@ export default function AddTransactionScreen() {
       return;
     }
 
+    // La lógica que construiste aquí con `prev` es perfecta,
+    // protege los datos cargados durante la edición.
     setSelectedCategoryId((prev) =>
       prev && filtered.some((cat) => cat.id === prev) ? prev : filtered[0].id,
     );
@@ -108,63 +209,28 @@ export default function AddTransactionScreen() {
     }
   }, [transactionType]);
 
-  const formatCOP = (text: string) => {
-    const numeric = text.replace(/\D/g, "");
-    return numeric.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  };
+  // Protegemos la selección si ya hay una cuenta asignada (por edición o por selección previa)
+  useEffect(() => {
+    if (accounts.length === 0) return;
 
-  useFocusEffect(
-    useCallback(() => {
-      const loadFormData = async () => {
-        if (!userId) return;
+    setSelectedAccountId((prev) => {
+      if (prev && accounts.some((acc) => acc.id === prev)) {
+        return prev;
+      }
+      if (presetAccountId && accounts.some((acc) => acc.id === presetAccountId)) {
+        return presetAccountId;
+      }
+      return accounts[0].id;
+    });
+  }, [accounts, presetAccountId]);
 
-        try {
-          const catsCollection = database.get("categories");
-          const accCollection = database.get("accounts");
-
-          const [dbCategories, dbAccounts] = await Promise.all([
-            catsCollection.query(Q.where("user_id", userId)).fetch(),
-            accCollection.query(Q.where("user_id", userId)).fetch(),
-          ]);
-
-          const formattedCategories = dbCategories.map((cat: any) => ({
-            id: cat.id,
-            name: cat.name,
-            iconImage: cat.iconImage,
-            type: cat.type,
-          }));
-
-          const formattedAccounts = dbAccounts
-            .filter((acc: any) => acc.isActive !== false)
-            .map((acc: any) => ({
-              id: acc.id,
-              name: acc.name,
-              iconImage: acc.iconImage,
-              balance: acc.balance ?? 0,
-              currency: acc.currency ?? "COP",
-              type: acc.type ?? null,
-              creditSubtype: acc.creditSubtype ?? null,
-            }))
-            .sort((a, b) => a.name.localeCompare(b.name));
-
-          setCategories(formattedCategories);
-          setAccounts(formattedAccounts);
-
-          if (formattedAccounts.length > 0) {
-            setSelectedAccountId((prev) =>
-              prev && formattedAccounts.some((acc) => acc.id === prev)
-                ? prev
-                : formattedAccounts[0].id,
-            );
-          }
-        } catch (error) {
-          console.error("❌ Error cargando formulario:", error);
-        }
-      };
-
-      loadFormData();
-    }, [userId]),
-  );
+  // Solo carga el caché una vez por usuario; luego se actualiza solo vía observe
+  useEffect(() => {
+    if (!userId) return;
+    loadFinanceCache(userId);
+    const t = setTimeout(() => resetBaseline(), 150);
+    return () => clearTimeout(t);
+  }, [userId, loadFinanceCache, resetBaseline]);
 
   const selectedAccount = useMemo(
     () => accounts.find((acc) => acc.id === selectedAccountId),
@@ -267,7 +333,7 @@ export default function AddTransactionScreen() {
     return true;
   };
 
-  // ─── Guardar ─────────────────────────────────────────────────────────────────
+  // ─── Guardar DUAL (Crear / Editar) ──────────────────────────────────────────────────
   const handleSave = async () => {
     if (!validate()) return;
 
@@ -277,23 +343,51 @@ export default function AddTransactionScreen() {
     setLoading(true);
 
     try {
-      await createTransactionRecord({
-        userId: userId!,
-        date: dateTimestamp,
-        amount: numericAmount,
-        description: description.trim(),
-        type: transactionType!,
-        accountId: selectedAccountId!,
-        destinationAccountId:
-          transactionType === "transfer" ? destinationAccountId : null,
-        categoryId: isFinancialFee ? null : selectedCategoryId,
-        transferTarget: transactionType === "transfer" ? transferTarget : null,
-        installmentsTotal: showInstallments ? (installmentsTotal ?? 1) : null,
-        installmentsPaid: showInstallments ? (installmentsPaid ?? 0) : null,
-        feeType: isFinancialFee ? feeType! : null,
-      });
+      if (isEditing && id) {
+        // 5. Lógica de ACTUALIZACIÓN
+        await updateTransactionRecord({
+          transactionId: id,
+          nextValues: {
+            type: transactionType!,
+            amount: numericAmount,
+            description: description.trim(),
+            date: dateTimestamp,
+            accountId: selectedAccountId!,
+            destinationAccountId:
+              transactionType === "transfer" ? destinationAccountId : null,
+            categoryId: isFinancialFee ? null : selectedCategoryId,
+            transferTarget:
+              transactionType === "transfer" ? transferTarget : null,
+            installmentsTotal: showInstallments
+              ? (installmentsTotal ?? 1)
+              : null,
+            installmentsPaid: showInstallments ? (installmentsPaid ?? 0) : null,
+            feeType: isFinancialFee ? feeType! : null,
+          },
+        });
+      } else {
+        // 6. Lógica original de CREACIÓN
+        await createTransactionRecord({
+          userId: userId!,
+          date: dateTimestamp,
+          amount: numericAmount,
+          description: description.trim(),
+          type: transactionType!,
+          accountId: selectedAccountId!,
+          destinationAccountId:
+            transactionType === "transfer" ? destinationAccountId : null,
+          categoryId: isFinancialFee ? null : selectedCategoryId,
+          transferTarget:
+            transactionType === "transfer" ? transferTarget : null,
+          installmentsTotal: showInstallments ? (installmentsTotal ?? 1) : null,
+          installmentsPaid: showInstallments ? (installmentsPaid ?? 0) : null,
+          feeType: isFinancialFee ? feeType! : null,
+        });
+      }
 
-      router.back();
+      resetForm();
+      allowLeave();
+      router.push("/transactions/new");
     } catch (error: any) {
       console.error("Save error:", error);
       Alert.alert("Error", error.message || "No se pudo guardar");
@@ -303,53 +397,32 @@ export default function AddTransactionScreen() {
   };
 
   // ─── UI ──────────────────────────────────────────────────────────────────────
-  return (
-    <SafeAreaView
-      className="flex-1 "
-      edges={["bottom", "left", "right"]} // excluye top
-    >
-      <ScrollView className="flex-1 px-5  mt-4">
-        {/* Header */}
-        <View className="flex-row items-center justify-between mb-6">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="h-10 w-10 rounded-full bg-gray-100 items-center justify-center"
-          >
-            <Svg
-              viewBox="0 0 24 24"
-              width="20"
-              height="20"
-              fill="none"
-              stroke="currentColor"
-            >
-              <Path
-                d="M15 19l-7-7 7-7"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-          </TouchableOpacity>
-          <Text className="text-xl font-bold text-black">
-            Nueva transacción
-          </Text>
-          <View className="w-10 " />
-        </View>
+  const isFirstLoad = cacheLoading && accounts.length === 0 && categories.length === 0;
 
+  return (
+    <SafeAreaView className="flex-1 bg-deep dark:bg-deep-dark" edges={["bottom", "left", "right"]}>
+      <ScreenBackdrop />
+      {isFirstLoad ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#4b9aff" />
+          <Text className="text-muted dark:text-muted-dark mt-3">Cargando...</Text>
+        </View>
+      ) : (
+      <KeyboardAvoidingScrollView className="flex-1 px-5 mt-4">
         {/* Tipo */}
         <View className="mb-4">
-          <Text className="text-sm font-medium text-black mb-2">Tipo</Text>
+          <Text className="text-sm font-medium text-ink dark:text-ink-dark mb-2">Tipo</Text>
           <View className="flex-row gap-3">
             {(["income", "expense", "transfer"] as TxType[]).map((type) => {
               const labels: Record<TxType, string> = {
                 income: "Ingreso",
                 expense: "Gasto",
-                transfer: "Transfer",
+                transfer: "Transferencia",
               };
               const activeColors: Record<TxType, string> = {
-                income: "border-green-500 bg-green-50",
-                expense: "border-red-500 bg-red-50",
-                transfer: "border-blue-500 bg-blue-50",
+                income: "border-income dark:border-income-dark bg-income/10 dark:bg-income-dark/10",
+                expense: "border-expense dark:border-expense-dark bg-expense/10 dark:bg-expense-dark/10",
+                transfer: "border-accent dark:border-accent-dark bg-accent/10 dark:bg-accent-dark/10",
               };
 
               return (
@@ -359,10 +432,22 @@ export default function AddTransactionScreen() {
                   className={`flex-1 p-3 border-2 rounded-lg items-center ${
                     transactionType === type
                       ? activeColors[type]
-                      : "border-gray-900"
+                      : "border-black/10 dark:border-white/10"
                   }`}
                 >
-                  <Text className="font-medium text-black">{labels[type]}</Text>
+                  <Text
+                    className={`font-medium ${
+                      transactionType === type
+                        ? type === "income"
+                          ? "text-income dark:text-income-dark"
+                          : type === "expense"
+                            ? "text-expense dark:text-expense-dark"
+                            : "text-accent dark:text-accent-dark"
+                        : "text-muted dark:text-muted-dark"
+                    }`}
+                  >
+                    {labels[type]}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -371,15 +456,16 @@ export default function AddTransactionScreen() {
 
         {/* Monto */}
         <View className="mb-4">
-          <Text className="text-sm font-medium text-black mb-2">Monto *</Text>
+          <Text className="text-sm font-medium text-ink dark:text-ink-dark mb-2">Monto *</Text>
           <View className="relative">
-            <Text className="absolute left-3 top-3 text-gray-500 text-lg">
+            <Text className="absolute left-3 top-3 text-muted dark:text-muted-dark text-lg">
               $
             </Text>
             <TextInput
-              className="pl-8 pr-4 py-3 border border-gray-300 rounded-lg text-lg text-black"
+              className="pl-8 pr-4 py-3 border border-black/10 dark:border-white/10 bg-deepSoft dark:bg-deepSoft-dark rounded-lg text-lg text-ink dark:text-ink-dark"
               keyboardType="numeric"
               placeholder="0"
+              placeholderTextColor="#9ca3af"
               value={amountRaw}
               onChangeText={(text) => setAmountRaw(formatCOP(text))}
             />
@@ -388,12 +474,12 @@ export default function AddTransactionScreen() {
 
         {/* Cuenta origen */}
         <View className="mb-4">
-          <Text className="text-sm font-medium text-black mb-2">
+          <Text className="text-sm font-medium text-ink dark:text-ink-dark mb-2">
             Cuenta origen *
           </Text>
 
           {accounts.length === 0 ? (
-            <Text className="text-black text-center">
+            <Text className="text-muted dark:text-muted-dark text-center">
               No hay cuentas activas disponibles.
             </Text>
           ) : (
@@ -410,24 +496,20 @@ export default function AddTransactionScreen() {
                     onPress={() => setSelectedAccountId(account.id)}
                     className={`mx-2 px-4 py-3 rounded-2xl border ${
                       isSelected
-                        ? "bg-blue-600 border-blue-600 "
-                        : "bg-white border-gray-200"
+                        ? "bg-accent/10 dark:bg-accent-dark/10 border-accent dark:border-accent-dark "
+                        : "bg-deepSoft dark:bg-deepSoft-dark border-black/10 dark:border-white/10"
                     }`}
                     style={{ minWidth: 150 }}
                   >
-                    <Text
-                      className={`text-xl mb-1 ${isSelected ? "text-black" : "text-gray-800"}`}
-                    >
-                      {account.iconImage || "🏦"}
-                    </Text>
+                    <PremiumIcon token={account.iconImage} size={32} fallback="🏦" />
                     <Text
                       numberOfLines={1}
-                      className={`font-semibold ${isSelected ? "text-black" : "text-gray-900"}`}
+                      className={`font-semibold ${isSelected ? "text-accent dark:text-accent-dark" : "text-ink dark:text-ink-dark"}`}
                     >
                       {account.name}
                     </Text>
                     <Text
-                      className={`text-xs mt-1 ${isSelected ? "text-blue-100" : "text-gray-500"}`}
+                      className={`text-xs mt-1 ${isSelected ? "text-accent/80 dark:text-accent-dark/80" : "text-muted dark:text-muted-dark"}`}
                     >
                       {account.currency}{" "}
                       {Number(account.balance ?? 0).toLocaleString("es-CO")}
@@ -442,7 +524,7 @@ export default function AddTransactionScreen() {
         {/* Transferencia — destino */}
         {transactionType === "transfer" && (
           <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 mb-2">
+            <Text className="text-sm font-medium text-muted dark:text-muted-dark mb-2">
               Destino
             </Text>
 
@@ -453,11 +535,11 @@ export default function AddTransactionScreen() {
                   onPress={() => setTransferTarget(target)}
                   className={`flex-1 p-3 border rounded-lg items-center ${
                     transferTarget === target
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200"
+                      ? "border-accent bg-accent/10"
+                      : "border-black/10 dark:border-white/10"
                   }`}
                 >
-                  <Text className="text-black border-black">
+                  <Text className="text-ink dark:text-ink-dark border-black/10 dark:border-white/10">
                     {target === "own" ? "Mis cuentas" : "Otra persona"}
                   </Text>
                 </TouchableOpacity>
@@ -466,7 +548,7 @@ export default function AddTransactionScreen() {
 
             {transferTarget === "own" && (
               <>
-                <Text className="text-sm font-medium text-gray-700 mb-2">
+                <Text className="text-sm font-medium text-muted dark:text-muted-dark mb-2">
                   Cuenta destino *
                 </Text>
                 <ScrollView
@@ -484,24 +566,20 @@ export default function AddTransactionScreen() {
                           onPress={() => setDestinationAccountId(account.id)}
                           className={`mx-2 px-4 py-3 rounded-2xl border ${
                             isSelected
-                              ? "bg-indigo-600 border-indigo-600"
-                              : "bg-white border-gray-200"
+                              ? "bg-accent/10 dark:bg-accent-dark/10 border-accent dark:border-accent-dark"
+                              : "bg-deepSoft dark:bg-deepSoft-dark border-black/10 dark:border-white/10"
                           }`}
                           style={{ minWidth: 150 }}
                         >
-                          <Text
-                            className={`text-xl mb-1 ${isSelected ? "text-black" : "text-gray-800"}`}
-                          >
-                            {account.iconImage || "🏦"}
-                          </Text>
+                          <PremiumIcon token={account.iconImage} size={32} fallback="🏦" />
                           <Text
                             numberOfLines={1}
-                            className={`font-semibold ${isSelected ? "text-black" : "text-gray-900"}`}
+                            className={`font-semibold ${isSelected ? "text-accent dark:text-accent-dark" : "text-ink dark:text-ink-dark"}`}
                           >
                             {account.name}
                           </Text>
                           <Text
-                            className={`text-xs mt-1 ${isSelected ? "text-indigo-100" : "text-gray-500"}`}
+                            className={`text-xs mt-1 ${isSelected ? "text-accent/80 dark:text-accent-dark/80" : "text-muted dark:text-muted-dark"}`}
                           >
                             {account.currency}{" "}
                             {Number(account.balance ?? 0).toLocaleString(
@@ -533,12 +611,12 @@ export default function AddTransactionScreen() {
               }}
               className={`p-3 border rounded-lg ${
                 isFinancialFee
-                  ? "border-amber-500 bg-amber-50"
-                  : "border-gray-200"
+                  ? "border-accent dark:border-accent-dark bg-accent/15 dark:bg-accent-dark/15"
+                  : "border-black/10 dark:border-white/10"
               }`}
             >
-              <Text className="font-medium">Es un cobro financiero</Text>
-              <Text className="text-xs text-gray-500 mt-1">
+              <Text className="font-medium text-ink dark:text-ink-dark">Es un cobro financiero</Text>
+              <Text className="text-xs text-muted dark:text-muted-dark mt-1">
                 Úsalo para cuota de manejo, anualidad, mora, cajero, etc.
               </Text>
             </TouchableOpacity>
@@ -548,7 +626,7 @@ export default function AddTransactionScreen() {
         {/* Tipo de cobro financiero */}
         {transactionType === "expense" && isFinancialFee && (
           <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 mb-2">
+            <Text className="text-sm font-medium text-muted dark:text-muted-dark mb-2">
               Tipo de cobro *
             </Text>
             <View className="flex-row flex-wrap gap-2">
@@ -567,13 +645,13 @@ export default function AddTransactionScreen() {
                   onPress={() => setFeeType(item.value)}
                   className={`px-4 py-2 rounded-full border ${
                     feeType === item.value
-                      ? "bg-amber-500 border-amber-500"
-                      : "bg-white border-gray-300"
+                      ? "bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark"
+                      : "bg-deepSoft dark:bg-deepSoft-dark border-black/10 dark:border-white/10"
                   }`}
                 >
                   <Text
                     className={
-                      feeType === item.value ? "text-black" : "text-gray-700"
+                      feeType === item.value ? "text-accent dark:text-accent-dark" : "text-muted dark:text-muted-dark"
                     }
                   >
                     {item.label}
@@ -587,11 +665,11 @@ export default function AddTransactionScreen() {
         {/* Categoría */}
         {!isFinancialFee && transactionType !== "transfer" && (
           <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 mb-2">
+            <Text className="text-sm font-medium text-muted dark:text-muted-dark mb-2">
               Categoría *
             </Text>
             {filteredCategories.length === 0 ? (
-              <Text className="text-gray-500 text-center">
+              <Text className="text-muted dark:text-muted-dark text-center">
                 No hay categorías disponibles.
               </Text>
             ) : (
@@ -606,18 +684,14 @@ export default function AddTransactionScreen() {
                     onPress={() => setSelectedCategoryId(cat.id)}
                     className={`mx-2 p-3 rounded-full items-center justify-center ${
                       selectedCategoryId === cat.id
-                        ? "bg-blue-500"
-                        : "bg-gray-200"
+                        ? "bg-accent dark:bg-accent-dark"
+                        : "bg-black/10 dark:bg-white/10"
                     }`}
                     style={{ minWidth: 70 }}
                   >
+                    <PremiumIcon token={cat.iconImage} size={28} fallback="📁" />
                     <Text
-                      className={`text-xl ${selectedCategoryId === cat.id ? "text-black" : "text-gray-700"}`}
-                    >
-                      {cat.iconImage || "📁"}
-                    </Text>
-                    <Text
-                      className={`text-xs mt-1 ${selectedCategoryId === cat.id ? "text-black" : "text-gray-700"}`}
+                      className={`text-xs mt-1 ${selectedCategoryId === cat.id ? "text-white" : "text-muted dark:text-muted-dark"}`}
                     >
                       {cat.name}
                     </Text>
@@ -631,16 +705,17 @@ export default function AddTransactionScreen() {
         {/* Cuotas */}
         {showInstallments && (
           <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 mb-2">
+            <Text className="text-sm font-medium text-muted dark:text-muted-dark mb-2">
               Cuotas
             </Text>
             <View className="flex-row gap-3">
               <View className="flex-1">
-                <Text className="text-xs text-gray-500 mb-1">Totales</Text>
+                <Text className="text-xs text-muted dark:text-muted-dark mb-1">Totales</Text>
                 <TextInput
-                  className="px-4 py-3 border border-gray-300 rounded-lg"
+                  className="px-4 py-3 border border-black/10 dark:border-white/10 bg-deepSoft dark:bg-deepSoft-dark rounded-lg text-ink dark:text-ink-dark"
                   keyboardType="numeric"
                   placeholder="Ej: 12"
+                  placeholderTextColor="#9ca3af"
                   value={installmentsTotal ? String(installmentsTotal) : ""}
                   onChangeText={(text) => {
                     const n = Number(text.replace(/\D/g, ""));
@@ -649,11 +724,12 @@ export default function AddTransactionScreen() {
                 />
               </View>
               <View className="flex-1">
-                <Text className="text-xs text-gray-500 mb-1">Pagadas</Text>
+                <Text className="text-xs text-muted dark:text-muted-dark mb-1">Pagadas</Text>
                 <TextInput
-                  className="px-4 py-3 border border-gray-300 rounded-lg"
+                  className="px-4 py-3 border border-black/10 dark:border-white/10 bg-deepSoft dark:bg-deepSoft-dark rounded-lg text-ink dark:text-ink-dark"
                   keyboardType="numeric"
                   placeholder="0"
+                  placeholderTextColor="#9ca3af"
                   value={
                     installmentsPaid !== null ? String(installmentsPaid) : "0"
                   }
@@ -664,7 +740,7 @@ export default function AddTransactionScreen() {
                 />
               </View>
             </View>
-            <Text className="text-xs text-gray-500 mt-2">
+            <Text className="text-xs text-muted dark:text-muted-dark mt-2">
               Si no defines cuotas, se guardará como compra de una sola cuota.
             </Text>
           </View>
@@ -672,39 +748,46 @@ export default function AddTransactionScreen() {
 
         {/* Fecha */}
         <View className="mb-4">
-          <Text className="text-sm font-medium text-gray-700 mb-2">Fecha</Text>
+          <Text className="text-sm font-medium text-muted dark:text-muted-dark mb-2">Fecha</Text>
           <Calendar
             onDayPress={(day: any) => setSelectedDate(day.dateString)}
             maxDate={todayString}
             markedDates={{
-              [selectedDate]: { selected: true, selectedColor: "#2563eb" },
+              [selectedDate]: { selected: true, selectedColor: "#4b9aff" },
             }}
             current={selectedDate}
             style={{
               borderRadius: 12,
               borderWidth: 1,
-              borderColor: "#e5e7eb",
-              backgroundColor: "white",
+              borderColor: isDark ? "rgba(255,255,255,0.1)" : "#e7e2d8",
+              backgroundColor: isDark ? "#0a1220" : "#ffffff",
               marginBottom: 10,
             }}
             theme={{
-              todayTextColor: "#2563eb",
-              arrowColor: "#2563eb",
-              selectedDayBackgroundColor: "#2563eb",
+              calendarBackground: isDark ? "#0a1220" : "#ffffff",
+              textSectionTitleColor: isDark ? "#97a4bb" : "#7a7266",
+              selectedDayBackgroundColor: "#4b9aff",
+              selectedDayTextColor: "#ffffff",
+              todayTextColor: "#4b9aff",
+              dayTextColor: isDark ? "#f6f8ff" : "#1c1917",
+              monthTextColor: isDark ? "#f6f8ff" : "#1c1917",
+              arrowColor: "#4b9aff",
+              textDisabledColor: isDark ? "#3a4a63" : "#d0cbbf",
             }}
           />
         </View>
 
         {/* Comentarios */}
         <View className="mb-6">
-          <Text className="text-sm font-medium text-gray-700 mb-2">
+          <Text className="text-sm font-medium text-muted dark:text-muted-dark mb-2">
             Comentarios
           </Text>
           <TextInput
             multiline
             numberOfLines={3}
-            className="border border-gray-300 rounded-lg p-3 text-gray-700"
+            className="border border-black/10 dark:border-white/10 bg-deepSoft dark:bg-deepSoft-dark rounded-lg p-3 text-ink dark:text-ink-dark"
             placeholder="Opcional"
+            placeholderTextColor="#9ca3af"
             value={description}
             onChangeText={setDescription}
           />
@@ -712,15 +795,20 @@ export default function AddTransactionScreen() {
 
         {/* Guardar */}
         <TouchableOpacity
-          className={`${loading ? "opacity-50" : ""} bg-blue-600 py-4 rounded-lg items-center mb-4`}
+          className={`${loading ? "opacity-50" : ""} bg-accent dark:bg-accent-dark py-4 rounded-lg items-center mb-4`}
           onPress={handleSave}
           disabled={loading}
         >
-          <Text className="text-black font-medium text-base">
-            {loading ? "Guardando..." : "Guardar transacción"}
+          <Text className="text-white font-medium text-base">
+            {loading
+              ? "Guardando..."
+              : isEditing
+                ? "Guardar cambios"
+                : "Guardar transacción"}
           </Text>
         </TouchableOpacity>
-      </ScrollView>
+      </KeyboardAvoidingScrollView>
+      )}
     </SafeAreaView>
   );
 }

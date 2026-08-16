@@ -2,10 +2,12 @@
 import {
   AlarmClock,
   ArrowRight,
+  Bot,
   Code,
   Home,
   Send,
   Shield,
+  Sparkles,
   TrendingUp,
   User,
   UserRound,
@@ -24,6 +26,8 @@ const MAPPING = {
   shield: Shield,
   "person.circle": UserRound,
   "arrow.right": ArrowRight,
+  sparkles: Sparkles,
+  bot: Bot,
 } as const;
 
 export type IconSymbolName = keyof typeof MAPPING;

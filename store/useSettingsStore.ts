@@ -15,10 +15,16 @@ const DEFAULT_PERMISSIONS: AppPermissions = {
   pushNotifications: false,
 };
 
+export type AppTheme = "system" | "light" | "dark";
+
 // 3. La interfaz de nuestro Store
 interface SettingsState {
   // El récord que vincula el ID del usuario con sus permisos
   preferencesByUser: Record<string, AppPermissions>;
+
+  // Tema visual de la app: sigue al sistema por defecto
+  theme: AppTheme;
+  setTheme: (theme: AppTheme) => void;
 
   // Nuestras acciones
   setPermission: (
@@ -35,6 +41,9 @@ export const useSettingsStore = create<SettingsState>()(
     (set, get) => ({
       // Estado inicial vacío
       preferencesByUser: {},
+      theme: "system",
+
+      setTheme: (theme) => set({ theme }),
 
       // Acción para actualizar un permiso específico de un usuario específico
       setPermission: (userId, permissionKey, value) => {

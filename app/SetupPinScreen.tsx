@@ -10,6 +10,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { usePreventBack } from "@/hooks/usePreventBack";
+import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
 
 export default function SetupPinScreen() {
   const [names, setNames] = useState("");
@@ -17,6 +19,8 @@ export default function SetupPinScreen() {
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [loading, setLoading] = useState(false);
+
+  usePreventBack();
 
   const { createLocalUser, setupPinForSelectedUser } = useAuthStore();
 
@@ -66,7 +70,8 @@ export default function SetupPinScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-blue-400">
+    <SafeAreaView className="flex-1 bg-deep dark:bg-deep-dark">
+      <ScreenBackdrop />
       <ScrollView
         contentContainerStyle={{
           padding: 24,
@@ -76,62 +81,66 @@ export default function SetupPinScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View>
-          <Text className="text-3xl font-bold text-center mb-2">
+          <Text className="text-3xl font-bold text-center mb-2 text-ink dark:text-ink-dark">
             Crear perfil
           </Text>
 
-          <Text className="text-gray-500 text-center mb-8">
+          <Text className="text-muted dark:text-muted-dark text-center mb-8">
             Crea un usuario local y protege su información con un PIN
           </Text>
 
-          <Text className="text-sm font-medium text-black mb-2">Nombre</Text>
+          <Text className="text-sm font-medium text-ink dark:text-ink-dark mb-2">Nombre</Text>
           <TextInput
-            className="border border-gray-300 rounded-lg p-4 mb-4 text-base"
+            className="border border-black/10 dark:border-white/10 rounded-lg p-4 mb-4 text-base text-ink dark:text-ink-dark bg-deepSoft dark:bg-deepSoft-dark"
             placeholder="Edward"
+            placeholderTextColor="#9ca3af"
             value={names}
             onChangeText={setNames}
           />
 
-          <Text className="text-sm font-medium text-gray-700 mb-2">
+          <Text className="text-sm font-medium text-muted dark:text-muted-dark mb-2">
             Apellido (opcional)
           </Text>
           <TextInput
-            className="border border-gray-300 rounded-lg p-4 mb-4 text-base"
+            className="border border-black/10 dark:border-white/10 rounded-lg p-4 mb-4 text-base text-ink dark:text-ink-dark bg-deepSoft dark:bg-deepSoft-dark"
             placeholder="Rodríguez"
+            placeholderTextColor="#9ca3af"
             value={lastName}
             onChangeText={setLastName}
           />
 
-          <Text className="text-sm font-medium text-gray-700 mb-2">
+          <Text className="text-sm font-medium text-muted dark:text-muted-dark mb-2">
             PIN (4-6 dígitos)
           </Text>
           <TextInput
-            className="border border-gray-300 rounded-lg p-4 mb-4 text-lg text-center"
+            className="border border-black/10 dark:border-white/10 rounded-lg p-4 mb-4 text-lg text-center text-ink dark:text-ink-dark bg-deepSoft dark:bg-deepSoft-dark"
             keyboardType="numeric"
             secureTextEntry
             maxLength={6}
+            placeholderTextColor="#9ca3af"
             value={pin}
             onChangeText={setPin}
           />
 
-          <Text className="text-sm font-medium text-gray-700 mb-2">
+          <Text className="text-sm font-medium text-muted dark:text-muted-dark mb-2">
             Confirmar PIN
           </Text>
           <TextInput
-            className="border border-gray-300 rounded-lg p-4 mb-8 text-lg text-center"
+            className="border border-black/10 dark:border-white/10 rounded-lg p-4 mb-8 text-lg text-center text-ink dark:text-ink-dark bg-deepSoft dark:bg-deepSoft-dark"
             keyboardType="numeric"
             secureTextEntry
             maxLength={6}
+            placeholderTextColor="#9ca3af"
             value={confirmPin}
             onChangeText={setConfirmPin}
           />
 
           <TouchableOpacity
-            className={`py-4 rounded-lg ${loading ? "bg-gray-400" : "bg-blue-600"}`}
+            className={`py-4 rounded-lg ${loading ? "bg-black/10 dark:bg-white/10" : "bg-accent dark:bg-accent-dark"}`}
             onPress={handleCreateUser}
             disabled={loading}
           >
-            <Text className="text-black text-center font-semibold text-lg">
+            <Text className="text-white text-center font-semibold text-lg">
               {loading ? "Creando perfil..." : "Crear usuario"}
             </Text>
           </TouchableOpacity>
@@ -141,7 +150,7 @@ export default function SetupPinScreen() {
             onPress={() => router.replace("/SelectUserScreen")}
             disabled={loading}
           >
-            <Text className="text-blue-600 text-center">
+            <Text className="text-accent dark:text-accent-dark text-center">
               Ya existe un usuario
             </Text>
           </TouchableOpacity>

@@ -1,6 +1,8 @@
 import { Dropdown } from "@/components/Dropdown";
 import { database } from "@/database";
 import { Event } from "@/database/models/mlEvent";
+import { useConfirmLeave } from "@/hooks/useConfirmLeave";
+import { useDirtyState } from "@/hooks/useDirtyState";
 import {
   createExpenseEventWithNotification,
   updateExpenseEvent,
@@ -17,7 +19,6 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -25,8 +26,13 @@ import {
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useColorScheme } from "nativewind";
+import KeyboardAvoidingScrollView from "@/components/KeyboardAvoidingScrollView";
+import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
 
 export default function CreateEventScreen() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
   const { id } = useLocalSearchParams<{ id: string }>(); // Si hay ID, es modo Edición
   const isEditing = !!id;
 
@@ -67,6 +73,30 @@ export default function CreateEventScreen() {
   const [selectedDateStr, setSelectedDateStr] = useState("");
   const todayString = formatLocalDate(new Date());
     const navigation = useNavigation();
+
+  const { isDirty, resetBaseline } = useDirtyState([
+    title,
+    amount,
+    selectedDateStr,
+    eventRecurrence,
+  ]);
+
+  const resetForm = () => {
+    setTitle("");
+    setAmount("");
+    setSelectedDateStr("");
+    setEventRecurrence("none");
+    resetBaseline();
+  };
+
+  useConfirmLeave({
+    enabled: isDirty,
+    message: isEditing
+      ? "Si sales ahora, los cambios del recordatorio no se guardarán."
+      : "Si sales ahora, el recordatorio no se creará.",
+    onDiscard: resetForm,
+  });
+
   const handleSave = async () => {
     // --- BARRERA 1: Datos completos ---
     if (!title || !amount) {
@@ -143,6 +173,8 @@ export default function CreateEventScreen() {
           [{ text: "Genial", onPress: () => router.push("/reminders") }],
         );
       }
+
+      resetForm();
     } catch (error) {
       console.error("Error al guardar:", error);
       Alert.alert("Error", "Hubo un problema al guardar el recordatorio.");
@@ -151,7 +183,7 @@ export default function CreateEventScreen() {
     if (isLoading) {
       return (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#6C63FF" />
+          <ActivityIndicator size="large" color="#4b9aff" />
         </View>
       );
     }
@@ -172,6 +204,7 @@ export default function CreateEventScreen() {
           const dateObj = new Date(record.startDate);
           // Ojo: Asegúrate de formatearlo como YYYY-MM-DD según tu utilidad
           setSelectedDateStr(dateObj.toISOString().split("T")[0]);
+          resetBaseline();
 
           // ... poblar demás campos ...
         } catch (error) {
@@ -185,31 +218,33 @@ export default function CreateEventScreen() {
       setEventRecurrence("none");
 
       setSelectedDateStr("");
+      resetBaseline();
     }
-  }, [id]);
+  }, [id, isEditing, navigation, resetBaseline]);
 
   return (
-    <SafeAreaView className="flex-1"       edges={["bottom", "left", "right"]} >
-      <ScrollView className="flex-1 bg-gray-200 p-4">
+    <SafeAreaView className="flex-1 bg-deep dark:bg-deep-dark"       edges={["bottom", "left", "right"]} >
+      <ScreenBackdrop />
+      <KeyboardAvoidingScrollView className="flex-1 p-4">
 
         {/* Inputs Básicos */}
         <View className="mb-4">
-          <Text className="text-sm text-gray-600 mb-1">Título</Text>
+          <Text className="text-sm text-muted dark:text-muted-dark mb-1">Título</Text>
           <TextInput
-            className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-black"
+            className="bg-deepSoft dark:bg-deepSoft-dark border border-black/10 dark:border-white/10 rounded-lg p-3 text-ink dark:text-ink-dark"
             placeholder="Ej. Tarjeta de Crédito"
-            placeholderTextColor={"gray"}
+            placeholderTextColor="#9ca3af"
             value={title}
             onChangeText={setTitle}
           />
         </View>
 
         <View className="mb-6">
-          <Text className="text-sm text-gray-600 mb-1">Monto ($)</Text>
+          <Text className="text-sm text-muted dark:text-muted-dark mb-1">Monto ($)</Text>
           <TextInput
-            className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-gray-800"
+            className="bg-deepSoft dark:bg-deepSoft-dark border border-black/10 dark:border-white/10 rounded-lg p-3 text-ink dark:text-ink-dark"
             placeholder="50.000"
-            placeholderTextColor={"gray"}
+            placeholderTextColor="#9ca3af"
             keyboardType="numeric"
             value={amount}
             onChangeText={(amount) => setAmount(formatCOP(amount))}
@@ -217,7 +252,7 @@ export default function CreateEventScreen() {
         </View>
 
         <View className=" z-50 flex justify-items-center">
-          <Text className="text-sm text-gray-600">Frecuencia:</Text>
+          <Text className="text-sm text-muted dark:text-muted-dark">Frecuencia:</Text>
 
           <Dropdown
             options={eventRecurrenceOptionsES}
@@ -231,17 +266,26 @@ export default function CreateEventScreen() {
             onDayPress={(day: any) => setSelectedDateStr(day.dateString)}
             minDate={todayString}
             markedDates={{
-              [selectedDateStr]: { selected: true, selectedColor: "#2563eb" },
+              [selectedDateStr]: { selected: true, selectedColor: "#4b9aff" },
             }}
             current={selectedDateStr}
             theme={{
-              todayTextColor: "#2563eb",
-              arrowColor: "#2563eb",
-              selectedDayBackgroundColor: "#2563eb",
+              calendarBackground: isDark ? "#0a1220" : "#ffffff",
+              textSectionTitleColor: isDark ? "#97a4bb" : "#7a7266",
+              selectedDayBackgroundColor: "#4b9aff",
+              selectedDayTextColor: "#ffffff",
+              todayTextColor: "#4b9aff",
+              dayTextColor: isDark ? "#f6f8ff" : "#1c1917",
+              monthTextColor: isDark ? "#f6f8ff" : "#1c1917",
+              arrowColor: "#4b9aff",
+              textDisabledColor: isDark ? "#3a4a63" : "#d0cbbf",
             }}
             style={{
-              borderRadius: 10,
-              borderColor: "#2563eb",
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: isDark ? "rgba(255,255,255,0.1)" : "#e7e2d8",
+              backgroundColor: isDark ? "#0a1220" : "#ffffff",
+              marginBottom: 10,
             }}
           />
         </View>
@@ -250,8 +294,8 @@ export default function CreateEventScreen() {
         <View className="my-6">
           {notificationsEnabled ? (
             // Estado OK: Banner informativo azul
-            <View className="bg-blue-50 border border-blue-200 p-4 rounded-lg flex-row items-center">
-              <Text className="text-blue-800 flex-1 leading-5">
+            <View className="bg-accent/10 dark:bg-accent-dark/10 border border-accent/20 dark:border-accent-dark/20 p-4 rounded-lg flex-row items-center">
+              <Text className="text-accent dark:text-accent-dark flex-1 leading-5">
                 🔔 <Text className="font-bold">Notificaciones activas.</Text> Te
                 recordaremos este gasto el {selectedDateStr} a las 9:00 AM.
               </Text>
@@ -260,10 +304,10 @@ export default function CreateEventScreen() {
             // Estado CRÍTICO: Banner rojo clickeable
             <TouchableOpacity
               activeOpacity={0.7}
-              className="bg-red-50 border border-red-200 p-4 rounded-lg flex-row items-center"
+              className="bg-expense/10 dark:bg-expense-dark/10 border border-expense/20 dark:border-expense-dark/20 p-4 rounded-lg flex-row items-center"
               onPress={() => router.push("/profile")} // Lleva al usuario directo a la solución
             >
-              <Text className="text-red-800 flex-1 leading-5">
+              <Text className="text-expense dark:text-expense-dark flex-1 leading-5">
                 ⚠️ <Text className="font-bold">Notificaciones pausadas.</Text>{" "}
                 No podremos recordarte.{" "}
                 <Text className="underline font-bold">
@@ -276,15 +320,15 @@ export default function CreateEventScreen() {
 
         {/* Botón Guardar */}
         <TouchableOpacity
-          className="bg-green-600 p-4 rounded-xl items-center"
+          className="bg-income dark:bg-income-dark p-4 rounded-xl items-center"
           onPress={handleSave}
         >
-          <Text className="text-white font-bold text-lg">
+          <Text className="text-[#07101e] font-bold text-lg">
             {" "}
             {isEditing ? "Actualizar Recordatorio" : "Guardar Recordatorio"}
           </Text>
         </TouchableOpacity>
-      </ScrollView>
+      </KeyboardAvoidingScrollView>
     </SafeAreaView>
   );
 }
