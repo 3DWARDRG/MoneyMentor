@@ -6,14 +6,11 @@ import React, {
   useState,
 } from "react";
 import {
-  Dimensions,
-  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   ScrollViewProps,
-  TextInput,
 } from "react-native";
-
-const KEYBOARD_EXTRA_OFFSET = 24;
 
 const KeyboardAvoidingScrollView = forwardRef<ScrollView, ScrollViewProps>(
   function KeyboardAvoidingScrollView(
@@ -22,54 +19,35 @@ const KeyboardAvoidingScrollView = forwardRef<ScrollView, ScrollViewProps>(
       contentContainerStyle,
       onScroll,
       scrollEventThrottle,
+      className,
       ...props
     },
     ref,
   ) {
     const scrollRef = useRef<ScrollView>(null);
-    const scrollOffsetRef = useRef(0);
-    const [keyboardHeight, setKeyboardHeight] = useState(0);
+    const [verticalOffset, setVerticalOffset] = useState(0);
 
-    useEffect(() => {
-      const show = Keyboard.addListener("keyboardDidShow", (e) => {
-        setKeyboardHeight(e.endCoordinates.height);
-      });
-      const hide = Keyboard.addListener("keyboardDidHide", () => {
-        setKeyboardHeight(0);
-      });
-      return () => {
-        show.remove();
-        hide.remove();
-      };
-    }, []);
-
-    const scrollFocusedInputIntoView = useCallback(() => {
-      const scroll = scrollRef.current;
-      const focused = TextInput.State.currentlyFocusedInput();
-      if (!scroll || !focused || keyboardHeight <= 0) {
+    // Distancia entre el tope de la pantalla y este contenedor (header/status bar).
+    // Necesaria para que en iOS el teclado cubra la extensión y el contenido
+    // quede arriba, sin un recuadro vacío.
+    const measureOffset = useCallback(() => {
+      const node = scrollRef.current as unknown as {
+        measureInWindow?: (cb: (x: number, y: number) => void) => void;
+      } | null;
+      if (!node || typeof node.measureInWindow !== "function") {
         return;
       }
-      focused.measureInWindow((x, y, width, height) => {
-        const keyboardTop = Dimensions.get("window").height - keyboardHeight;
-        const overlap = y + height - keyboardTop + KEYBOARD_EXTRA_OFFSET;
-        if (overlap > 0) {
-          scroll.scrollTo({
-            y: scrollOffsetRef.current + overlap,
-            animated: true,
-          });
-        }
+      node.measureInWindow((x, y) => {
+        setVerticalOffset((prev) => (prev === y ? prev : y));
       });
-    }, [keyboardHeight]);
+    }, []);
 
     useEffect(() => {
-      if (keyboardHeight > 0) {
-        scrollFocusedInputIntoView();
-      }
-    }, [keyboardHeight, scrollFocusedInputIntoView]);
+      measureOffset();
+    }, [measureOffset]);
 
     const handleScroll = useCallback(
       (event: any) => {
-        scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
         onScroll?.(event);
       },
       [onScroll],
@@ -88,19 +66,24 @@ const KeyboardAvoidingScrollView = forwardRef<ScrollView, ScrollViewProps>(
     );
 
     return (
-      <ScrollView
-        ref={setRef}
-        {...props}
-        onScroll={handleScroll}
-        scrollEventThrottle={scrollEventThrottle ?? 16}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={[
-          contentContainerStyle,
-          keyboardHeight > 0 && { paddingBottom: keyboardHeight },
-        ]}
+      <KeyboardAvoidingView
+        onLayout={measureOffset}
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? verticalOffset : 0}
       >
-        {children}
-      </ScrollView>
+        <ScrollView
+          ref={setRef}
+          {...props}
+          className={className}
+          onScroll={handleScroll}
+          scrollEventThrottle={scrollEventThrottle ?? 16}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={contentContainerStyle}
+        >
+          {children}
+        </ScrollView>
+      </KeyboardAvoidingView>
     );
   },
 );

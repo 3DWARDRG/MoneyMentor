@@ -9,9 +9,26 @@ import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ThemeSync from "@/components/ThemeSync";
 import { useColorScheme } from "nativewind";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useFinanceCacheStore } from "@/store/useFinanceCacheStore";
 
 // 1. Evitamos que la pantalla de inicio desaparezca antes de tiempo
 SplashScreen.preventAutoHideAsync();
+
+// Precalienta el caché de cuentas/categorías en cuanto hay un usuario activo,
+// así las pantallas de creación (transacción, meta, etc.) no esperan por los datos.
+function FinanceCachePreloader() {
+  const userId = useAuthStore((s) => s.userId);
+  const loadFinanceCache = useFinanceCacheStore((s) => s.load);
+
+  useEffect(() => {
+    if (userId) {
+      loadFinanceCache(userId);
+    }
+  }, [userId, loadFinanceCache]);
+
+  return null;
+}
 
 export default function RootLayout() {
   const { colorScheme } = useColorScheme();
@@ -40,6 +57,7 @@ export default function RootLayout() {
     <GestureHandlerRootView
       style={{ flex: 1, backgroundColor: isDark ? "#0c1324" : "#faf8f4" }}
     >
+      <FinanceCachePreloader />
       <ThemeSync />
       <Stack screenOptions={stackHeaderStyle}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

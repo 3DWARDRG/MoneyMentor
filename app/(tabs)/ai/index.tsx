@@ -1,5 +1,6 @@
 import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
 import ImportVerificationModal from "@/components/ImportVerificationModal";
+import PdfRasterizerBridge from "@/components/PdfRasterizerBridge";
 import { useAiChatStore } from "@/store/useAiChatStore";
 import { useImportStore } from "@/store/useImportStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -11,6 +12,8 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
@@ -20,7 +23,6 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Sparkles } from "lucide-react-native";
-import KeyboardAvoidingScrollView from "@/components/KeyboardAvoidingScrollView";
 
 const SUGGESTIONS = [
   "¿Cuál es mi balance total?",
@@ -36,7 +38,7 @@ export default function AiChatScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
-  const bottomTabOffset = Platform.OS === "android" ? insets.bottom + 64 : 0;
+  const bottomTabOffset = Platform.OS === "android" ? insets.bottom + 64 : 49;
   const {
     messages,
     isSending,
@@ -60,6 +62,8 @@ export default function AiChatScreen() {
   } = useImportStore();
 
   const [input, setInput] = useState("");
+  const [elapsed, setElapsed] = useState(0);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const listRef = useRef<ScrollView>(null);
 
   const userId = useAuthStore.getState().userId ?? "";
@@ -67,6 +71,33 @@ export default function AiChatScreen() {
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  // Detecta el teclado: cuando está abierto la navbar se oculta, así que el
+  // input ya no necesita margen extra y queda pegado al teclado.
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () =>
+      setKeyboardVisible(true),
+    );
+    const hide = Keyboard.addListener("keyboardDidHide", () =>
+      setKeyboardVisible(false),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  // Cronómetro del procesamiento: los PDFs escaneados pueden tardar, así que
+  // se muestra el tiempo transcurrido para que no parezca que se colgó.
+  useEffect(() => {
+    if (!importProcessing) {
+      setElapsed(0);
+      return;
+    }
+    setElapsed(0);
+    const timer = setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => clearInterval(timer);
+  }, [importProcessing]);
 
   useEffect(() => {
     if (messages.length > 0 || isSending) {
@@ -185,14 +216,16 @@ export default function AiChatScreen() {
   return (
     <SafeAreaView className="flex-1">
       <ScreenBackdrop />
-      <KeyboardAvoidingScrollView
-        ref={listRef}
-        className="flex-1"
-        contentContainerStyle={{
-          flexGrow: 1,
-          paddingBottom: 12 + bottomTabOffset,
-        }}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
+        <ScrollView
+          ref={listRef}
+          className="flex-1"
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 12 }}
+          keyboardShouldPersistTaps="handled"
+        >
         {/* Header */}
         <View className="flex-row items-center justify-between px-5 pt-4 pb-2">
           <View className="flex-row items-center">
@@ -302,13 +335,28 @@ export default function AiChatScreen() {
           <View className="mx-5 mb-2 flex-row items-center self-start rounded-2xl border border-black/10 dark:border-white/10 bg-panel dark:bg-panel-dark px-4 py-3">
             <ActivityIndicator size="small" color="#4b9aff" />
             <Text className="ml-2 text-sm text-muted dark:text-muted-dark">
-              Leyendo extracto en tu dispositivo…
+              Leyendo extracto en tu dispositivo… ({elapsed}s)
             </Text>
+            <Pressable
+              onPress={() => cancelImport()}
+              className="ml-3 rounded-full border border-expense/30 bg-expense/10 px-3 py-1"
+            >
+              <Text className="text-xs font-semibold text-expense dark:text-expense-dark">
+                Cancelar
+              </Text>
+            </Pressable>
           </View>
         ) : null}
 
+        </ScrollView>
+
         {/* Input */}
-        <View className="flex-row items-end px-4 pt-1">
+        <View
+          className="flex-row items-end px-4 pt-1"
+          style={{
+            paddingBottom: keyboardVisible ? 8 : 4 + bottomTabOffset,
+          }}
+        >
           {messages.length > 0 && !isSending && (
             <Pressable
               onPress={clearChat}
@@ -348,7 +396,7 @@ export default function AiChatScreen() {
             <Text className="text-xl text-white">➤</Text>
           </Pressable>
         </View>
-      </KeyboardAvoidingScrollView>
+      </KeyboardAvoidingView>
 
       <ImportVerificationModal
         visible={importActive}
@@ -356,6 +404,7 @@ export default function AiChatScreen() {
         onClose={() => cancelImport()}
         onImported={handleImported}
       />
+      <PdfRasterizerBridge />
     </SafeAreaView>
   );
 }

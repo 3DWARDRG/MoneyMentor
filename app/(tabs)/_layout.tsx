@@ -85,6 +85,7 @@ export default function TabLayout() {
         name="ai"
         options={{
           title: "Asistente",
+          tabBarHideOnKeyboard: true,
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="sparkles" color={color} />
           ),

@@ -16,10 +16,14 @@ import { Q } from "@nozbe/watermelondb";
 import { database } from "@/database";
 import { createTransactionRecord } from "@/services/transactionBalanceHelpers";
 import { recognizeImageText } from "./ocr";
-import { extractPdfText } from "./pdf";
+import { extractPdfPages, type PdfPage } from "./pdf";
 import { redactSensitiveData } from "./redact";
 import {
   parseStatement,
+  extractDate,
+  detectStatementPeriod,
+  detectStatementYear,
+  type StatementPeriod,
   type ParsedTransaction,
   type ParsedTransactionType,
 } from "./statementParser";
@@ -40,6 +44,10 @@ interface ImportSession {
   token: string;
   createdAt: number;
   sourceText: string;
+  /** Periodo (rango de fechas) del extracto, si se pudo detectar. */
+  period: StatementPeriod | null;
+  /** Texto ya redactado por página, para re-parsear al cambiar el periodo. */
+  redactedPages: { page: number; text: string }[];
   candidates: ParsedTransaction[];
   unparsedLines: string[];
   status: "pending" | "completed" | "cancelled";
@@ -68,29 +76,87 @@ export interface ProcessStatementResult {
   token: string;
   candidates: ParsedTransaction[];
   unparsedLines: string[];
+  /** Periodo (rango de fechas) detectado del extracto, si se pudo. */
+  period: StatementPeriod | null;
+  /**
+   * Líneas del texto ya redactado agrupadas por página/imagen, para el modo
+   * manual de verificación. Cada página se revisa por separado.
+   */
+  pages: { page: number; lines: string[] }[];
 }
 
-const createSessionFromText = (
-  text: string,
+/**
+ * Crea la sesión de importación parseando CADA página por separado.
+ *
+ * Antes el extracto completo (todas las páginas pegadas) se parseaba de una
+ * sola vez: el estado del parser (bloques de descripción, resúmenes, banderas
+ * de corte) se arrastraba entre páginas y se perdían movimientos de páginas
+ * 2 y 3. Ahora cada página se redacta y se parsea con estado limpio, y cada
+ * movimiento queda etiquetado con su `page` para agruparlo en la verificación.
+ *
+ * El PERIODO (rango de fechas, p.ej. "31/12/2023 a 13/03/2024") se detecta una
+ * sola vez sobre todo el documento y se aplica a todas las páginas, para
+ * completar el AÑO lógico de las fechas sin año en cualquier página.
+ */
+const createSessionFromPages = (
+  pages: PdfPage[],
   userId: string,
 ): ProcessStatementResult => {
   if (!userId) throw new ImportError("Usuario no identificado");
   cleanupSessions();
 
-  if (!text?.trim()) {
+  const fullText = pages.map((p) => p.text).join("\n");
+  const period = detectStatementPeriod(fullText);
+  const fallbackYear = detectStatementYear(fullText);
+
+  const candidates: ParsedTransaction[] = [];
+  const unparsedLines: string[] = [];
+  const sourcePages: ProcessStatementResult["pages"] = [];
+  const redactedPages: ImportSession["redactedPages"] = [];
+
+  for (const page of pages) {
+    if (!page.text?.trim()) continue;
+
+    // Redacción ANTES de parsear y de mostrar cualquier cosa al usuario.
+    const sourceText = redactSensitiveData(page.text);
+    const { candidates: pageCandidates, unparsedLines: pageUnparsed } =
+      parseStatement(sourceText, { period, year: fallbackYear });
+
+    // Etiqueta la página de origen para agruparla en la verificación.
+    for (const c of pageCandidates) c.page = page.page;
+    candidates.push(...pageCandidates);
+    unparsedLines.push(...pageUnparsed);
+    redactedPages.push({ page: page.page, text: sourceText });
+
+    // Líneas ya redactadas por página para el modo manual: si el parseo
+    // automático no generó movimientos en una página, el usuario toca las
+    // líneas de ESA página que sí son movimientos.
+    const lines = sourceText
+      .split(/\r?\n/)
+      .map((l) => l.replace(/\s+/g, " ").trim())
+      .filter(Boolean);
+    if (lines.length > 0) sourcePages.push({ page: page.page, lines });
+  }
+
+  if (sourcePages.length === 0) {
     throw new ImportError(
       "No se pudo leer texto. Si es un PDF escaneado, usa la cámara o la galería para tomar una foto del extracto.",
     );
   }
 
-  // Redacción ANTES de parsear y de mostrar cualquier cosa al usuario.
-  const sourceText = redactSensitiveData(text);
-  const { candidates, unparsedLines } = parseStatement(sourceText);
-
-  if (candidates.length === 0 && unparsedLines.length === 0) {
-    throw new ImportError(
-      "No se detectaron movimientos. Prueba con una captura o documento más nítido.",
-    );
+  // Respaldo: si un candidato quedó SIN fecha pero su descripción contiene una
+  // fecha reconocible (el OCR a veces la pega a la descripción), se recupera
+  // usando el mismo periodo del documento.
+  for (const c of candidates) {
+    if (c.date !== null) continue;
+    const embedded = extractDate(c.description, {
+      period,
+      year: fallbackYear,
+    });
+    if (embedded) {
+      c.date = embedded.value;
+      if (c.confidence !== "high") c.confidence = "high";
+    }
   }
 
   const session: ImportSession = {
@@ -98,7 +164,9 @@ const createSessionFromText = (
     userId,
     token: randomToken(),
     createdAt: Date.now(),
-    sourceText,
+    sourceText: fullText,
+    period,
+    redactedPages,
     candidates,
     unparsedLines,
     status: "pending",
@@ -111,7 +179,89 @@ const createSessionFromText = (
     token: session.token,
     candidates,
     unparsedLines,
+    period,
+    pages: sourcePages,
   };
+};
+
+/**
+ * Registra un candidato añadido manualmente (modo manual de verificación) en
+ * la sesión. Mantiene la lista de ids permitidos sincronizada para que el
+ * registro posterior valide sin rechazos, respetando el token de sesión.
+ */
+export const addSessionCandidate = (
+  sessionId: string,
+  token: string,
+  candidate: {
+    date: number | null;
+    amount: number | null;
+    type: ParsedTransactionType;
+    description: string;
+    confidence: ParsedTransaction["confidence"];
+    page?: number;
+  },
+): string => {
+  const session = sessions.get(sessionId);
+  if (!session || session.token !== token || session.status !== "pending") {
+    throw new ImportError("La sesión de importación no está disponible.");
+  }
+  const id = `sess_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  session.candidates.push({ page: 1, ...candidate, id });
+  return id;
+};
+
+/**
+ * Cambia el periodo del extracto y re-parsea cada página con el nuevo rango.
+ * Solo cambian las FECHAS (el año lógico de las fechas sin año); los ids de
+ * los candidatos ya verificados se conservan (se emparejan por página y orden)
+ * para no romper la selección ni el registro posterior.
+ */
+export const setSessionPeriod = (
+  sessionId: string,
+  token: string,
+  period: StatementPeriod | null,
+): ParsedTransaction[] => {
+  const session = sessions.get(sessionId);
+  if (!session || session.token !== token || session.status !== "pending") {
+    throw new ImportError("La sesión de importación no está disponible.");
+  }
+  session.period = period;
+
+  const reParsed: ParsedTransaction[] = [];
+  for (const page of session.redactedPages) {
+    const { candidates } = parseStatement(page.text, { period });
+    for (const c of candidates) c.page = page.page;
+    reParsed.push(...candidates);
+  }
+
+  const byPage = (list: ParsedTransaction[]) => {
+    const map = new Map<number, ParsedTransaction[]>();
+    for (const c of list) {
+      const arr = map.get(c.page) ?? [];
+      arr.push(c);
+      map.set(c.page, arr);
+    }
+    return map;
+  };
+  const oldByPage = byPage(session.candidates);
+  const newByPage = byPage(reParsed);
+
+  const merged: ParsedTransaction[] = [];
+  for (const [page, olds] of oldByPage) {
+    const news = newByPage.get(page) ?? [];
+    olds.forEach((old, i) => {
+      const n = news[i];
+      if (n && n.date !== null) {
+        old.date = n.date;
+        if (old.confidence !== "high" && n.confidence === "high") {
+          old.confidence = "high";
+        }
+      }
+      merged.push(old);
+    });
+  }
+  session.candidates = merged;
+  return session.candidates;
 };
 
 export const processStatementImage = async (
@@ -119,15 +269,15 @@ export const processStatementImage = async (
   userId: string,
 ): Promise<ProcessStatementResult> => {
   const ocr = await recognizeImageText(uri);
-  return createSessionFromText(ocr.text, userId);
+  return createSessionFromPages([{ page: 1, text: ocr.text }], userId);
 };
 
 export const processStatementPdf = async (
   uri: string,
   userId: string,
 ): Promise<ProcessStatementResult> => {
-  const text = await extractPdfText(uri);
-  return createSessionFromText(text, userId);
+  const pages = await extractPdfPages(uri);
+  return createSessionFromPages(pages, userId);
 };
 
 export interface ImportItem {
@@ -136,6 +286,7 @@ export interface ImportItem {
   amount: number;
   type: ParsedTransactionType;
   description: string;
+  categoryId: string | null;
 }
 
 export interface RegisterImportParams {
@@ -178,6 +329,13 @@ export const registerImportedTransactions = async ({
     throw new ImportError(`Máximo ${MAX_ITEMS} movimientos por importación.`);
   }
 
+  // Categorías válidas del usuario (para validar el categoryId de cada ítem).
+  const categoryRows = await database
+    .get("categories")
+    .query(Q.where("user_id", userId))
+    .fetch();
+  const allowedCategoryIds = new Set(categoryRows.map((c: any) => c.id));
+
   // Validación completa ANTES de escribir nada, para no guardar a medias.
   const allowedIds = new Set(session.candidates.map((c) => c.id));
   const normalized = items.map((item) => {
@@ -188,12 +346,17 @@ export const registerImportedTransactions = async ({
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new ImportError("Un movimiento tiene un valor inválido.");
     }
+    const categoryId =
+      item.categoryId && allowedCategoryIds.has(item.categoryId)
+        ? item.categoryId
+        : null;
     return {
       id: item.id,
       date: item.date ?? Date.now(),
       amount,
       type: (item.type === "income" ? "income" : "expense") as ParsedTransactionType,
       description: (item.description || "Movimiento").slice(0, 200),
+      categoryId,
     };
   });
 
@@ -207,7 +370,7 @@ export const registerImportedTransactions = async ({
       type: item.type,
       accountId,
       destinationAccountId: null,
-      categoryId: null,
+      categoryId: item.categoryId,
       transferTarget: null,
       installmentsTotal: null,
       installmentsPaid: null,

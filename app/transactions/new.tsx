@@ -66,6 +66,7 @@ export default function AddTransactionScreen() {
   const [amountRaw, setAmountRaw] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
+  const [calendarReady, setCalendarReady] = useState(false);
 
   const accounts = useFinanceCacheStore((s) => s.accounts);
   const categories = useFinanceCacheStore((s) => s.categories);
@@ -232,6 +233,13 @@ export default function AddTransactionScreen() {
     return () => clearTimeout(t);
   }, [userId, loadFinanceCache, resetBaseline]);
 
+  // El calendario es pesado: lo montamos después del primer frame para que la
+  // pantalla se vea interactiva de inmediato (los campos críticos se pintan antes).
+  useEffect(() => {
+    const t = setTimeout(() => setCalendarReady(true), 80);
+    return () => clearTimeout(t);
+  }, []);
+
   const selectedAccount = useMemo(
     () => accounts.find((acc) => acc.id === selectedAccountId),
     [accounts, selectedAccountId],
@@ -387,7 +395,7 @@ export default function AddTransactionScreen() {
 
       resetForm();
       allowLeave();
-      router.push("/transactions/new");
+      router.replace("/transactions/new");
     } catch (error: any) {
       console.error("Save error:", error);
       Alert.alert("Error", error.message || "No se pudo guardar");
@@ -397,17 +405,12 @@ export default function AddTransactionScreen() {
   };
 
   // ─── UI ──────────────────────────────────────────────────────────────────────
-  const isFirstLoad = cacheLoading && accounts.length === 0 && categories.length === 0;
+  const accountsLoading = cacheLoading && accounts.length === 0;
+  const categoriesLoading = cacheLoading && categories.length === 0;
 
   return (
     <SafeAreaView className="flex-1 bg-deep dark:bg-deep-dark" edges={["bottom", "left", "right"]}>
       <ScreenBackdrop />
-      {isFirstLoad ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#4b9aff" />
-          <Text className="text-muted dark:text-muted-dark mt-3">Cargando...</Text>
-        </View>
-      ) : (
       <KeyboardAvoidingScrollView className="flex-1 px-5 mt-4">
         {/* Tipo */}
         <View className="mb-4">
@@ -478,7 +481,11 @@ export default function AddTransactionScreen() {
             Cuenta origen *
           </Text>
 
-          {accounts.length === 0 ? (
+          {accountsLoading ? (
+            <View className="items-center py-6">
+              <ActivityIndicator size="small" color="#4b9aff" />
+            </View>
+          ) : accounts.length === 0 ? (
             <Text className="text-muted dark:text-muted-dark text-center">
               No hay cuentas activas disponibles.
             </Text>
@@ -668,7 +675,11 @@ export default function AddTransactionScreen() {
             <Text className="text-sm font-medium text-muted dark:text-muted-dark mb-2">
               Categoría *
             </Text>
-            {filteredCategories.length === 0 ? (
+            {categoriesLoading ? (
+              <View className="items-center py-6">
+                <ActivityIndicator size="small" color="#4b9aff" />
+              </View>
+            ) : filteredCategories.length === 0 ? (
               <Text className="text-muted dark:text-muted-dark text-center">
                 No hay categorías disponibles.
               </Text>
@@ -749,6 +760,7 @@ export default function AddTransactionScreen() {
         {/* Fecha */}
         <View className="mb-4">
           <Text className="text-sm font-medium text-muted dark:text-muted-dark mb-2">Fecha</Text>
+          {calendarReady ? (
           <Calendar
             onDayPress={(day: any) => setSelectedDate(day.dateString)}
             maxDate={todayString}
@@ -775,6 +787,19 @@ export default function AddTransactionScreen() {
               textDisabledColor: isDark ? "#3a4a63" : "#d0cbbf",
             }}
           />
+          ) : (
+            <TouchableOpacity
+              onPress={() => setCalendarReady(true)}
+              className="flex-row items-center justify-between border border-black/10 dark:border-white/10 bg-panel dark:bg-panel-dark rounded-lg p-4"
+            >
+              <Text className="text-ink dark:text-ink-dark font-medium">
+                📅 {selectedDate}
+              </Text>
+              <Text className="text-muted dark:text-muted-dark text-sm">
+                Seleccionar fecha
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Comentarios */}
@@ -808,7 +833,6 @@ export default function AddTransactionScreen() {
           </Text>
         </TouchableOpacity>
       </KeyboardAvoidingScrollView>
-      )}
     </SafeAreaView>
   );
 }
