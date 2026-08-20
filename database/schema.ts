@@ -2,7 +2,7 @@
 import { appSchema, tableSchema } from "@nozbe/watermelondb";
 
 export const schema = appSchema({
-  version: 8,
+  version: 9,
   tables: [
     tableSchema({
       name: "users",
@@ -134,6 +134,20 @@ tableSchema({
         { name: "status", type: "string" }, // Nuevo
         { name: "recurrence", type: "string", isOptional: true }, // Nuevo
         // Nota: Se eliminó 'notification'
+      ],
+    }),
+
+    tableSchema({
+      name: "merchant_learnings",
+      columns: [
+        { name: "user_id", type: "string", isIndexed: true },
+        { name: "merchant_key", type: "string", isIndexed: true },
+        { name: "merchant_label", type: "string" },
+        { name: "description", type: "string", isOptional: true },
+        { name: "category_id", type: "string", isOptional: true },
+        { name: "type", type: "string", isOptional: true },
+        { name: "occurrences", type: "number" },
+        { name: "updated_at", type: "number" },
       ],
     }),
   ],

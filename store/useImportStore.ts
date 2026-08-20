@@ -18,19 +18,32 @@ import {
   parseLine,
   parseMoney,
   extractDate,
+  isOutgoingTransferDescription,
+  extractMentionedBank,
   type StatementPeriod,
+  type ParsedTransactionType,
 } from "@/services/ai/statementParser";
-import type { ParsedTransactionType } from "@/services/ai/statementParser";
+import {
+  getMerchantLearning,
+  getMerchantLearningsByKeys,
+  learnFromConfirmedItems,
+  normalizeMerchant,
+  type MerchantLearningRow,
+} from "@/services/merchantLearning";
+import { useAuthStore } from "@/store/useAuthStore";
 import { useFinanceCacheStore, type CachedCategory } from "@/store/useFinanceCacheStore";
 import { create } from "zustand";
 
 export type ImportKind = "image" | "pdf";
 
+export type ImportCandidateType = ParsedTransactionType | "transfer";
+export type TransferTarget = "own" | "person";
+
 export interface ImportCandidate {
   id: string;
   date: number | null;
   amount: number | null;
-  type: ParsedTransactionType;
+  type: ImportCandidateType;
   description: string;
   confidence: "high" | "medium" | "low";
   selected: boolean;
@@ -39,6 +52,19 @@ export interface ImportCandidate {
   categoryId: string | null;
   /** Página (o imagen) del extracto de la que proviene. */
   page: number;
+  /** "own" = transferencia entre tus cuentas, "person" = a otra persona. */
+  transferTarget: TransferTarget | null;
+  /** Cuenta destino cuando la transferencia es entre tus cuentas. */
+  destinationAccountId: string | null;
+  /** Nombre de la persona destinataria cuando no es una cuenta tuya. */
+  personName: string;
+  /**
+   * Clave de comercio (normalizada) calculada UNA vez al crear el candidato,
+   * a partir de la descripción ORIGINAL del OCR. Se usa para agrupar en la
+   * verificación de forma ESTABLE: editar la descripción no mueve el
+   * movimiento de grupo.
+   */
+  merchantKey: string | null;
 }
 
 interface AccountOption {
@@ -135,14 +161,29 @@ const CATEGORY_KEYWORDS: {
   { name: "Supermercado", type: "expense", words: ["d1", "supermercado", "mercado", "metro", "ara", "exito", "jumbo", "carulla", "olimpica", "surtimax", "makro", "tienda", "zipaquira la"] },
   { name: "Comida", type: "expense", words: ["restaurante", "pizza", "hamburguesa", "burger", "comida", "panaderia", "corral", "cocina", "asados", "pollo", "frisby", "crepes", "donde"] },
   { name: "Café", type: "expense", words: ["starbucks", "juan valdez", "tinto", "cafe"] },
-  { name: "Transporte", type: "expense", words: ["uber", "taxi", "transmilenio", "transporte", "rides", "cabify", "diditaxi", "gasolina", "terpel", "movil"] },
-  { name: "Entretenimiento", type: "expense", words: ["cine", "netflix", "spotify", "playstation", "steam", "g2a", "gog", "entertainment", "parque", "prime video"] },
+  { name: "Domicilios", type: "expense", words: ["domicilio", "rappic", "uber eats", "pedidos ya", "didifood", "ifood", "delivery"] },
+  { name: "Gasolina", type: "expense", words: ["gasolina", "terpel", "primax", "petrobras", "combustible"] },
+  { name: "Transporte", type: "expense", words: ["uber", "taxi", "transmilenio", "transporte", "rides", "cabify", "diditaxi", "movil"] },
+  { name: "Arriendo", type: "expense", words: ["arriendo", "canon", "leasing"] },
+  { name: "Impuestos", type: "expense", words: ["impuesto", "dian", "iva", "retencion", "predial", "renta", "fiscal", "tributo"] },
+  { name: "Servicios", type: "expense", words: ["servicios", "energia", "agua", "luz", "internet", "celular", "claro", "movistar", "tigo", "wom", "publicos", "comision", "cuota de manejo"] },
+  { name: "Mascotas", type: "expense", words: ["mascota", "veterinaria", "veterinario", "dog", "pet", "zoologico"] },
+  { name: "Suscripciones", type: "expense", words: ["suscripcion", "membresia", "netflix", "spotify", "disney", "prime video", "hbo", "paramount", "apple music", "crunchyroll", "youtube premium", "max"] },
+  { name: "Entretenimiento", type: "expense", words: ["cine", "playstation", "steam", "g2a", "gog", "entertainment", "parque"] },
+  { name: "Eventos", type: "expense", words: ["concierto", "festival", "teatro", "bowling", "evento"] },
+  { name: "Entradas", type: "expense", words: ["boleta", "entrada", "ticket"] },
+  { name: "Compras", type: "expense", words: ["amazon", "mercadolibre", "alkosto", "linio", "shein", "temu", "aliexpress", "ebay"] },
   { name: "Salud", type: "expense", words: ["farmacia", "drogueria", "salud", "medico", "eps", "hospital", "clinica", "farma"] },
-  { name: "Servicios", type: "expense", words: ["servicios", "energia", "agua", "luz", "internet", "celular", "claro", "movistar", "tigo", "wom", "publicos", "impuesto", "comision", "cuota de manejo"] },
   { name: "Educación", type: "expense", words: ["universidad", "colegio", "educacion", "curso", "platzi", "libro"] },
   { name: "Gimnasio", type: "expense", words: ["gym", "gimnasio", "bodytech", "fitness"] },
   { name: "Ropa", type: "expense", words: ["zara", "h&m", "ropa", "calzado", "levis", "falabella"] },
+  { name: "Viajes", type: "expense", words: ["vuelo", "avianca", "latam", "hotel", "viaje", "booking", "airbnb", "hostel", "expedia", "despegar"] },
   { name: "Salario", type: "income", words: ["nomina", "salario", "sueldo"] },
+  { name: "Bonificación", type: "income", words: ["bonificacion", "cesantias", "aguinaldo"] },
+  { name: "Dividendos", type: "income", words: ["dividendo", "accion", "acciones", "etf"] },
+  { name: "Intereses", type: "income", words: ["interes", "intereses", "rendimiento", "causacion"] },
+  { name: "Cripto", type: "income", words: ["cripto", "bitcoin", "btc", "ethereum", "eth", "binance", "criptomoneda"] },
+  { name: "Premio", type: "income", words: ["premio", "sorteo", "loteria", "raffle"] },
   { name: "Reembolso", type: "income", words: ["devolucion", "reembolso", "ajuste a favor"] },
 ];
 
@@ -172,6 +213,53 @@ const guessCategoryId = (
     }
   }
   return null;
+};
+
+// ---------------------------------------------------------------------------
+// Aplica el diccionario aprendido (machine learning simulado) a un candidato:
+// si el usuario ya asignó descripción/categoría/tipo a ese comercio antes, se
+// reutilizan. La categoría aprendida solo aplica si sigue existiendo.
+// ---------------------------------------------------------------------------
+const applyLearning = (
+  input: {
+    description: string;
+    type: ParsedTransactionType;
+    categoryId: string | null;
+  },
+  learning: MerchantLearningRow | undefined,
+  categories: CachedCategory[],
+): {
+  description: string;
+  type: ParsedTransactionType | "transfer";
+  categoryId: string | null;
+} => {
+  if (!learning) {
+    return {
+      description: input.description,
+      type: input.type,
+      categoryId: input.categoryId,
+    };
+  }
+
+  const learnedType =
+    learning.type === "income" ||
+    learning.type === "expense" ||
+    learning.type === "transfer"
+      ? learning.type
+      : input.type;
+
+  const categoryStillExists = categories.some(
+    (c) => c.id === learning.categoryId,
+  );
+
+  return {
+    description: learning.description?.trim() || input.description,
+    type: learnedType,
+    categoryId:
+      categoryStillExists && learning.categoryId
+        ? learning.categoryId
+        : input.categoryId,
+  };
 };
 
 const resetState = {
@@ -235,6 +323,13 @@ export const useImportStore = create<ImportState>((set, get) => ({
       await useFinanceCacheStore.getState().load(userId);
       const categories = useFinanceCacheStore.getState().categories;
 
+      // Diccionario aprendido: pre-llenar con lo que el usuario ya asignó a
+      // estos comercios en importaciones anteriores (machine learning local).
+      const merchantKeys = result.candidates.map((c) =>
+        normalizeMerchant(c.description),
+      );
+      const learnings = await getMerchantLearningsByKeys(userId, merchantKeys);
+
       // Respaldo final de fechas: si un candidato llegó sin fecha pero su
       // descripción trae una fecha reconocible (el OCR a veces la pega a la
       // descripción), se resuelve con el periodo del documento.
@@ -242,23 +337,69 @@ export const useImportStore = create<ImportState>((set, get) => ({
         ? { period: result.period }
         : undefined;
       const candidates: ImportCandidate[] = result.candidates.map((c) => {
+        const merchantKey = normalizeMerchant(c.description);
+        const learning = merchantKey
+          ? learnings[merchantKey]
+          : undefined;
+        const guessed = applyLearning(
+          {
+            description: c.description,
+            type: c.type,
+            categoryId: guessCategoryId(c.description, c.type, categories),
+          },
+          learning,
+          categories,
+        );
+
         let date = c.date;
         let confidence = c.confidence;
         if (date === null && dateOpts) {
-          const embedded = extractDate(c.description, dateOpts);
+          const embedded = extractDate(guessed.description, dateOpts);
           if (embedded) {
             date = embedded.value;
             confidence = "high";
           }
         }
+        // Una descripción de transferencia saliente ("Transferio a: …",
+        // "Transferencia a: …") se marca como transferencia para que el
+        // usuario elija la cuenta destino (entre sus cuentas o una persona).
+        const isTransfer =
+          guessed.type === "transfer" ||
+          isOutgoingTransferDescription(guessed.description);
+        // Si la descripción menciona un banco ("Transferencia a: Bancolombia")
+        // y el usuario tiene una cuenta de ese banco, se pre-selecciona como
+        // destino (transferencia entre sus cuentas).
+        let transferTarget: TransferTarget | null = isTransfer ? "person" : null;
+        let destinationAccountId: string | null = null;
+        if (isTransfer) {
+          const mentioned = extractMentionedBank(guessed.description);
+          if (mentioned) {
+            const normBank = mentioned.toLowerCase();
+            const match = accounts.find(
+              (a) =>
+                a.id !== (accounts[0]?.id ?? null) &&
+                a.name.toLowerCase().includes(normBank),
+            );
+            if (match) {
+              transferTarget = "own";
+              destinationAccountId = match.id;
+            }
+          }
+        }
         return {
           ...c,
+          description: guessed.description,
+          merchantKey,
           date,
           confidence,
           selected: true,
           dateText: date ? formatDateText(date) : "",
           amountText: c.amount != null ? String(c.amount) : "",
-          categoryId: guessCategoryId(c.description, c.type, categories),
+          type: isTransfer ? "transfer" : guessed.type,
+          categoryId: isTransfer ? null : guessed.categoryId,
+          transferTarget,
+          destinationAccountId,
+          personName: "",
         };
       });
 
@@ -337,6 +478,27 @@ export const useImportStore = create<ImportState>((set, get) => ({
       }))
       .filter((p) => p.lines.length > 0);
 
+    // Diccionario aprendido: aplica descripción/categoría/tipo ya asignados a
+    // este comercio en importaciones anteriores.
+    const categories = useFinanceCacheStore.getState().categories;
+    const userId = useAuthStore.getState().userId;
+    const merchantKey = normalizeMerchant(parsed.description);
+    const learning = userId && merchantKey
+      ? await getMerchantLearning(userId, merchantKey)
+      : null;
+    const guessed = applyLearning(
+      {
+        description: parsed.description,
+        type: parsed.type,
+        categoryId: guessCategoryId(parsed.description, parsed.type, categories),
+      },
+      learning ?? undefined,
+      categories,
+    );
+
+    const isTransfer =
+      guessed.type === "transfer" ||
+      isOutgoingTransferDescription(guessed.description);
     set((state) => ({
       candidates: [
         ...state.candidates,
@@ -344,18 +506,18 @@ export const useImportStore = create<ImportState>((set, get) => ({
           id,
           date: parsed.date,
           amount: parsed.amount,
-          type: parsed.type,
-          description: parsed.description,
+          type: isTransfer ? "transfer" : guessed.type,
+          description: guessed.description,
+          merchantKey: normalizeMerchant(parsed.description),
           confidence: parsed.confidence,
           selected: true,
           dateText: parsed.date ? formatDateText(parsed.date) : "",
           amountText: parsed.amount != null ? String(parsed.amount) : "",
-          categoryId: guessCategoryId(
-            parsed.description,
-            parsed.type,
-            useFinanceCacheStore.getState().categories,
-          ),
+          categoryId: isTransfer ? null : guessed.categoryId,
           page: pageOfLine,
+          transferTarget: isTransfer ? "person" : null,
+          destinationAccountId: null,
+          personName: "",
         },
       ],
       pages: nextPages,
@@ -389,12 +551,16 @@ export const useImportStore = create<ImportState>((set, get) => ({
           amount: null,
           type: "expense",
           description: "",
+          merchantKey: null,
           confidence: "low",
           selected: true,
           dateText: "",
           amountText: "",
           categoryId: null,
           page: 1,
+          transferTarget: null,
+          destinationAccountId: null,
+          personName: "",
         },
       ],
     }));
@@ -420,27 +586,53 @@ export const useImportStore = create<ImportState>((set, get) => ({
       // el usuario ya editó (descripción, monto, categoría…); solo cambia la
       // fecha, que es lo que re-parsea el nuevo periodo.
       const previousById = new Map(get().candidates.map((c) => [c.id, c]));
-      const candidates = updated.map((c) => {
+      const categories = useFinanceCacheStore.getState().categories;
+      const userId = useAuthStore.getState().userId;
+      const merchantKeys = updated.map((c) => normalizeMerchant(c.description));
+      const learnings = await getMerchantLearningsByKeys(userId ?? "", merchantKeys);
+
+      const candidates = updated.map((c, i) => {
         const prev = previousById.get(c.id);
+        const learning = merchantKeys[i]
+          ? learnings[merchantKeys[i] as string]
+          : undefined;
+        const guessed = prev
+          ? { description: prev.description, type: c.type as ParsedTransactionType, categoryId: prev.categoryId }
+          : applyLearning(
+              {
+                description: c.description,
+                type: c.type,
+                categoryId: guessCategoryId(c.description, c.type, categories),
+              },
+              learning,
+              categories,
+            );
+        // Si el usuario ya marcó el movimiento como transferencia, se conserva
+        // el estado (cuenta destino / persona) que eligió en la verificación.
+        const isTransfer = prev?.type === "transfer"
+          ? true
+          : guessed.type === "transfer" ||
+            isOutgoingTransferDescription(guessed.description);
+        const type: ImportCandidateType = isTransfer ? "transfer" : guessed.type;
         return {
           id: c.id,
           date: c.date,
           amount: c.amount,
-          type: c.type,
-          description: c.description,
+          type,
+          description: prev?.description ?? guessed.description,
+          merchantKey: prev?.merchantKey ?? normalizeMerchant(c.description),
           confidence: c.confidence,
           selected: prev?.selected ?? true,
           dateText: c.date ? formatDateText(c.date) : (prev?.dateText ?? ""),
           amountText:
             prev?.amountText ?? (c.amount != null ? String(c.amount) : ""),
-          categoryId:
-            prev?.categoryId ??
-            guessCategoryId(
-              c.description,
-              c.type,
-              useFinanceCacheStore.getState().categories,
-            ),
+          categoryId: isTransfer
+            ? null
+            : prev?.categoryId ?? guessed.categoryId,
           page: c.page,
+          transferTarget: prev?.transferTarget ?? (isTransfer ? "person" : null),
+          destinationAccountId: prev?.destinationAccountId ?? null,
+          personName: prev?.personName ?? "",
         };
       });
 
@@ -467,14 +659,46 @@ export const useImportStore = create<ImportState>((set, get) => ({
     set({ saving: true, error: null });
 
     try {
-      const items = selected.map((c) => ({
-        id: c.id,
-        date: parseDateText(c.dateText),
-        amount: parseMoney(c.amountText) ?? c.amount ?? 0,
-        type: c.type,
-        description: c.description.trim(),
-        categoryId: c.categoryId ?? null,
-      }));
+      const items = selected.map((c) => {
+        const isTransfer = c.type === "transfer";
+        const accountOptions = get().accounts;
+        let description = c.description.trim();
+        let categoryId = c.categoryId ?? null;
+
+        if (isTransfer) {
+          // Las transferencias no llevan categoría.
+          categoryId = null;
+          const ownAccount = accountOptions.find(
+            (a) => a.id === c.destinationAccountId,
+          );
+          if (c.transferTarget === "own" && ownAccount) {
+            description = `Transferencia a ${ownAccount.name}`;
+          } else if (
+            c.transferTarget === "person" &&
+            c.personName.trim()
+          ) {
+            description = `Transferencia a ${c.personName.trim()}`;
+          }
+        }
+
+        return {
+          id: c.id,
+          date: parseDateText(c.dateText),
+          // El monto de una transferencia siempre se guarda positivo: sale de
+          // la cuenta origen y (si es entre tus cuentas) entra a la destino.
+          amount: isTransfer
+            ? Math.abs(parseMoney(c.amountText) ?? Math.abs(c.amount ?? 0))
+            : parseMoney(c.amountText) ?? c.amount ?? 0,
+          type: c.type,
+          description,
+          categoryId,
+          transferTarget: isTransfer ? c.transferTarget : null,
+          destinationAccountId:
+            isTransfer && c.transferTarget === "own"
+              ? c.destinationAccountId
+              : null,
+        };
+      });
 
       const result = await registerImportedTransactions({
         userId,
@@ -483,6 +707,21 @@ export const useImportStore = create<ImportState>((set, get) => ({
         accountId,
         items,
       });
+
+      // Aprende del resultado confirmado: el diccionario local se actualiza
+      // con la descripción/categoría/tipo que el usuario dejó a cada comercio.
+      try {
+        await learnFromConfirmedItems(
+          userId,
+          items.map((item) => ({
+            description: item.description,
+            type: item.type,
+            categoryId: item.categoryId,
+          })),
+        );
+      } catch (learnError) {
+        console.error("❌ Error aprendiendo comercios:", learnError);
+      }
 
       set({ ...resetState });
       return result;

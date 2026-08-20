@@ -284,9 +284,13 @@ export interface ImportItem {
   id: string;
   date: number | null;
   amount: number;
-  type: ParsedTransactionType;
+  type: ParsedTransactionType | "transfer";
   description: string;
   categoryId: string | null;
+  /** "own" = entre tus cuentas, "person" = a otra persona (solo transfer). */
+  transferTarget?: "own" | "person" | null;
+  /** Cuenta destino cuando la transferencia es entre tus cuentas. */
+  destinationAccountId?: string | null;
 }
 
 export interface RegisterImportParams {
@@ -321,6 +325,7 @@ export const registerImportedTransactions = async ({
     .fetch();
   const account = accounts.find((a: any) => a.id === accountId);
   if (!account) throw new ImportError("La cuenta seleccionada no existe.");
+  const accountIds = new Set(accounts.map((a: any) => a.id));
 
   if (!Array.isArray(items) || items.length === 0) {
     throw new ImportError("No hay movimientos para guardar.");
@@ -346,17 +351,41 @@ export const registerImportedTransactions = async ({
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new ImportError("Un movimiento tiene un valor inválido.");
     }
+    const isTransfer = item.type === "transfer";
     const categoryId =
-      item.categoryId && allowedCategoryIds.has(item.categoryId)
+      !isTransfer && item.categoryId && allowedCategoryIds.has(item.categoryId)
         ? item.categoryId
         : null;
+    const transferTarget = isTransfer ? item.transferTarget ?? "person" : null;
+    const destinationAccountId =
+      isTransfer && transferTarget === "own" ? item.destinationAccountId : null;
+    if (
+      isTransfer &&
+      transferTarget === "own" &&
+      (!destinationAccountId || !accountIds.has(destinationAccountId))
+    ) {
+      throw new ImportError(
+        "Una transferencia entre tus cuentas requiere una cuenta destino válida.",
+      );
+    }
+    if (isTransfer && destinationAccountId === accountId) {
+      throw new ImportError(
+        "La cuenta destino de una transferencia debe ser distinta a la cuenta origen.",
+      );
+    }
     return {
       id: item.id,
       date: item.date ?? Date.now(),
       amount,
-      type: (item.type === "income" ? "income" : "expense") as ParsedTransactionType,
+      type: (isTransfer
+        ? "transfer"
+        : item.type === "income"
+          ? "income"
+          : "expense") as ParsedTransactionType | "transfer",
       description: (item.description || "Movimiento").slice(0, 200),
       categoryId,
+      transferTarget,
+      destinationAccountId: destinationAccountId ?? null,
     };
   });
 
@@ -369,9 +398,9 @@ export const registerImportedTransactions = async ({
       description: item.description,
       type: item.type,
       accountId,
-      destinationAccountId: null,
+      destinationAccountId: item.destinationAccountId,
       categoryId: item.categoryId,
-      transferTarget: null,
+      transferTarget: item.transferTarget,
       installmentsTotal: null,
       installmentsPaid: null,
       feeType: null,

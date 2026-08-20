@@ -6,19 +6,24 @@ export type Period = (typeof PERIODS)[number];
 export const TRANSACTIONSTYPES = ["income", "expense", "transfer"] as const;
 export type TypeTransactions = (typeof TRANSACTIONSTYPES)[number];
 
+/**
+ * Rango de fechas (timestamps en ms) para un período rápido predefinido.
+ * El `end` es SIEMPRE hoy (23:59:59.999): no tiene sentido pedir gastos
+ * futuros, así que el lapso se recorta al día actual de forma dinámica.
+ */
 export const getDateRange = (
   period: Period,
 ): { start: number; end: number } => {
   const now = new Date();
-const end = new Date(
-      now.getFullYear(),
-      11, // December
-      30, // Last day of the year
-      23,
-      59,
-      59,
-      999,
-    ).getTime();
+  const end = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    23,
+    59,
+    59,
+    999,
+  ).getTime();
 
   let start: number;
 
@@ -28,59 +33,73 @@ const end = new Date(
     const quarterStart = Math.floor(now.getMonth() / 3) * 3;
     start = new Date(now.getFullYear(), quarterStart, 1).getTime();
   } else {
-    console.log("period:", period);
-
     start = new Date(now.getFullYear(), 0, 1).getTime();
   }
 
   return { start, end };
 };
 
+/**
+ * Datos de estadísticas. `start`/`end` son el rango efectivo (período rápido o
+ * rango personalizado elegido en el calendario) y `categoryId` opcional filtra
+ * toda la data a una categoría concreta.
+ */
 export const useStatisticsData = (
   userId: string,
-  period: Period,
+  start: number,
+  end: number,
   TransactionType: TypeTransactions,
+  categoryId?: string,
 ) => {
   const { transactions, loading } = useFinanceData(userId);
-
-  const { start, end } = useMemo(() => getDateRange(period), [period]);
 
   const filtered = useMemo(
     () => transactions.filter((tx) => tx.date >= start && tx.date <= end),
     [transactions, start, end],
   );
 
-  const totalIncome = useMemo(() => 
+  const categoryFiltered = useMemo(
+    () =>
+      categoryId
+        ? filtered.filter((tx) => tx.categoryId === categoryId)
+        : filtered,
+    [filtered, categoryId],
+  );
 
-    filtered
-      .filter((tx) => tx.type === "income")
-      .reduce((sum, tx) => sum + (tx.amount ?? 0), 0), [filtered]);
+  const totalIncome = useMemo(
+    () =>
+      categoryFiltered
+        .filter((tx) => tx.type === "income")
+        .reduce((sum, tx) => sum + (tx.amount ?? 0), 0),
+    [categoryFiltered],
+  );
 
-  const totalExpense = useMemo(() => 
-
-    filtered
-      .filter((tx) => tx.type === "expense")
-      .reduce((sum, tx) => sum + (tx.amount ?? 0), 0), [filtered]);
+  const totalExpense = useMemo(
+    () =>
+      categoryFiltered
+        .filter((tx) => tx.type === "expense")
+        .reduce((sum, tx) => sum + (tx.amount ?? 0), 0),
+    [categoryFiltered],
+  );
 
   const totalTransfer = useMemo(
     () =>
-      filtered
+      categoryFiltered
         .filter((tx) => tx.type === "transfer")
         .reduce((sum, tx) => sum + (tx.amount ?? 0), 0),
-    [filtered],
+    [categoryFiltered],
   );
 
   const expenseByCategory = useMemo(() => {
     const map: Record<string, number> = {};
-    filtered
+    categoryFiltered
       .filter((tx) => tx.type === TransactionType)
       .forEach((tx) => {
         const key = tx.categoryId ?? "sin_categoria";
         map[key] = (map[key] ?? 0) + (tx.amount ?? 0);
       });
-    console.log(map);
     return map;
-  }, [filtered]);
+  }, [categoryFiltered, TransactionType]);
 
   return {
     loading,

@@ -42,7 +42,11 @@ const BalanceCard = (props: BalanceCardProps) => {
 
 const BalanceCardCarousel = ({ onAccountChange }: BalanceCardProps) => {
   const { userId } = useAuthStore();
-  const { accounts, loading: accountsLoading } = useAccounts(userId || "");
+  const {
+    accounts,
+    loading: accountsLoading,
+    summary: accountsSummary,
+  } = useAccounts(userId || "");
   const { summary, loading } = useFinanceData(userId || "");
   const [activeIndex, setActiveIndex] = useState(0);
   const [carouselWidth, setCarouselWidth] = useState(0);
@@ -55,8 +59,7 @@ const BalanceCardCarousel = ({ onAccountChange }: BalanceCardProps) => {
 
   useEffect(() => {
     if (!onAccountChange) return;
-    const accountId =
-      activeIndex === 0 ? null : (slides[activeIndex] ?? null);
+    const accountId = activeIndex === 0 ? null : (slides[activeIndex] ?? null);
     onAccountChange(accountId);
   }, [activeIndex, slides, onAccountChange]);
 
@@ -69,17 +72,17 @@ const BalanceCardCarousel = ({ onAccountChange }: BalanceCardProps) => {
   const totalCard = (
     <BalanceCardContent
       title="Balance total"
-      mainValue={formatCOP(summary.balance)}
+      mainValue={formatCOP(accountsSummary.totalBalance)}
       stats={[
         {
           label: "Ingresos",
           value: `+${formatCOP(summary.income)}`,
-          labelClass: "text-green-200",
+          labelClass: "text-green-700",
         },
         {
           label: "Gastos",
           value: `-${formatCOP(summary.expense)}`,
-          labelClass: "text-red-200",
+          labelClass: "text-red-700",
         },
       ]}
     />
@@ -90,7 +93,14 @@ const BalanceCardCarousel = ({ onAccountChange }: BalanceCardProps) => {
   }
 
   if (accounts.length === 0) {
-    return <View style={{ marginBottom: 24 }}>{totalCard}</View>;
+    return (
+      <Pressable
+        onLongPress={() => router.push("/accounts")}
+        delayLongPress={400}
+      >
+        {totalCard}
+      </Pressable>
+    );
   }
 
   return (
@@ -168,10 +178,22 @@ const AccountCard = ({ account }: { account: Account }) => {
 
   return (
     <View className="h-60 mx-4 rounded-3xl overflow-hidden border border-black/10 dark:border-white/15">
-      <CardBackdrop glowColor="#1d7df0" glowOpacity={0.12} glowSize={220} glowTop={-90} glowRight={-70} />
+      <CardBackdrop
+        glowColor="#1d7df0"
+        glowOpacity={0.12}
+        glowSize={220}
+        glowTop={-90}
+        glowRight={-70}
+      />
       <View className="flex-1 p-5 justify-between">
         <View className="flex-row items-center justify-center mb-4">
-          <PremiumIcon token={account.iconImage} size={26} radius={7} fallback="💳" textColor="#f6f8ff" />
+          <PremiumIcon
+            token={account.iconImage}
+            size={26}
+            radius={7}
+            fallback="💳"
+            textColor="#f6f8ff"
+          />
           <Text className="text-muted dark:text-muted-dark text-sm font-semibold ml-2">
             {account.name}
           </Text>
@@ -181,13 +203,17 @@ const AccountCard = ({ account }: { account: Account }) => {
         </Text>
         <View className="flex-row justify-between">
           <View>
-            <Text className="text-xs text-muted dark:text-muted-dark">Tipo</Text>
+            <Text className="text-xs text-muted dark:text-muted-dark">
+              Tipo
+            </Text>
             <Text className="font-semibold text-ink dark:text-ink-dark text-base my-1">
               {typeLabel}
             </Text>
           </View>
           <View>
-            <Text className="text-xs text-muted dark:text-muted-dark">{secondLabel}</Text>
+            <Text className="text-xs text-muted dark:text-muted-dark">
+              {secondLabel}
+            </Text>
             <Text className={`font-semibold text-base my-1 ${secondClass}`}>
               {secondValue}
             </Text>
@@ -210,16 +236,26 @@ const BalanceCardContent = ({
 
   return (
     <View className="h-60 rounded-3xl overflow-hidden border border-black/10 dark:border-white/15">
-      <CardBackdrop glowColor="#1d7df0" glowOpacity={0.14} glowSize={230} glowTop={-100} glowRight={-80} />
+      <CardBackdrop
+        glowColor="#1d7df0"
+        glowOpacity={0.14}
+        glowSize={230}
+        glowTop={-100}
+        glowRight={-80}
+      />
       <View className="flex-1 p-5 justify-between">
-        <Text className="text-muted dark:text-muted-dark text-sm font-semibold">{title}</Text>
+        <Text className="text-muted dark:text-muted-dark text-xl font-semibold text-center">
+          {title}
+        </Text>
         <Text className="text-ink dark:text-ink-dark text-4xl font-bold tracking-tight text-center">
           {mainValue}
         </Text>
         <View className="flex-row justify-between">
           {stats?.map((stat) => (
             <View key={stat.label}>
-              <Text className={`text-xs ${stat.labelClass ?? "text-muted dark:text-muted-dark"}`}>
+              <Text
+                className={`text-base font-bold ${stat.labelClass ?? "text-muted dark:text-muted-dark"}`}
+              >
                 {stat.label}
               </Text>
               <Text className="font-semibold text-ink dark:text-ink-dark text-base my-1">

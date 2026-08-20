@@ -26,6 +26,7 @@ import {
   HeartPulse,
   Home,
   Laptop,
+  Landmark,
   Lightbulb,
   MonitorPlay,
   Music,
@@ -102,6 +103,7 @@ export const PREMIUM_ICONS: PremiumIconDef[] = [
   { key: "ticket", label: "Entradas", icon: Ticket, color: "#ff922b", type: "expense" },
   { key: "grocery_delivery", label: "Domicilios", icon: Truck, color: "#e8590c", type: "expense" },
   { key: "events", label: "Eventos", icon: Sparkles, color: "#f783ac", type: "expense" },
+  { key: "taxes", label: "Impuestos", icon: Landmark, color: "#e8590c", type: "expense" },
   { key: "other_expense", label: "Otros gastos", icon: Receipt, color: "#868e96", type: "expense" },
 
   // ─── Ingresos ─────────────────────────────────────────────

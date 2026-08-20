@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start --dev-client",
-    "postinstall": "patch-package && node ./scripts/copy-pdfjs.js",
+    "postinstall": "patch-package && node ./scripts/copy-pdfjs.js && node ./scripts/copy-echarts.js",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",
@@ -29,6 +29,8 @@
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.6",
     "axios": "^1.10.0",
+    "echarts": "^6.1.0",
+    "echarts-for-react": "^3.0.6",
     "expo": "~53.0.24",
     "expo-asset": "~11.1.7",
     "expo-blur": "~14.1.5",

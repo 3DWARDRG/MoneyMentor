@@ -1,43 +1,76 @@
 import ExpenseChart from "@/components/ExpenseChart";
 import IncomeVsExpense from "@/components/IncomeVsExpense";
 import MonthlyOverview from "@/components/MonthlyOverview";
+import DateRangePicker from "@/components/DateRangePicker";
 import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
 import { Dropdown, DropdownOption } from "@/components/Dropdown";
 import { database } from "@/database";
 import {
   useStatisticsData,
+  getDateRange,
   type Period,
   type TypeTransactions,
 } from "@/hooks/useStatisticsData";
-
-
 import { useAuthStore } from "@/store/useAuthStore";
 import { Q } from "@nozbe/watermelondb";
 import { useFocusEffect } from "expo-router";
-import { useState, useCallback, Dispatch } from "react";
-import { ScrollView, View } from "react-native";
+import { useCallback, useMemo, useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { transactionsTypesES , periodOptions , TRANSACTIONS_ES} from "@/utils/translateDataDropdowns";
+import {
+  transactionsTypesES,
+  periodOptions,
+  TRANSACTIONS_ES,
+} from "@/utils/translateDataDropdowns";
+
+interface CategoryOption {
+  id: string;
+  name: string;
+  icon: string;
+  type: string;
+}
+
+const formatRange = (start: number, end: number) => {
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("es-CO", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  return `${fmt(new Date(start))} - ${fmt(new Date(end))}`;
+};
 
 export default function Statistics() {
   const { userId } = useAuthStore();
   const [period, setPeriod] = useState<Period>("Mensual");
-  const [transactionsType, setTransactionsType] = useState<TypeTransactions>("income");
+  const [customRange, setCustomRange] = useState<{
+    start: number;
+    end: number;
+  } | null>(null);
+  const [transactionsType, setTransactionsType] =
+    useState<TypeTransactions>("income");
+  const [categoryId, setCategoryId] = useState<string>("");
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
 
-
-
-
-  const { totalIncome, totalExpense, totalTransfer, expenseByCategory, loading, start, end } =
-    useStatisticsData(userId ?? "", period , transactionsType);
-
-  console.log(
-
-    totalIncome, totalExpense
+  const { start, end } = useMemo(
+    () => customRange ?? getDateRange(period),
+    [customRange, period],
   );
 
-  const [categoryMap, setCategoryMap] = useState<
-    Record<string, { name: string; icon: string }>
-  >({});
+  const {
+    totalIncome,
+    totalExpense,
+    totalTransfer,
+    expenseByCategory,
+    loading,
+  } = useStatisticsData(
+    userId ?? "",
+    start,
+    end,
+    transactionsType,
+    categoryId || undefined,
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -47,15 +80,43 @@ export default function Statistics() {
           .get("categories")
           .query(Q.where("user_id", userId))
           .fetch();
-        const map: Record<string, { name: string; icon: string }> = {};
-        cats.forEach((c: any) => {
-          map[c.id] = { name: c.name, icon: c.iconImage ?? "📁" };
-        });
-        setCategoryMap(map);
+        setCategories(
+          cats.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            icon: c.iconImage ?? "📁",
+            type: c.type,
+          })),
+        );
       };
       load();
     }, [userId]),
   );
+
+  const categoryOptions = useMemo<DropdownOption<string>[]>(
+    () => [
+      { label: "Todas las categorías", value: "" },
+      ...categories
+        .filter((c) => c.type === transactionsType)
+        .map((c) => ({ label: c.name, value: c.id })),
+    ],
+    [categories, transactionsType],
+  );
+
+  const handlePeriodChange = (p: Period) => {
+    setPeriod(p);
+    setCustomRange(null);
+  };
+
+  const handleTypeChange = (t: TypeTransactions) => {
+    setTransactionsType(t);
+    setCategoryId("");
+  };
+
+  const handleRangeConfirm = (s: number, e: number) => {
+    setCustomRange({ start: s, end: e });
+    setPickerVisible(false);
+  };
 
   return (
     <SafeAreaView className="flex-1">
@@ -64,29 +125,54 @@ export default function Statistics() {
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="p-4 ">
-          <View className="d-flex flex-row  z-50">
-            <View className=" flex-1  m-2">
+        <View className="p-4">
+          <View className="d-flex flex-row z-50">
+            <View className="flex-1 m-2">
               <Dropdown
                 options={periodOptions}
                 value={period}
-                onSelect={setPeriod}
+                onSelect={handlePeriodChange}
                 placeholder="Selecciona un Periodo"
               />
             </View>
-            <View className="flex-1   m-2">
+            <View className="flex-1 m-2">
               <Dropdown
                 options={transactionsTypesES}
                 value={transactionsType}
-                onSelect={setTransactionsType}
+                onSelect={handleTypeChange}
                 placeholder="Selecciona un Tipo"
               />
             </View>
           </View>
 
+          <View className="m-2">
+            <Pressable
+              onPress={() => setPickerVisible(true)}
+              className="flex-row items-center justify-between min-h-12 rounded-xl border border-black/10 dark:border-white/10 bg-deepSoft dark:bg-deepSoft-dark px-4 py-3"
+            >
+              <Text className="text-base text-ink dark:text-ink-dark">
+                📅 {formatRange(start, end)}
+              </Text>
+              <Text className="text-xs text-muted dark:text-muted-dark">
+                Cambiar rango
+              </Text>
+            </Pressable>
+          </View>
+
+          {transactionsType !== "transfer" && (
+            <View className="m-2">
+              <Dropdown
+                options={categoryOptions}
+                value={categoryId}
+                onSelect={setCategoryId}
+                placeholder="Selecciona una Categoría"
+              />
+            </View>
+          )}
+
           <View>
             <MonthlyOverview
-            transactionstype={transactionsType}
+              transactionstype={transactionsType}
               totalExpense={totalExpense}
               totalIncome={totalIncome}
               totalTransfer={totalTransfer}
@@ -103,9 +189,21 @@ export default function Statistics() {
             />
           </View>
 
-          <IncomeVsExpense income={totalIncome} expense={totalExpense}  typeTransaction={transactionsType}/>
+          <IncomeVsExpense
+            income={totalIncome}
+            expense={totalExpense}
+            typeTransaction={transactionsType}
+          />
         </View>
       </ScrollView>
+
+      <DateRangePicker
+        visible={pickerVisible}
+        initialStart={start}
+        initialEnd={end}
+        onConfirm={handleRangeConfirm}
+        onClose={() => setPickerVisible(false)}
+      />
     </SafeAreaView>
   );
 }

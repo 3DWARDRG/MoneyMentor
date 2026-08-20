@@ -5,6 +5,7 @@ import { Account } from "./models/mlAccount";
 import { Category } from "./models/mlCategory";
 import { Event } from "./models/mlEvent";
 import { FinancialGoal } from "./models/mlFinancialGoal";
+import { MerchantLearning } from "./models/mlMerchantLearning";
 import { Notification } from "./models/mlNotification";
 import { Transaction } from "./models/mlTransaction";
 import { User } from "./models/mlUser";
@@ -23,6 +24,7 @@ export const database = new Database({
     Category,
     Event,
     FinancialGoal,
+    MerchantLearning,
     Notification,
     Transaction,
     User,

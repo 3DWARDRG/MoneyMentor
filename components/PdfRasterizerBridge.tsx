@@ -63,8 +63,18 @@ export default function PdfRasterizerBridge() {
   };
 
   return (
-    <View>
+    <View       style={{
+        display: "none",
+        position: "absolute",
+        top: -3000,
+        left: -3000,
+        width: 1,
+        height: 1,
+        opacity: 0,
+        zIndex: -9999,
+      }}>
     <WebView
+    className="hidden"
       ref={webViewRef}
       originWhitelist={["*"]}
       source={{ html: html ?? "<html><body></body></html>" }}

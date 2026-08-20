@@ -53,29 +53,11 @@ export const useFinanceData = (userId: string) => {
           const sorted = [...all].sort((a, b) => b.date - a.date);
           setTransactions(sorted);
 
-          const now = new Date();
-          const startOfMonth = new Date(
-            now.getFullYear(),
-            now.getMonth(),
-            1,
-          ).getTime();
-          const endOfMonth = new Date(
-            now.getFullYear(),
-            now.getMonth() + 1,
-            0,
-            23,
-            59,
-            59,
-            999,
-          ).getTime();
-
           let income = 0;
           let expense = 0;
           all.forEach((tx) => {
-            if (tx.date >= startOfMonth && tx.date <= endOfMonth) {
-              if (tx.type === "income") income += tx.amount;
-              else expense += tx.amount;
-            }
+            if (tx.type === "income") income += tx.amount;
+            else if (tx.type === "expense") expense += tx.amount;
           });
 
           setSummary({ income, expense, balance: income - expense });

@@ -551,6 +551,84 @@ const classifyCells = (line: string): Cell[] => {
 const containsKeyword = (line: string, re: RegExp) =>
   re.test(normalizeWord(line));
 
+// Detecta descripciones de TRANSFERENCIA SALIENTE (dinero que sale de la
+// cuenta del extracto hacia otra cuenta o persona): "Transferio a: …",
+// "Transferencia a: …", "TRANSF A OTROS BANCOS", "Enviado a …", "Giro a …".
+// Se usa en la verificación para pre-seleccionar el tipo "transferencia" y que
+// el usuario elija la cuenta destino (entre sus cuentas) o a otra persona.
+// Una "Transferencia recibida" (ingreso) NO se marca como transferencia.
+export const isOutgoingTransferDescription = (description: string): boolean => {
+  const d = normalizeWord(description ?? "");
+  // Se usa \s* (no \s+) para tolerar OCR que pega las palabras
+  // ("Transferenciaa: …", "Enviadoa …").
+  return /(?:transferencia\s*(?:a|enviad[oa]\s*(?:a|para))|transfer(?:io|í|ido|ir|o)\s*(?:a|para)|transf\s*(?:a|para)|transfir(?:io|ió)\s*(?:a|para)|enviad[oa]\s*(?:a|para)|giro\s*(?:a|para))/.test(
+    d,
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Instituciones bancarias mencionadas en una descripción de transferencia.
+// Los bancos NO son datos personales: se conservan (no se redactan) y sirven
+// para vincular la transferencia con una cuenta del usuario en la verificación
+// ("Transferencia a: Bancolombia" → pre-seleccionar la cuenta Bancolombia).
+// Las entradas con nombres largos van primero para que el alternador las
+// prefiera sobre prefijos cortos ("Nubank" antes que "Nu").
+// ---------------------------------------------------------------------------
+const BANK_NAMES = [
+  "Bank of America",
+  "Bank of Scotland",
+  "Banco Popular",
+  "Banco Agrario",
+  "Banco Cusco",
+  "Goldman Sachs",
+  "Wells Fargo",
+  "JPMorgan",
+  "Citigroup",
+  "Santander",
+  "Barclays",
+  "Bancolombia",
+  "Davivienda",
+  "Banamex",
+  "Banorte",
+  "BANSEFI",
+  "Bantrust",
+  "Bancamia",
+  "Coopcentral",
+  "Bradesco",
+  "Nubank",
+  "Revolut",
+  "Nu",
+  "BRE-B",
+  "Nequi",
+  "BBVA",
+  "HSBC",
+  "Lloyds",
+  "ING",
+  "Itau",
+  "Caixa",
+];
+
+export const BANK_NAME_PATTERN = new RegExp(
+  `\\b(${BANK_NAMES.join("|")})\\b`,
+  "gi",
+);
+
+const BANK_NAME_FULL = new RegExp(
+  `^\\s*(${BANK_NAMES.join("|")})\\s*$`,
+  "i",
+);
+
+// ¿El texto es exactamente el nombre de un banco conocido? (para NO redactar
+// la institución cuando aparece como destinatario de una transferencia).
+export const isBankName = (name: string): boolean =>
+  BANK_NAME_FULL.test(name ?? "");
+
+// Extrae el banco mencionado en una descripción ("Transferencia a: Nequi").
+export const extractMentionedBank = (description: string): string | null => {
+  const m = (description ?? "").match(BANK_NAME_PATTERN);
+  return m ? m[0] : null;
+};
+
 export const detectType = (
   line: string,
   amount: number,

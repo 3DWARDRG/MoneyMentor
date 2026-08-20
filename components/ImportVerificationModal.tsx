@@ -5,12 +5,19 @@
 // Aquí nunca se muestra texto crudo del extracto sin redactar.
 
 import { Dropdown } from "@/components/Dropdown";
-import { useImportStore, formatDateText, parseDateText } from "@/store/useImportStore";
+import {
+  useImportStore,
+  formatDateText,
+  parseDateText,
+  type ImportCandidate,
+  type ImportCandidateType,
+} from "@/store/useImportStore";
 import { useFinanceCacheStore } from "@/store/useFinanceCacheStore";
 import { parseMoney } from "@/services/ai/statementParser";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -31,6 +38,33 @@ interface ImportVerificationModalProps {
 
 const formatCOP = (value: number) =>
   new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 }).format(value);
+
+// Campos obligatorios de un movimiento antes de guardar. Devuelve los campos
+// faltantes; si el movimiento está completo la lista queda vacía.
+const getMissingFields = (
+  c: ImportCandidate,
+  amountText: string,
+): string[] => {
+  const missing: string[] = [];
+  if (parseDateText(c.dateText) === null) missing.push("date");
+  const parsed = parseMoney(amountText);
+  if (parsed === null || parsed === 0) missing.push("amount");
+  if (c.description.trim() === "") missing.push("description");
+  if (c.type === "transfer") {
+    if (!c.transferTarget) missing.push("transferTarget");
+    else if (c.transferTarget === "own" && !c.destinationAccountId)
+      missing.push("destination");
+    else if (c.transferTarget === "person" && !c.personName.trim())
+      missing.push("person");
+  } else if (!c.categoryId) {
+    missing.push("category");
+  }
+  return missing;
+};
+
+const INVALID_BORDER =
+  "border-expense/60 dark:border-expense-dark/60";
+const VALID_BORDER = "border-black/10 dark:border-white/10";
 
 export default function ImportVerificationModal({
   visible,
@@ -63,11 +97,24 @@ export default function ImportVerificationModal({
 
   // Categorías desde el caché de finanzas (fuente única, observado en vivo).
   const categories = useFinanceCacheStore((s) => s.categories);
+  const financeAccounts = useFinanceCacheStore((s) => s.accounts);
   const loadFinanceCache = useFinanceCacheStore((s) => s.load);
 
   const [amountDrafts, setAmountDrafts] = useState<Record<string, string>>({});
   const [showRaw, setShowRaw] = useState(false);
-  const [categoryPickerFor, setCategoryPickerFor] = useState<string | null>(null);
+  const [categoryPickerFor, setCategoryPickerFor] = useState<
+    | { kind: "candidate"; id: string }
+    | { kind: "group"; key: string }
+    | null
+  >(null);
+  // Agrupación por comercio: panel "aplicar a todos" expandido por grupo.
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
+    {},
+  );
+  // Borradores de descripción por grupo de comercio.
+  const [groupDrafts, setGroupDrafts] = useState<
+    Record<string, { description: string }>
+  >({});
   // Paginación: solo se renderiza la página/imagen actual (rendimiento).
   const [currentPage, setCurrentPage] = useState(1);
   // Edición del periodo del extracto (rango de fechas).
@@ -84,6 +131,8 @@ export default function ImportVerificationModal({
       setCurrentPage(1);
       setEditingPeriod(false);
       setPeriodError(null);
+      setExpandedGroups({});
+      setGroupDrafts({});
       if (userId) loadFinanceCache(userId);
     }
   }, [visible, userId, loadFinanceCache]);
@@ -95,6 +144,18 @@ export default function ImportVerificationModal({
         .filter((c) => c.selected)
         .reduce((acc, c) => acc + Math.abs(c.amount ?? 0), 0),
     [candidates],
+  );
+
+  // Movimientos seleccionados con algún campo obligatorio vacío o inválido.
+  // Su botón "Confirmar y guardar" queda deshabilitado y se marcan en rojo.
+  const incompleteCount = useMemo(
+    () =>
+      candidates.filter(
+        (c) =>
+          c.selected &&
+          getMissingFields(c, amountDrafts[c.id] ?? c.amountText).length > 0,
+      ).length,
+    [candidates, amountDrafts],
   );
 
   // Candidatos agrupados por página/imagen de origen, en orden de página.
@@ -132,6 +193,21 @@ export default function ImportVerificationModal({
     () => pages.find((p) => p.page === safeCurrentPage)?.lines ?? [],
     [pages, safeCurrentPage],
   );
+
+  // Movimientos de la página actual agrupados por comercio. La clave de
+  // comercio se calcula UNA vez al crear el candidato (`merchantKey`), así que
+  // editar la descripción NO mueve el movimiento de grupo.
+  const pageGroups = useMemo(() => {
+    const map = new Map<string, (typeof candidates)[number][]>();
+    for (const c of currentPageCandidates) {
+      const key = c.merchantKey;
+      if (!key) continue;
+      const list = map.get(key) ?? [];
+      list.push(c);
+      map.set(key, list);
+    }
+    return [...map.entries()].sort((a, b) => b[1].length - a[1].length);
+  }, [currentPageCandidates]);
 
   // Al cambiar de página se vuelve arriba de la lista.
   useEffect(() => {
@@ -171,6 +247,13 @@ export default function ImportVerificationModal({
 
   const handleConfirm = async () => {
     if (!userId) return;
+    if (incompleteCount > 0) {
+      Alert.alert(
+        "Movimientos incompletos",
+        `Hay ${incompleteCount} movimiento(s) con campos en rojo. Complétalos o deselecciona antes de guardar.`,
+      );
+      return;
+    }
     const result = await confirm(userId);
     if (result) onImported(result);
   };
@@ -201,9 +284,398 @@ export default function ImportVerificationModal({
     </View>
   );
 
+  // Re-signa el valor según el tipo: ingreso positivo, gasto y transferencia
+  // negativos. Conserva la magnitud que ya tuviera el monto.
+  const signedAmountText = (
+    amountText: string,
+    type: "income" | "expense" | "transfer",
+  ) => {
+    const parsed = parseMoney(amountText);
+    if (parsed === null) return amountText;
+    const abs = Math.abs(parsed);
+    return type === "income" ? String(abs) : String(-abs);
+  };
+
+  // Cambia el tipo del movimiento y limpia los campos que no aplican:
+  // - Al pasar a transferencia se quita la categoría.
+  // - Al salir de transferencia se limpian los campos de destino.
+  // El valor se ajusta automáticamente al signo del nuevo tipo.
+  const setCandidateType = (
+    id: string,
+    type: "income" | "expense" | "transfer",
+  ) => {
+    const current =
+      amountDrafts[id] ??
+      candidates.find((c) => c.id === id)?.amountText ??
+      "";
+    const nextAmountText = signedAmountText(current, type);
+    if (nextAmountText !== current) {
+      setAmountDrafts((d) => ({ ...d, [id]: nextAmountText }));
+      updateCandidate(id, { amountText: nextAmountText });
+    }
+    if (type === "transfer") {
+      updateCandidate(id, { type, categoryId: null });
+    } else {
+      updateCandidate(id, {
+        type,
+        transferTarget: null,
+        destinationAccountId: null,
+        personName: "",
+      });
+    }
+  };
+
+  // ─── Acciones de GRUPO (aplicar a todos los movimientos del comercio) ───
+  const groupMembers = (key: string) =>
+    pageGroups.find(([k]) => k === key)?.[1] ?? [];
+
+  const toggleGroup = (key: string) =>
+    setExpandedGroups((s) => ({ ...s, [key]: !s[key] }));
+
+  const setGroupDraft = (key: string, description: string) =>
+    setGroupDrafts((s) => ({ ...s, [key]: { description } }));
+
+  const applyGroupType = (key: string, type: ImportCandidateType) => {
+    for (const m of groupMembers(key)) setCandidateType(m.id, type);
+  };
+
+  const applyGroupDescription = (key: string) => {
+    const description = (groupDrafts[key]?.description ?? "").trim();
+    if (!description) return;
+    for (const m of groupMembers(key)) {
+      updateCandidate(m.id, { description });
+    }
+  };
+
+  const applyGroupCategory = (key: string, categoryId: string | null) => {
+    for (const m of groupMembers(key)) {
+      updateCandidate(m.id, { categoryId });
+    }
+  };
+
+  const applyGroupTransferTarget = (
+    key: string,
+    target: "own" | "person",
+  ) => {
+    for (const m of groupMembers(key)) {
+      updateCandidate(m.id, {
+        transferTarget: target,
+        destinationAccountId:
+          target === "person" ? null : m.destinationAccountId,
+      });
+    }
+  };
+
+  const applyGroupDestinationAccount = (key: string, accountId: string) => {
+    for (const m of groupMembers(key)) {
+      updateCandidate(m.id, { destinationAccountId: accountId });
+    }
+  };
+
+  const applyGroupPersonName = (key: string, personName: string) => {
+    for (const m of groupMembers(key)) {
+      updateCandidate(m.id, { personName });
+    }
+  };
+
+  // Tarjeta de comercio: asigna descripción/categoría/tipo UNA vez y se aplica
+  // a todos los movimientos del grupo.
+  const renderGroupCard = (
+    key: string,
+    members: (typeof candidates)[number][],
+  ) => {
+    const expanded = !!expandedGroups[key];
+    const total = members.reduce((acc, c) => acc + Math.abs(c.amount ?? 0), 0);
+    const firstDesc = members[0]?.description || key;
+    const draft = groupDrafts[key]?.description ?? firstDesc;
+    const groupIsTransfer = members.every((m) => m.type === "transfer");
+    const destinationOptions = financeAccounts.filter(
+      (a) => a.id !== accountId,
+    );
+
+    const typeStyles: Record<
+      ImportCandidateType,
+      { active: string; label: string }
+    > = {
+      expense: {
+        active: "bg-expense",
+        label: "Gasto",
+      },
+      income: {
+        active: "bg-income",
+        label: "Ingreso",
+      },
+      transfer: {
+        active: "bg-accent dark:bg-accent-dark",
+        label: "Transf.",
+      },
+    };
+
+    return (
+      <View
+        key={`group-${key}`}
+        className="mb-3 rounded-2xl border border-accent/30 bg-accent/5 p-3"
+      >
+        <Pressable
+          onPress={() => toggleGroup(key)}
+          className="flex-row items-center justify-between"
+        >
+          <View className="flex-1 pr-2">
+            <Text className="text-sm font-bold text-ink dark:text-ink-dark capitalize">
+              {key}
+            </Text>
+            <Text className="text-[11px] text-muted dark:text-muted-dark">
+              {members.length} movimientos · {formatCOP(total)} COP
+            </Text>
+          </View>
+          <Text className="text-xs font-semibold text-accent dark:text-accent-dark">
+            {expanded ? "Cerrar ▲" : "Aplicar a todos ▼"}
+          </Text>
+        </Pressable>
+
+        {expanded ? (
+          <View className="mt-2 rounded-xl border border-black/10 dark:border-white/10 bg-panel dark:bg-panel-dark p-3">
+            <Text className="mb-1.5 text-[11px] font-medium text-muted dark:text-muted-dark">
+              Asigna una vez y se aplica a los {members.length} movimientos
+            </Text>
+
+            {/* Tipo */}
+            <View className="mb-2 flex-row overflow-hidden rounded-lg border border-black/10 dark:border-white/10">
+              {(Object.keys(typeStyles) as ImportCandidateType[]).map((t) => (
+                <Pressable
+                  key={t}
+                  onPress={() => applyGroupType(key, t)}
+                  className={`flex-1 items-center px-3 py-1.5 ${
+                    members.every((m) => m.type === t)
+                      ? typeStyles[t].active
+                      : "bg-transparent"
+                  }`}
+                >
+                  <Text
+                    className={`text-xs font-semibold ${
+                      members.every((m) => m.type === t)
+                        ? "text-white"
+                        : "text-muted dark:text-muted-dark"
+                    }`}
+                  >
+                    {typeStyles[t].label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            {groupIsTransfer ? (
+              <View>
+                <Text className="mb-1.5 text-xs font-medium text-muted dark:text-muted-dark">
+                  Destino
+                </Text>
+                <View className="flex-row gap-2 mb-2">
+                  {(
+                    [
+                      { value: "own", label: "Mis cuentas" },
+                      { value: "person", label: "Otra persona" },
+                    ] as const
+                  ).map((target) => {
+                    const active = members[0]?.transferTarget === target.value;
+                    return (
+                      <Pressable
+                        key={target.value}
+                        onPress={() =>
+                          applyGroupTransferTarget(key, target.value)
+                        }
+                        className={`flex-1 items-center rounded-xl border px-3 py-2 ${
+                          active
+                            ? "border-accent dark:border-accent-dark bg-accent/10 dark:bg-accent-dark/10"
+                            : "border-black/10 dark:border-white/10"
+                        }`}
+                      >
+                        <Text
+                          className={`text-xs font-semibold ${
+                            active
+                              ? "text-accent dark:text-accent-dark"
+                              : "text-muted dark:text-muted-dark"
+                          }`}
+                        >
+                          {target.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {!members[0]?.transferTarget ? (
+                  <Text className="mb-2 text-[11px] text-expense dark:text-expense-dark">
+                    Selecciona un destino
+                  </Text>
+                ) : null}
+
+                {members[0]?.transferTarget === "own" ? (
+                  destinationOptions.length === 0 ? (
+                    <Text className="text-xs text-muted dark:text-muted-dark">
+                      Crea otra cuenta para poder transferir entre tus cuentas.
+                    </Text>
+                  ) : (
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      className="flex-row"
+                    >
+                      {destinationOptions.map((acc) => {
+                        const active =
+                          members[0]?.destinationAccountId === acc.id;
+                        return (
+                          <Pressable
+                            key={acc.id}
+                            onPress={() =>
+                              applyGroupDestinationAccount(key, acc.id)
+                            }
+                            className={`mx-1 rounded-2xl border px-3 py-2 ${
+                              active
+                                ? "border-accent dark:border-accent-dark bg-accent/10 dark:bg-accent-dark/10"
+                                : "border-black/10 dark:border-white/10 bg-deepSoft dark:bg-deepSoft-dark"
+                            }`}
+                          >
+                            <Text
+                              numberOfLines={1}
+                              className={`text-xs font-semibold ${
+                                active
+                                  ? "text-accent dark:text-accent-dark"
+                                  : "text-ink dark:text-ink-dark"
+                              }`}
+                              style={{ maxWidth: 160 }}
+                            >
+                              {acc.name}
+                            </Text>
+                            <Text
+                              className={`text-[10px] mt-0.5 ${
+                                active
+                                  ? "text-accent/80 dark:text-accent-dark/80"
+                                  : "text-muted dark:text-muted-dark"
+                              }`}
+                            >
+                              {acc.currency}{" "}
+                              {Number(acc.balance ?? 0).toLocaleString("es-CO")}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </ScrollView>
+                  )
+                ) : (
+                  <TextInput
+                    className={`rounded-xl border px-3 py-2 text-sm text-ink dark:text-ink-dark bg-deepSoft dark:bg-deepSoft-dark ${
+                      members[0]?.transferTarget === "person" &&
+                      !members[0]?.personName.trim()
+                        ? INVALID_BORDER
+                        : VALID_BORDER
+                    }`}
+                    placeholder="Nombre de la persona"
+                    placeholderTextColor="#9ca3af"
+                    value={members[0]?.personName ?? ""}
+                    onChangeText={(personName) =>
+                      applyGroupPersonName(key, personName)
+                    }
+                  />
+                )}
+              </View>
+            ) : (
+              <>
+                {/* Descripción */}
+                <TextInput
+                  className={`rounded-xl border px-3 py-2 text-sm text-ink dark:text-ink-dark bg-deepSoft dark:bg-deepSoft-dark ${
+                    draft.trim() === "" ? INVALID_BORDER : VALID_BORDER
+                  }`}
+                  placeholder="Descripción para todos"
+                  placeholderTextColor="#9ca3af"
+                  value={draft}
+                  onChangeText={(text) => setGroupDraft(key, text)}
+                  multiline
+                />
+                {draft.trim() === "" ? (
+                  <Text className="mt-1 text-[11px] text-expense dark:text-expense-dark">
+                    Falta la descripción
+                  </Text>
+                ) : null}
+
+                {/* Categoría + aplicar descripción */}
+                <View className="mt-2 flex-row gap-2">
+                  <Pressable
+                    onPress={() => setCategoryPickerFor({ kind: "group", key })}
+                    className={`flex-1 flex-row items-center justify-between rounded-xl border bg-deepSoft dark:bg-deepSoft-dark px-3 py-2.5 ${
+                      !members[0]?.categoryId ? INVALID_BORDER : VALID_BORDER
+                    }`}
+                  >
+                    <Text
+                      numberOfLines={1}
+                      className={`text-sm ${
+                        members[0]?.categoryId
+                          ? "text-ink dark:text-ink-dark"
+                          : "text-muted dark:text-muted-dark"
+                      }`}
+                    >
+                      {categories.find(
+                        (cat) => cat.id === members[0]?.categoryId,
+                      )?.name ?? "Categoría"}
+                    </Text>
+                    <Text className="ml-1 text-xs text-muted dark:text-muted-dark">
+                      ▾
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => applyGroupDescription(key)}
+                    className="items-center justify-center rounded-xl bg-accent dark:bg-accent-dark px-4"
+                  >
+                    <Text className="text-sm font-semibold text-white">
+                      Aplicar
+                    </Text>
+                  </Pressable>
+                </View>
+                {!members[0]?.categoryId ? (
+                  <Text className="mt-1 text-[11px] text-expense dark:text-expense-dark">
+                    Selecciona una categoría
+                  </Text>
+                ) : null}
+              </>
+            )}
+
+            {/* Tipo que se aprenderá en el diccionario */}
+            <Text className="mt-2 text-[10px] text-muted dark:text-muted-dark">
+              🧠 Se memorizará en tu diccionario para próximas importaciones.
+            </Text>
+          </View>
+        ) : null}
+
+        {members.map(renderRow)}
+      </View>
+    );
+  };
+
+  // Lista de la página actual: grupos por comercio primero, luego el resto.
+  const renderGroupedCandidates = () => {
+    const grouped = pageGroups.filter(([, m]) => m.length > 1);
+    const groupedKeys = new Set(grouped.map(([k]) => k));
+    const singles = currentPageCandidates.filter((c) => {
+      return !(c.merchantKey && groupedKeys.has(c.merchantKey));
+    });
+    return (
+      <>
+        {grouped.map(([key, members]) => renderGroupCard(key, members))}
+        {singles.map(renderRow)}
+      </>
+    );
+  };
+
   const renderRow = (c: (typeof candidates)[number]) => {
     const amountText = amountDrafts[c.id] ?? c.amountText;
     const parsed = parseMoney(amountText) ?? c.amount ?? 0;
+    const isTransfer = c.type === "transfer";
+    // Cuentas propias disponibles como destino (la cuenta del extracto se
+    // excluye: no se puede transferir a la misma cuenta).
+    const destinationOptions = financeAccounts.filter(
+      (a) => a.id !== accountId,
+    );
+    // Campos obligatorios faltantes (solo importan los seleccionados).
+    const missing = c.selected ? getMissingFields(c, amountText) : [];
+    const missingSet = new Set(missing);
 
     return (
       <View
@@ -232,7 +704,7 @@ export default function ImportVerificationModal({
 
           <View className="flex-row overflow-hidden rounded-lg border border-black/10 dark:border-white/10">
             <Pressable
-              onPress={() => updateCandidate(c.id, { type: "expense" })}
+              onPress={() => setCandidateType(c.id, "expense")}
               className={`px-3 py-1.5 ${
                 c.type === "expense"
                   ? "bg-expense"
@@ -248,7 +720,7 @@ export default function ImportVerificationModal({
               </Text>
             </Pressable>
             <Pressable
-              onPress={() => updateCandidate(c.id, { type: "income" })}
+              onPress={() => setCandidateType(c.id, "income")}
               className={`px-3 py-1.5 ${
                 c.type === "income"
                   ? "bg-income"
@@ -263,50 +735,248 @@ export default function ImportVerificationModal({
                 Ingreso
               </Text>
             </Pressable>
+            <Pressable
+              onPress={() => setCandidateType(c.id, "transfer")}
+              className={`px-3 py-1.5 ${
+                isTransfer
+                  ? "bg-accent dark:bg-accent-dark"
+                  : "bg-transparent"
+              }`}
+            >
+              <Text
+                className={`text-xs font-semibold ${
+                  isTransfer ? "text-white" : "text-muted dark:text-muted-dark"
+                }`}
+              >
+                Transf.
+              </Text>
+            </Pressable>
           </View>
         </View>
 
         {/* Fecha y valor */}
         <View className="flex-row gap-2">
-          <TextInput
-            className="flex-1 rounded-xl border border-black/10 dark:border-white/10 bg-deepSoft dark:bg-deepSoft-dark px-3 py-2 text-sm text-ink dark:text-ink-dark"
-            placeholder="dd/mm/aaaa"
-            placeholderTextColor="#9ca3af"
-            value={c.dateText}
-            onChangeText={(dateText) => updateCandidate(c.id, { dateText })}
-            keyboardType="numbers-and-punctuation"
-          />
-          <TextInput
-            className="flex-1 rounded-xl border border-black/10 dark:border-white/10 bg-deepSoft dark:bg-deepSoft-dark px-3 py-2 text-sm text-ink dark:text-ink-dark"
-            placeholder="0"
-            placeholderTextColor="#9ca3af"
-            value={amountText}
-            onChangeText={(text) => {
-              setAmountDrafts((d) => ({ ...d, [c.id]: text }));
-            }}
-            keyboardType="decimal-pad"
-          />
+          <View className="flex-1">
+            <TextInput
+              className={`rounded-xl border px-3 py-2 text-sm text-ink dark:text-ink-dark bg-deepSoft dark:bg-deepSoft-dark ${
+                missingSet.has("date")
+                  ? INVALID_BORDER
+                  : VALID_BORDER
+              }`}
+              placeholder="dd/mm/aaaa"
+              placeholderTextColor="#9ca3af"
+              value={c.dateText}
+              onChangeText={(dateText) => updateCandidate(c.id, { dateText })}
+              keyboardType="numbers-and-punctuation"
+            />
+            {missingSet.has("date") ? (
+              <Text className="mt-1 text-[11px] text-expense dark:text-expense-dark">
+                Falta la fecha
+              </Text>
+            ) : null}
+          </View>
+          <View className="flex-1">
+            <TextInput
+              className={`rounded-xl border px-3 py-2 text-sm text-ink dark:text-ink-dark bg-deepSoft dark:bg-deepSoft-dark ${
+                missingSet.has("amount")
+                  ? INVALID_BORDER
+                  : VALID_BORDER
+              }`}
+              placeholder="0"
+              placeholderTextColor="#9ca3af"
+              value={amountText}
+              onChangeText={(text) => {
+                setAmountDrafts((d) => ({ ...d, [c.id]: text }));
+                updateCandidate(c.id, { amountText: text });
+              }}
+              keyboardType="decimal-pad"
+            />
+            {missingSet.has("amount") ? (
+              <Text className="mt-1 text-[11px] text-expense dark:text-expense-dark">
+                Falta el valor
+              </Text>
+            ) : null}
+          </View>
         </View>
-        {parsed > 0 && (
+        {parsed !== 0 ? (
           <Text className="mt-1 text-xs text-muted dark:text-muted-dark">
-            {formatCOP(parsed)} COP
+            {formatCOP(Math.abs(parsed))} COP
           </Text>
-        )}
+        ) : null}
 
         {/* Descripción */}
         <TextInput
-          className="mt-2 rounded-xl border border-black/10 dark:border-white/10 bg-deepSoft dark:bg-deepSoft-dark px-3 py-2 text-sm text-ink dark:text-ink-dark"
+          className={`mt-2 rounded-xl border px-3 py-2 text-sm text-ink dark:text-ink-dark bg-deepSoft dark:bg-deepSoft-dark ${
+            missingSet.has("description")
+              ? INVALID_BORDER
+              : VALID_BORDER
+          }`}
           placeholder="Descripción"
           placeholderTextColor="#9ca3af"
           value={c.description}
           onChangeText={(description) => updateCandidate(c.id, { description })}
           multiline
         />
+        {missingSet.has("description") ? (
+          <Text className="mt-1 text-[11px] text-expense dark:text-expense-dark">
+            Falta la descripción
+          </Text>
+        ) : null}
+
+        {/* Destino de transferencia */}
+        {isTransfer ? (
+          <View
+            className={`mt-2 rounded-xl border p-2.5 ${
+              missingSet.has("transferTarget") ||
+              missingSet.has("destination") ||
+              missingSet.has("person")
+                ? INVALID_BORDER
+                : "border-transparent"
+            }`}
+          >
+            <Text className="mb-1.5 text-xs font-medium text-muted dark:text-muted-dark">
+              Destino
+            </Text>
+
+            <View className="flex-row gap-2 mb-2">
+              {(
+                [
+                  { value: "own", label: "Mis cuentas" },
+                  { value: "person", label: "Otra persona" },
+                ] as const
+              ).map((target) => {
+                const active = c.transferTarget === target.value;
+                return (
+                  <Pressable
+                    key={target.value}
+                    onPress={() =>
+                      updateCandidate(c.id, {
+                        transferTarget: target.value,
+                        destinationAccountId:
+                          target.value === "person" ? null : c.destinationAccountId,
+                      })
+                    }
+                    className={`flex-1 items-center rounded-xl border px-3 py-2 ${
+                      active
+                        ? "border-accent dark:border-accent-dark bg-accent/10 dark:bg-accent-dark/10"
+                        : missingSet.has("transferTarget")
+                          ? INVALID_BORDER
+                          : VALID_BORDER
+                    }`}
+                  >
+                    <Text
+                      className={`text-xs font-semibold ${
+                        active
+                          ? "text-accent dark:text-accent-dark"
+                          : "text-muted dark:text-muted-dark"
+                      }`}
+                    >
+                      {target.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {missingSet.has("transferTarget") ? (
+              <Text className="mb-2 text-[11px] text-expense dark:text-expense-dark">
+                Selecciona un destino
+              </Text>
+            ) : null}
+
+            {c.transferTarget === "own" ? (
+              destinationOptions.length === 0 ? (
+                <Text className="text-xs text-muted dark:text-muted-dark">
+                  Crea otra cuenta para poder transferir entre tus cuentas.
+                </Text>
+              ) : (
+                <>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    className="flex-row"
+                  >
+                    {destinationOptions.map((acc) => {
+                      const active = c.destinationAccountId === acc.id;
+                      return (
+                        <Pressable
+                          key={acc.id}
+                          onPress={() =>
+                            updateCandidate(c.id, {
+                              destinationAccountId: acc.id,
+                            })
+                          }
+                          className={`mx-1 rounded-2xl border px-3 py-2 ${
+                            active
+                              ? "border-accent dark:border-accent-dark bg-accent/10 dark:bg-accent-dark/10"
+                              : "border-black/10 dark:border-white/10 bg-deepSoft dark:bg-deepSoft-dark"
+                          }`}
+                        >
+                          <Text
+                            numberOfLines={1}
+                            className={`text-xs font-semibold ${
+                              active
+                                ? "text-accent dark:text-accent-dark"
+                                : "text-ink dark:text-ink-dark"
+                            }`}
+                            style={{ maxWidth: 160 }}
+                          >
+                            {acc.name}
+                          </Text>
+                          <Text
+                            className={`text-[10px] mt-0.5 ${
+                              active
+                                ? "text-accent/80 dark:text-accent-dark/80"
+                                : "text-muted dark:text-muted-dark"
+                            }`}
+                          >
+                            {acc.currency}{" "}
+                            {Number(acc.balance ?? 0).toLocaleString("es-CO")}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                  {missingSet.has("destination") ? (
+                    <Text className="mt-1 text-[11px] text-expense dark:text-expense-dark">
+                      Selecciona la cuenta destino
+                    </Text>
+                  ) : null}
+                </>
+              )
+            ) : (
+              <>
+                <TextInput
+                  className={`rounded-xl border px-3 py-2 text-sm text-ink dark:text-ink-dark bg-deepSoft dark:bg-deepSoft-dark ${
+                    missingSet.has("person")
+                      ? INVALID_BORDER
+                      : VALID_BORDER
+                  }`}
+                  placeholder="Nombre de la persona"
+                  placeholderTextColor="#9ca3af"
+                  value={c.personName}
+                  onChangeText={(personName) =>
+                    updateCandidate(c.id, { personName })
+                  }
+                />
+                {missingSet.has("person") ? (
+                  <Text className="mt-1 text-[11px] text-expense dark:text-expense-dark">
+                    Escribe el nombre de la persona
+                  </Text>
+                ) : null}
+              </>
+            )}
+          </View>
+        ) : null}
 
         {/* Categoría */}
+        {!isTransfer ? (
         <Pressable
-          onPress={() => setCategoryPickerFor(c.id)}
-          className="mt-2 flex-row items-center justify-between rounded-xl border border-black/10 dark:border-white/10 bg-deepSoft dark:bg-deepSoft-dark px-3 py-2.5"
+          onPress={() => setCategoryPickerFor({ kind: "candidate", id: c.id })}
+          className={`mt-2 flex-row items-center justify-between rounded-xl border bg-deepSoft dark:bg-deepSoft-dark px-3 py-2.5 ${
+            missingSet.has("category")
+              ? INVALID_BORDER
+              : VALID_BORDER
+          }`}
         >
           <Text
             className={`text-sm ${
@@ -320,6 +990,12 @@ export default function ImportVerificationModal({
           </Text>
           <Text className="text-xs text-muted dark:text-muted-dark">▾</Text>
         </Pressable>
+        ) : null}
+        {!isTransfer && missingSet.has("category") ? (
+          <Text className="mt-1 text-[11px] text-expense dark:text-expense-dark">
+            Selecciona una categoría
+          </Text>
+        ) : null}
       </View>
     );
   };
@@ -383,7 +1059,13 @@ export default function ImportVerificationModal({
             value={accountId ?? ""}
             onSelect={setAccountId}
             placeholder="Selecciona una cuenta"
+            invalid={!accountId}
           />
+          {!accountId ? (
+            <Text className="mt-1 text-[11px] text-expense dark:text-expense-dark">
+              Selecciona la cuenta de destino
+            </Text>
+          ) : null}
 
           {/* Periodo del extracto (rango de fechas) */}
           <View className="mt-3 rounded-xl border border-black/10 dark:border-white/10 bg-panel dark:bg-panel-dark px-4 py-2.5">
@@ -618,7 +1300,7 @@ export default function ImportVerificationModal({
                   COP
                 </Text>
               </View>
-              {currentPageCandidates.map(renderRow)}
+              {renderGroupedCandidates()}
             </View>
           ) : null}
 
@@ -640,22 +1322,42 @@ export default function ImportVerificationModal({
           className="border-t border-black/10 dark:border-white/10 px-5 py-3"
           style={{ paddingBottom: Math.max(insets.bottom, 12) }}
         >
-          <Text className="mb-2 text-center text-xs text-muted dark:text-muted-dark">
-            {selectedCount > 0
-              ? `${selectedCount} movimientos · ${formatCOP(selectedTotal)} COP`
-              : "Sin movimientos seleccionados"}
+          <Text
+            className={`mb-2 text-center text-xs ${
+              incompleteCount > 0 && selectedCount > 0
+                ? "font-semibold text-expense dark:text-expense-dark"
+                : "text-muted dark:text-muted-dark"
+            }`}
+          >
+            {incompleteCount > 0 && selectedCount > 0
+              ? `⚠️ ${incompleteCount} movimiento(s) incompleto(s). Completa los campos en rojo.`
+              : selectedCount > 0
+                ? `${selectedCount} movimientos · ${formatCOP(selectedTotal)} COP`
+                : "Sin movimientos seleccionados"}
           </Text>
           <Pressable
             onPress={handleConfirm}
             disabled={saving || selectedCount === 0}
+            style={({ pressed }) =>
+              pressed && !saving ? { opacity: 0.75 } : null
+            }
             className={`h-12 items-center justify-center rounded-xl ${
-              saving || selectedCount === 0
-                ? "bg-black/10 dark:bg-white/10"
-                : "bg-accent dark:bg-accent-dark"
+              saving
+                ? "bg-accent dark:bg-accent-dark"
+                : selectedCount === 0
+                  ? "bg-black/10 dark:bg-white/10"
+                  : incompleteCount > 0
+                    ? "bg-amber-500"
+                    : "bg-accent dark:bg-accent-dark"
             }`}
           >
             {saving ? (
-              <ActivityIndicator size="small" color="#ffffff" />
+              <View className="flex-row items-center gap-2">
+                <ActivityIndicator size="small" color="#ffffff" />
+                <Text className="text-base font-semibold text-white">
+                  Guardando…
+                </Text>
+              </View>
             ) : (
               <Text className="text-base font-semibold text-white">
                 Confirmar y guardar
@@ -682,11 +1384,19 @@ export default function ImportVerificationModal({
             onPress={() => {}}
           >
             <Text className="text-lg font-bold text-ink dark:text-ink-dark">
-              Categoría del movimiento
+              {categoryPickerFor?.kind === "group"
+                ? "Categoría para el grupo"
+                : "Categoría del movimiento"}
             </Text>
             {(() => {
-              const target = candidates.find((c) => c.id === categoryPickerFor);
+              const picker = categoryPickerFor;
+              if (!picker) return null;
+              const isGroup = picker.kind === "group";
+              const target = isGroup
+                ? pageGroups.find(([k]) => k === picker.key)?.[1]?.[0]
+                : candidates.find((c) => c.id === picker.id);
               if (!target) return null;
+              const activeCategoryId = target.categoryId;
               const options = categories.filter(
                 (cat) => cat.type === target.type,
               );
@@ -698,7 +1408,11 @@ export default function ImportVerificationModal({
                 >
                   <Pressable
                     onPress={() => {
-                      updateCandidate(target.id, { categoryId: null });
+                      if (isGroup) {
+                        applyGroupCategory(picker.key, null);
+                      } else {
+                        updateCandidate(picker.id, { categoryId: null });
+                      }
                       setCategoryPickerFor(null);
                     }}
                     className="rounded-xl px-3 py-3"
@@ -711,11 +1425,17 @@ export default function ImportVerificationModal({
                     <Pressable
                       key={cat.id}
                       onPress={() => {
-                        updateCandidate(target.id, { categoryId: cat.id });
+                        if (isGroup) {
+                          applyGroupCategory(picker.key, cat.id);
+                        } else {
+                          updateCandidate(picker.id, {
+                            categoryId: cat.id,
+                          });
+                        }
                         setCategoryPickerFor(null);
                       }}
                       className={`rounded-xl px-3 py-3 ${
-                        target.categoryId === cat.id
+                        activeCategoryId === cat.id
                           ? "bg-accent/10 dark:bg-accent-dark/10"
                           : "bg-transparent"
                       }`}
@@ -729,7 +1449,7 @@ export default function ImportVerificationModal({
                         />
                         <Text
                           className={`ml-2 text-sm ${
-                            target.categoryId === cat.id
+                            activeCategoryId === cat.id
                               ? "font-semibold text-accent dark:text-accent-dark"
                               : "text-ink dark:text-ink-dark"
                           }`}

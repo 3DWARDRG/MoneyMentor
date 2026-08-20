@@ -1,5 +1,6 @@
 import {
   addColumns,
+  createTable,
   schemaMigrations,
 } from "@nozbe/watermelondb/Schema/migrations";
 
@@ -136,6 +137,24 @@ export default schemaMigrations({
               isOptional: true,
               isIndexed: true,
             },
+          ],
+        }),
+      ],
+    },
+    {
+      toVersion: 9,
+      steps: [
+        createTable({
+          name: "merchant_learnings",
+          columns: [
+            { name: "user_id", type: "string", isIndexed: true },
+            { name: "merchant_key", type: "string", isIndexed: true },
+            { name: "merchant_label", type: "string" },
+            { name: "description", type: "string", isOptional: true },
+            { name: "category_id", type: "string", isOptional: true },
+            { name: "type", type: "string", isOptional: true },
+            { name: "occurrences", type: "number" },
+            { name: "updated_at", type: "number" },
           ],
         }),
       ],

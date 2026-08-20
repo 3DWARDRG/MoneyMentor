@@ -11,9 +11,9 @@ import { useColorScheme } from "nativewind";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Keyboard,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -64,6 +64,7 @@ export default function AiChatScreen() {
   const [input, setInput] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [attachMenuVisible, setAttachMenuVisible] = useState(false);
   const listRef = useRef<ScrollView>(null);
 
   const userId = useAuthStore.getState().userId ?? "";
@@ -161,16 +162,12 @@ export default function AiChatScreen() {
   };
 
   const handleAttach = () => {
-    Alert.alert(
-      "Adjuntar extracto",
-      "Adjunta tu extracto bancario (foto, imagen o PDF). Se procesa en tu dispositivo y los datos sensibles se redactan antes de cualquier uso.",
-      [
-        { text: "📷 Cámara", onPress: () => pickImage("camera") },
-        { text: "🖼️ Galería", onPress: () => pickImage("library") },
-        { text: "📄 PDF", onPress: pickPdf },
-        { text: "Cancelar", style: "cancel" },
-      ],
-    );
+    setAttachMenuVisible(true);
+  };
+
+  const runPick = (fn: () => Promise<void>) => async () => {
+    setAttachMenuVisible(false);
+    await fn();
   };
 
   const handleImported = (result: { count: number; total: number }) => {
@@ -217,7 +214,8 @@ export default function AiChatScreen() {
     <SafeAreaView className="flex-1">
       <ScreenBackdrop />
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+      className="flex-1"
+        
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
@@ -352,9 +350,9 @@ export default function AiChatScreen() {
 
         {/* Input */}
         <View
-          className="flex-row items-end px-4 pt-1"
+          className="flex-row items-end p-2"
           style={{
-            paddingBottom: keyboardVisible ? 8 : 4 + bottomTabOffset,
+            paddingBottom: keyboardVisible ? 2 : 2 + bottomTabOffset,
           }}
         >
           {messages.length > 0 && !isSending && (
@@ -405,6 +403,86 @@ export default function AiChatScreen() {
         onImported={handleImported}
       />
       <PdfRasterizerBridge />
+
+      {/* Menú de adjuntar extracto */}
+      <Modal
+        visible={attachMenuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAttachMenuVisible(false)}
+      >
+        <Pressable
+          className="flex-1 justify-end bg-black/50"
+          onPress={() => setAttachMenuVisible(false)}
+        >
+          <Pressable
+            className="rounded-t-3xl border-t border-black/10 bg-panel dark:bg-panel-dark p-5"
+            style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+            onPress={() => {}}
+          >
+            <Text className="text-center text-lg font-bold text-ink dark:text-ink-dark">
+              Adjuntar extracto
+            </Text>
+            <Text className="mt-1 text-center text-sm leading-snug text-muted dark:text-muted-dark">
+              Foto, imagen o PDF. Se procesa en tu dispositivo y los datos
+              sensibles se redactan antes de cualquier uso.
+            </Text>
+
+            <View className="mt-4 gap-2">
+              {(
+                [
+                  {
+                    icon: "📷",
+                    label: "Cámara",
+                    hint: "Toma una foto del extracto",
+                    onPress: runPick(() => pickImage("camera")),
+                  },
+                  {
+                    icon: "🖼️",
+                    label: "Galería",
+                    hint: "Elige una imagen del extracto",
+                    onPress: runPick(() => pickImage("library")),
+                  },
+                  {
+                    icon: "📄",
+                    label: "PDF",
+                    hint: "Selecciona el archivo del extracto",
+                    onPress: runPick(pickPdf),
+                  },
+                ] as const
+              ).map((opt) => (
+                <Pressable
+                  key={opt.label}
+                  onPress={opt.onPress}
+                  className="flex-row items-center rounded-2xl border border-black/10 dark:border-white/10 bg-deepSoft dark:bg-deepSoft-dark px-4 py-3.5 active:opacity-70"
+                >
+                  <Text className="text-2xl">{opt.icon}</Text>
+                  <View className="ml-3 flex-1">
+                    <Text className="text-base font-semibold text-ink dark:text-ink-dark">
+                      {opt.label}
+                    </Text>
+                    <Text className="text-[13px] text-muted dark:text-muted-dark">
+                      {opt.hint}
+                    </Text>
+                  </View>
+                  <Text className="text-lg text-muted dark:text-muted-dark">
+                    ›
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Pressable
+              onPress={() => setAttachMenuVisible(false)}
+              className="mt-4 h-12 items-center justify-center rounded-2xl border border-black/10 dark:border-white/10 bg-panel dark:bg-panel-dark"
+            >
+              <Text className="text-base font-semibold text-ink dark:text-ink-dark">
+                Cancelar
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }

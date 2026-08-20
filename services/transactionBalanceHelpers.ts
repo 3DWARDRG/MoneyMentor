@@ -334,9 +334,9 @@ export const createTransactionRecord = async ({
     });
 
     if (type === "transfer") {
-      if (!destinationAccountId) throw new Error("Cuenta destino requerida");
-
-      const targetAccount = await accCollection.find(destinationAccountId);
+      const targetAccount = destinationAccountId
+        ? await accCollection.find(destinationAccountId)
+        : null;
 
       await applyTransactionEffect({
         transaction: {

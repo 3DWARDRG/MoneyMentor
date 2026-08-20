@@ -1,93 +1,100 @@
-import React, { useEffect , useState } from "react";
-import { Text, View } from "react-native";
-import ExpenseBar from "./ExpenseBar";
 import { database } from "@/database";
 import { useFinanceData } from "@/hooks/useFinanceData";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Q } from "@nozbe/watermelondb";
+import React, { useEffect, useMemo, useState } from "react";
+import { Text, View } from "react-native";
+import {
+  CHART_PALETTE,
+  buildExpenseChartOption,
+  formatCOP,
+  type TopEntry,
+} from "./charts/echartsOptions";
+import EChartsWebView from "./charts/EChartsWebView";
 
 interface Props {
   expenseByCategory: Record<string, number>;
   loading: boolean;
   categoryMap?: Record<string, { name: string; icon: string }>;
-  typeTransaction: string
+  typeTransaction: string;
 }
 
-const COLORS = [
-  "bg-accent dark:bg-accent-dark",
-  "bg-income dark:bg-income-dark",
-  "bg-purple-500",
-  "bg-accent dark:bg-accent-dark",
-  "bg-expense dark:bg-expense-dark",
-  "bg-indigo-500",
-];
+const MAX_BARS = 6;
+const CHART_HEIGHT = 324;
 
-const formatCOP = (value: number) =>
-  `$${Number(value).toLocaleString("es-CO")}`;
+const ExpenseChart = ({ expenseByCategory, typeTransaction }: Props) => {
+  const { userId } = useAuthStore();
+  const { loading } = useFinanceData(userId || "");
 
-const ExpenseChart = ({
-  expenseByCategory, typeTransaction
-}: Props) => {
-  const entries = Object.entries(expenseByCategory).sort(
-    ([, a], [, b]) => b - a,
+  const [categoryMap, setCategoryMap] = useState<
+    Record<string, { name: string; icon: string }>
+  >({});
+
+  useEffect(() => {
+    const loadCategoryMap = async () => {
+      if (!userId) {
+        setCategoryMap({});
+        return;
+      }
+
+      try {
+        const catsCollection = database.get("categories");
+        const cats = await catsCollection
+          .query(Q.where("user_id", userId))
+          .fetch();
+
+        const map: Record<string, { name: string; icon: string }> = {};
+
+        cats.forEach((c: any) => {
+          map[c.id] = {
+            name: c.name,
+            icon: c.iconImage || "📁",
+          };
+        });
+
+        setCategoryMap(map);
+      } catch (error) {
+        console.error("❌ Error cargando categoryMap:", error);
+        setCategoryMap({});
+      }
+    };
+
+    loadCategoryMap();
+  }, [userId]);
+
+  const entries = useMemo(
+    () => Object.entries(expenseByCategory).sort(([, a], [, b]) => b - a),
+    [expenseByCategory],
   );
 
-  console.log("EXPENSE CHART",expenseByCategory)
-  const maxAmount = Math.max(...entries.map(([, v]) => v), 1);
+  const topEntries = useMemo<TopEntry[]>(
+    () =>
+      entries.slice(0, MAX_BARS).map(([id, value]) => ({
+        id,
+        name: categoryMap[id]?.name ?? "Otro",
+        value,
+      })),
+    [entries, categoryMap],
+  );
 
-    const { userId } = useAuthStore();
-    const { transactions, loading } = useFinanceData(userId || "");
-  
-    const [categoryMap, setCategoryMap] = useState<
-      Record<string, { name: string; icon: string }>
-    >({});
-    
-    useEffect(() => {
-      const loadCategoryMap = async () => {
-        if (!userId) {
-          setCategoryMap({});
-          return;
-        }
-  
-        try {
-          const catsCollection = database.get("categories");
-          const cats = await catsCollection
-            .query(Q.where("user_id", userId))
-            .fetch();
-  
-          const map: Record<string, { name: string; icon: string }> = {};
-  
-          cats.forEach((c: any) => {
-            map[c.id] = {
-              name: c.name,
-              icon: c.iconImage || "📁",
-            };
-          });
-  
-          setCategoryMap(map);
-        } catch (error) {
-          console.error("❌ Error cargando categoryMap:", error);
-          setCategoryMap({});
-        }
-      };
-  
-      loadCategoryMap();
-    }, [userId]);
-
+  const option = useMemo(
+    () => buildExpenseChartOption(topEntries, typeTransaction),
+    [topEntries, typeTransaction],
+  );
 
   if (loading) {
     return (
-      <View className="bg-panel dark:bg-panel-dark border border-black/10 dark:border-white/10 rounded-xl p-5 mb-5 shadow-sm">
-        <Text className="text-ink dark:text-ink-dark text-center py-4">Cargando...</Text>
+      <View className="bg-slate-900/60 border border-white/10 rounded-2xl p-4 mb-5">
+        <Text className="text-slate-300 text-center py-4">Cargando...</Text>
       </View>
     );
   }
 
-  if (entries.length === 0) {
+  if (topEntries.length === 0) {
     return (
-      <View className="bg-panel dark:bg-panel-dark border border-black/10 dark:border-white/10 rounded-xl p-5 mb-5 shadow-sm">
-        <Text className="font-bold text-base mb-2 text-ink dark:text-ink-dark">{`${typeTransaction} por categoría`}</Text>
-        <Text className="text-muted dark:text-muted-dark text-center py-4">
+      <View className="bg-slate-900/60 border border-white/10 rounded-2xl p-4 mb-5">
+        <Text className="font-bold text-base mb-2 text-slate-100">{`${typeTransaction} por categoría`}</Text>
+        <Text className="text-slate-400 text-center py-4">
           {`No hay ${typeTransaction} en este período`}
         </Text>
       </View>
@@ -95,35 +102,12 @@ const ExpenseChart = ({
   }
 
   return (
-    <View className="bg-panel dark:bg-panel-dark border border-black/10 dark:border-white/10 rounded-xl p-5 mb-5 shadow-sm">
-      <Text className="font-bold text-base mb-4 text-ink dark:text-ink-dark">{`${typeTransaction} por categoría`}</Text>
+    <View className="bg-slate-900/60 border border-white/10 rounded-2xl p-4 mb-5">
+      <Text className="font-bold text-base mb-2 text-slate-100">{`${typeTransaction} por categoría`}</Text>
 
-      <View className="flex-row items-end h-40 space-x-2 mb-4">
-        {entries.slice(0, 6).map(([categoryId, amount], index) => {
-          const heightPct = Math.round((amount / maxAmount) * 100);
-          return (
-            <ExpenseBar
-              key={categoryId}
-              color={COLORS[index % COLORS.length]}
-              heightPercentage={heightPct}
-              label={categoryMap[categoryId]?.name ?? "Otro"}
-            />
-          );
-        })}
-      </View>
+      <EChartsWebView option={option} height={CHART_HEIGHT} />
 
-      <View className="flex-row flex-wrap justify-between gap-y-2">
-        {entries.slice(0, 6).map(([categoryId, amount], index) => (
-          <View key={categoryId} className="flex-row items-center w-[48%]">
-            <View
-              className={`w-3 h-3 ${COLORS[index % COLORS.length]} rounded-full mr-2`}
-            />
-            <Text className="text-xs text-muted dark:text-muted-dark">
-              {categoryMap[categoryId]?.name ?? "Otro"}: {formatCOP(amount)}
-            </Text>
-          </View>
-        ))}
-      </View>
+
     </View>
   );
 };
