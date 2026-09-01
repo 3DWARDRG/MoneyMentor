@@ -1,6 +1,6 @@
+import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
 import { database } from "@/database";
 import { useAuthStore } from "@/store/useAuthStore";
-import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
 import { Q } from "@nozbe/watermelondb";
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
@@ -17,7 +17,7 @@ type TransactionItem = {
 };
 
 export default function TransactionsIndexScreen() {
-  const { userId } = useAuthStore();
+  const userId = useAuthStore((s) => s.userId);
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -97,7 +97,9 @@ export default function TransactionsIndexScreen() {
 
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <Text className="text-muted dark:text-muted-dark">Cargando transacciones...</Text>
+            <Text className="text-muted dark:text-muted-dark">
+              Cargando transacciones...
+            </Text>
           </View>
         ) : transactions.length === 0 ? (
           <View className="flex-1 items-center justify-center px-6">

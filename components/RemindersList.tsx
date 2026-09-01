@@ -2,17 +2,39 @@ import { database } from "@/database";
 import { Event } from "@/database/models/mlEvent";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Q } from "@nozbe/watermelondb";
-import { withObservables } from "@nozbe/watermelondb/react";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { FlatList, Text, View } from "react-native";
 import ReminderItem2 from "./ReminderItem2";
 
-// 1. Tu componente visual (queda exactamente igual)
-interface RemindersListProps {
-  events: Event[];
-}
+export default function RemindersList() {
+  const userId = useAuthStore((s) => s.userId);
+  const [events, setEvents] = useState<Event[]>([]);
 
-const RemindersList = ({ events }: RemindersListProps) => {
+  useEffect(() => {
+    if (!userId) {
+      setEvents([]);
+      return;
+    }
+
+    const subscription = database.collections
+      .get<Event>("events")
+      .query(
+        Q.where("user_id", userId),
+        Q.where("status", "pending"),
+        Q.sortBy("start_date", Q.asc),
+      )
+      .observe()
+      .subscribe({
+        next: (rows) => setEvents(rows),
+        error: (error) => {
+          console.error("❌ Error observando recordatorios:", error);
+          setEvents([]);
+        },
+      });
+
+    return () => subscription.unsubscribe();
+  }, [userId]);
+
   return (
     <View className="flex-1 w-full p-6">
       <FlatList
@@ -33,36 +55,4 @@ const RemindersList = ({ events }: RemindersListProps) => {
       />
     </View>
   );
-};
-
-// 2. EL HOC: Nota que ahora recibe "userId" en el arreglo de dependencias
-const enhance = withObservables(
-  ["userId"],
-  ({ userId }: { userId: string }) => ({
-    events: database.collections
-      .get<Event>("events")
-      .query(
-        Q.where("user_id", userId), // Ahora userId siempre tendrá un string real
-        Q.where("status", "pending"),
-        Q.sortBy("start_date", Q.asc),
-      )
-      .observe(),
-  }),
-);
-
-// Generamos el componente reactivo pero NO lo exportamos por defecto todavía
-const EnhancedRemindersList = enhance(RemindersList);
-
-// 3. EL WRAPPER: El puente correcto entre React/Zustand y WatermelonDB
-export default function RemindersListWrapper() {
-  // AQUÍ SÍ es legal llamar a tu hook
-  const { userId } = useAuthStore();
-
-  // Defensa en profundidad: Si por alguna razón no hay usuario, no intentamos hacer la query
-  if (!userId) {
-    return null; // O puedes retornar un <ActivityIndicator />
-  }
-
-  // Le pasamos el userId como propiedad (prop) para que withObservables lo lea
-  return <EnhancedRemindersList userId={userId} />;
 }

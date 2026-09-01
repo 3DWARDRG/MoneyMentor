@@ -71,6 +71,7 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: "money-mentor-user-settings", // El nombre del archivo interno donde AsyncStorage guardará esto
+      version:0,
       storage: createJSONStorage(() => AsyncStorage), // Le decimos a Zustand que use AsyncStorage en React Native
     },
   ),

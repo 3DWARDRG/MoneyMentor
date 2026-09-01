@@ -1,4 +1,6 @@
 import { Dropdown } from "@/components/Dropdown";
+import KeyboardAvoidingScrollView from "@/components/KeyboardAvoidingScrollView";
+import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
 import { database } from "@/database";
 import { Event } from "@/database/models/mlEvent";
 import { useConfirmLeave } from "@/hooks/useConfirmLeave";
@@ -14,7 +16,8 @@ import {
   EventRecurrenceT,
   eventRecurrenceOptionsES,
 } from "@/utils/translateDataDropdowns";
-import { useLocalSearchParams, useRouter , useNavigation  } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import { useColorScheme } from "nativewind";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -26,9 +29,6 @@ import {
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useColorScheme } from "nativewind";
-import KeyboardAvoidingScrollView from "@/components/KeyboardAvoidingScrollView";
-import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
 
 export default function CreateEventScreen() {
   const { colorScheme } = useColorScheme();
@@ -60,7 +60,7 @@ export default function CreateEventScreen() {
   };
 
   const router = useRouter();
-  const { userId } = useAuthStore();
+  const userId = useAuthStore((s) => s.userId);
   const { getUserPermissions } = useSettingsStore();
   const notificationsEnabled = getUserPermissions(
     userId ?? "",
@@ -72,7 +72,7 @@ export default function CreateEventScreen() {
   // El string que te da el calendario (ej. "2026-07-20")
   const [selectedDateStr, setSelectedDateStr] = useState("");
   const todayString = formatLocalDate(new Date());
-    const navigation = useNavigation();
+  const navigation = useNavigation();
 
   const { isDirty, resetBaseline } = useDirtyState([
     title,
@@ -192,8 +192,8 @@ export default function CreateEventScreen() {
   useEffect(() => {
     if (isEditing) {
       navigation.setOptions({
-      title: id ? "Editar recordatorio" : "Nuevo recordatorio",
-    });
+        title: id ? "Editar recordatorio" : "Nuevo recordatorio",
+      });
       const loadEvent = async () => {
         try {
           const record = await database.get<Event>("events").find(id);
@@ -223,13 +223,17 @@ export default function CreateEventScreen() {
   }, [id, isEditing, navigation, resetBaseline]);
 
   return (
-    <SafeAreaView className="flex-1 bg-deep dark:bg-deep-dark"       edges={["bottom", "left", "right"]} >
+    <SafeAreaView
+      className="flex-1 bg-deep dark:bg-deep-dark"
+      edges={["bottom", "left", "right"]}
+    >
       <ScreenBackdrop />
       <KeyboardAvoidingScrollView className="flex-1 p-4">
-
         {/* Inputs Básicos */}
         <View className="mb-4">
-          <Text className="text-sm text-muted dark:text-muted-dark mb-1">Título</Text>
+          <Text className="text-sm text-muted dark:text-muted-dark mb-1">
+            Título
+          </Text>
           <TextInput
             className="bg-deepSoft dark:bg-deepSoft-dark border border-black/10 dark:border-white/10 rounded-lg p-3 text-ink dark:text-ink-dark"
             placeholder="Ej. Tarjeta de Crédito"
@@ -240,7 +244,9 @@ export default function CreateEventScreen() {
         </View>
 
         <View className="mb-6">
-          <Text className="text-sm text-muted dark:text-muted-dark mb-1">Monto ($)</Text>
+          <Text className="text-sm text-muted dark:text-muted-dark mb-1">
+            Monto ($)
+          </Text>
           <TextInput
             className="bg-deepSoft dark:bg-deepSoft-dark border border-black/10 dark:border-white/10 rounded-lg p-3 text-ink dark:text-ink-dark"
             placeholder="50.000"
@@ -252,7 +258,9 @@ export default function CreateEventScreen() {
         </View>
 
         <View className=" z-50 flex justify-items-center">
-          <Text className="text-sm text-muted dark:text-muted-dark">Frecuencia:</Text>
+          <Text className="text-sm text-muted dark:text-muted-dark">
+            Frecuencia:
+          </Text>
 
           <Dropdown
             options={eventRecurrenceOptionsES}

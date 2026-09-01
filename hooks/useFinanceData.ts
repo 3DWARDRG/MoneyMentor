@@ -18,16 +18,6 @@ export const useFinanceData = (userId: string) => {
     expense: 0,
     balance: 0,
   });
-
-  useEffect(() => {
-    console.log("🔑 useFinanceData userId:", userId); // ← agregar esto
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-    // ...
-  }, [userId]);
-
   // ✅ useEffect siempre se ejecuta — el guard va ADENTRO
   useEffect(() => {
     if (!userId) {
@@ -46,10 +36,7 @@ export const useFinanceData = (userId: string) => {
           console.log("📡 observe emitió:", all.length, "transacciones");
 
           // Query SIN filtro para ver todos
-          database
-            .get<Transaction>("transactions")
-            .query()
-            .fetch()
+          database.get<Transaction>("transactions").query().fetch();
           const sorted = [...all].sort((a, b) => b.date - a.date);
           setTransactions(sorted);
 

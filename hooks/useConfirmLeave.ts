@@ -2,6 +2,7 @@ import { useNavigation } from "@react-navigation/native";
 import { router } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
 import { Alert } from "react-native";
+import { useOverlayStore } from "@/store/useOverlayStore";
 
 interface UseConfirmLeaveOptions {
   enabled: boolean;
@@ -10,6 +11,8 @@ interface UseConfirmLeaveOptions {
   cancelLabel?: string;
   confirmLabel?: string;
   onDiscard?: () => void;
+  /** "native" usa Alert.alert del sistema; "custom" usa el AlertDialog global. */
+  variant?: "native" | "custom";
 }
 
 export function useConfirmLeave({
@@ -19,6 +22,7 @@ export function useConfirmLeave({
   cancelLabel = "Conservar",
   confirmLabel = "Descartar",
   onDiscard,
+  variant = "native",
 }: UseConfirmLeaveOptions) {
   const navigation = useNavigation();
 
@@ -29,8 +33,9 @@ export function useConfirmLeave({
     cancelLabel,
     confirmLabel,
     onDiscard,
+    variant,
   });
-  optionsRef.current = { enabled, title, message, cancelLabel, confirmLabel, onDiscard };
+  optionsRef.current = { enabled, title, message, cancelLabel, confirmLabel, onDiscard, variant };
 
   const allowLeaveRef = useRef(false);
   const alertOpenRef = useRef(false);
@@ -57,6 +62,32 @@ export function useConfirmLeave({
 
       alertOpenRef.current = true;
 
+      const discard = () => {
+        alertOpenRef.current = false;
+        opts.onDiscard?.();
+        allowLeaveRef.current = true;
+        requestAnimationFrame(() => {
+          router.back();
+        });
+      };
+
+      if (opts.variant === "custom") {
+        useOverlayStore.getState().showAlert({
+          type: "confirm",
+          title: opts.title,
+          message: opts.message,
+          cancelLabel: opts.cancelLabel,
+          confirmLabel: opts.confirmLabel,
+          danger: true,
+          cancelable: false,
+          onCancel: () => {
+            alertOpenRef.current = false;
+          },
+          onConfirm: discard,
+        });
+        return;
+      }
+
       Alert.alert(
         opts.title,
         opts.message,
@@ -71,14 +102,7 @@ export function useConfirmLeave({
           {
             text: opts.confirmLabel,
             style: "destructive",
-            onPress: () => {
-              alertOpenRef.current = false;
-              opts.onDiscard?.();
-              allowLeaveRef.current = true;
-              requestAnimationFrame(() => {
-                router.back();
-              });
-            },
+            onPress: discard,
           },
         ],
         { cancelable: false },

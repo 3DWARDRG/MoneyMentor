@@ -1,27 +1,27 @@
+import DateRangePicker from "@/components/DateRangePicker";
+import { Dropdown, DropdownOption } from "@/components/Dropdown";
 import ExpenseChart from "@/components/ExpenseChart";
 import IncomeVsExpense from "@/components/IncomeVsExpense";
 import MonthlyOverview from "@/components/MonthlyOverview";
-import DateRangePicker from "@/components/DateRangePicker";
 import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
-import { Dropdown, DropdownOption } from "@/components/Dropdown";
 import { database } from "@/database";
 import {
-  useStatisticsData,
   getDateRange,
+  useStatisticsData,
   type Period,
   type TypeTransactions,
 } from "@/hooks/useStatisticsData";
 import { useAuthStore } from "@/store/useAuthStore";
+import {
+  periodOptions,
+  TRANSACTIONS_ES,
+  transactionsTypesES,
+} from "@/utils/translateDataDropdowns";
 import { Q } from "@nozbe/watermelondb";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import {
-  transactionsTypesES,
-  periodOptions,
-  TRANSACTIONS_ES,
-} from "@/utils/translateDataDropdowns";
 
 interface CategoryOption {
   id: string;
@@ -41,7 +41,7 @@ const formatRange = (start: number, end: number) => {
 };
 
 export default function Statistics() {
-  const { userId } = useAuthStore();
+  const userId = useAuthStore((s) => s.userId);
   const [period, setPeriod] = useState<Period>("Mensual");
   const [customRange, setCustomRange] = useState<{
     start: number;

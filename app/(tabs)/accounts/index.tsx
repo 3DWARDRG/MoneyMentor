@@ -2,12 +2,12 @@
 import CardBackdrop from "@/components/ui/CardBackdrop";
 import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
 import FloatingActionButton from "@/components/FloatingActionButton";
-import { useAccounts } from "@/hooks/useAccounts";
+import { useFinanceCacheStore } from "@/store/useFinanceCacheStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { useCallback } from "react";
+
 import {
     ActivityIndicator,
     FlatList,
@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import PremiumIcon from "@/components/ui/PremiumIcon";
+import { useShallow } from "zustand/react/shallow";
 
 const CREDIT_SUBTYPE_LABELS: Record<string, string> = {
   credit_card: "Tarjeta de crédito",
@@ -27,17 +28,20 @@ const CREDIT_SUBTYPE_LABELS: Record<string, string> = {
 
 export default function AccountsScreen() {
   const userId = useAuthStore((s) => s.userId);
-  const { accounts, loading, summary, refreshAccounts } = useAccounts(
-    userId ?? "",
-  );
-  const router = useRouter();
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!userId) return;
-      refreshAccounts?.();
-    }, [userId, refreshAccounts]),
-  );
+const {
+    accounts,
+    loading,
+    summary,
+  } = useFinanceCacheStore(
+    useShallow((s) => ({
+      accounts: s.accounts,
+      loading: s.loading,
+      summary: s.summary,
+    })));
+
+
+  const router = useRouter();
 
   const formatMoney = (value: number | null | undefined, currency = "COP") => {
     return new Intl.NumberFormat("es-CO", {

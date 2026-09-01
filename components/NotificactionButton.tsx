@@ -8,7 +8,8 @@ import { Alert, Linking, Switch, Text, View } from "react-native";
 export const NotificationButton = ({ userId }: { userId: string }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   // 1. Extrae las acciones de tu Zustand store usando el hook
-  const { setPermission, getUserPermissions } = useSettingsStore();
+  const getUserPermissions  = useSettingsStore((s) => s.getUserPermissions);
+  const setPermission = useSettingsStore((s) => s.setPermission)
 
   // 2. Obtén los permisos actuales para este usuario
   const userSettings = getUserPermissions(userId);

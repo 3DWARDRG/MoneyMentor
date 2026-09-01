@@ -1,10 +1,11 @@
+import PremiumIcon from "@/components/ui/PremiumIcon";
 import { database } from "@/database";
 import { Account } from "@/database/models/mlAccount";
 import { FinancialGoal } from "@/database/models/mlFinancialGoal";
-import { withObservables } from "@nozbe/watermelondb/react";
 import { createGoalContribution } from "@/services/goalHelpers";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Q } from "@nozbe/watermelondb";
+import { withObservables } from "@nozbe/watermelondb/react";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import React, { useCallback, useLayoutEffect, useState } from "react";
 import {
@@ -18,7 +19,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import PremiumIcon from "@/components/ui/PremiumIcon";
 
 interface GoalDetailProps {
   goal: FinancialGoal;
@@ -41,7 +41,7 @@ const formatDate = (timestamp: number) => {
 
 const GoalDetailScreen = ({ goal }: GoalDetailProps) => {
   const navigation = useNavigation();
-  const { userId } = useAuthStore();
+  const userId = useAuthStore((s) => s.userId);
 
   const savedAmount = goal.savedAmount ?? 0;
   const computedProgress = Math.min(
@@ -86,9 +86,7 @@ const GoalDetailScreen = ({ goal }: GoalDetailProps) => {
 
     try {
       const accCollection = database.get<Account>("accounts");
-      const all = await accCollection
-        .query(Q.where("user_id", userId))
-        .fetch();
+      const all = await accCollection.query(Q.where("user_id", userId)).fetch();
       const active = all
         .filter((acc) => acc.isActive !== false)
         .sort((a, b) => a.name.localeCompare(b.name));
@@ -143,12 +141,16 @@ const GoalDetailScreen = ({ goal }: GoalDetailProps) => {
     navigation.setOptions({
       headerLeft: () => (
         <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
-          <Text className="text-accent dark:text-accent-dark font-medium">Cerrar</Text>
+          <Text className="text-accent dark:text-accent-dark font-medium">
+            Cerrar
+          </Text>
         </TouchableOpacity>
       ),
       headerRight: () => (
         <TouchableOpacity onPress={handleEdit} hitSlop={8}>
-          <Text className="text-accent dark:text-accent-dark font-medium">Editar</Text>
+          <Text className="text-accent dark:text-accent-dark font-medium">
+            Editar
+          </Text>
         </TouchableOpacity>
       ),
     });
@@ -185,14 +187,18 @@ const GoalDetailScreen = ({ goal }: GoalDetailProps) => {
       <ScrollView className="flex-1 p-5">
         <View className="gap-4">
           <View className="p-4 rounded-xl bg-panel dark:bg-panel-dark border border-black/10 dark:border-white/10">
-            <Text className="text-xs text-muted dark:text-muted-dark">Título</Text>
+            <Text className="text-xs text-muted dark:text-muted-dark">
+              Título
+            </Text>
             <Text className="text-base font-semibold text-ink dark:text-ink-dark capitalize">
               {goal.title || "Sin título"}
             </Text>
           </View>
 
           <View className="p-4 rounded-xl bg-panel dark:bg-panel-dark border border-black/10 dark:border-white/10">
-            <Text className="text-xs text-muted dark:text-muted-dark">Progreso</Text>
+            <Text className="text-xs text-muted dark:text-muted-dark">
+              Progreso
+            </Text>
             <Text className="text-base font-semibold text-ink dark:text-ink-dark mb-2">
               {progress}%
             </Text>
@@ -205,28 +211,36 @@ const GoalDetailScreen = ({ goal }: GoalDetailProps) => {
           </View>
 
           <View className="p-4 rounded-xl bg-panel dark:bg-panel-dark border border-black/10 dark:border-white/10">
-            <Text className="text-xs text-muted dark:text-muted-dark">Ahorrado</Text>
+            <Text className="text-xs text-muted dark:text-muted-dark">
+              Ahorrado
+            </Text>
             <Text className="text-base font-semibold text-income dark:text-income-dark">
               {formatCOP(savedAmount)}
             </Text>
           </View>
 
           <View className="p-4 rounded-xl bg-panel dark:bg-panel-dark border border-black/10 dark:border-white/10">
-            <Text className="text-xs text-muted dark:text-muted-dark">Monto objetivo</Text>
+            <Text className="text-xs text-muted dark:text-muted-dark">
+              Monto objetivo
+            </Text>
             <Text className="text-base font-semibold text-ink dark:text-ink-dark">
               {formatCOP(goal.amount ?? 0)}
             </Text>
           </View>
 
           <View className="p-4 rounded-xl bg-panel dark:bg-panel-dark border border-black/10 dark:border-white/10">
-            <Text className="text-xs text-muted dark:text-muted-dark">Fecha límite</Text>
+            <Text className="text-xs text-muted dark:text-muted-dark">
+              Fecha límite
+            </Text>
             <Text className="text-base font-semibold text-ink dark:text-ink-dark">
               {formatDate(goal.deadline)}
             </Text>
           </View>
 
           <View className="p-4 rounded-xl bg-panel dark:bg-panel-dark border border-black/10 dark:border-white/10">
-            <Text className="text-xs text-muted dark:text-muted-dark">Descripción</Text>
+            <Text className="text-xs text-muted dark:text-muted-dark">
+              Descripción
+            </Text>
             <Text className="text-base font-semibold text-ink dark:text-ink-dark">
               {goal.description || "Sin descripción"}
             </Text>
@@ -261,14 +275,18 @@ const GoalDetailScreen = ({ goal }: GoalDetailProps) => {
         onRequestClose={() => setContributionVisible(false)}
       >
         <View className="flex-1 justify-end bg-black/70">
-            <View
-              className="bg-panel dark:bg-panel-dark border-t border-black/10 dark:border-white/10 rounded-t-3xl p-5"
-              style={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight : 20 }}
-            >
+          <View
+            className="bg-panel dark:bg-panel-dark border-t border-black/10 dark:border-white/10 rounded-t-3xl p-5"
+            style={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight : 20 }}
+          >
             <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-xl font-bold text-ink dark:text-ink-dark">Aportar a la meta</Text>
+              <Text className="text-xl font-bold text-ink dark:text-ink-dark">
+                Aportar a la meta
+              </Text>
               <TouchableOpacity onPress={() => setContributionVisible(false)}>
-                <Text className="text-accent dark:text-accent-dark font-medium">Cancelar</Text>
+                <Text className="text-accent dark:text-accent-dark font-medium">
+                  Cancelar
+                </Text>
               </TouchableOpacity>
             </View>
 
@@ -320,7 +338,11 @@ const GoalDetailScreen = ({ goal }: GoalDetailProps) => {
                         }`}
                         style={{ minWidth: 150 }}
                       >
-                        <PremiumIcon token={account.iconImage} size={32} fallback="🏦" />
+                        <PremiumIcon
+                          token={account.iconImage}
+                          size={32}
+                          fallback="🏦"
+                        />
                         <Text
                           numberOfLines={1}
                           className={`font-semibold ${isSelected ? "text-accent dark:text-accent-dark" : "text-ink dark:text-ink-dark"}`}

@@ -1,14 +1,19 @@
+import KeyboardAvoidingScrollView from "@/components/KeyboardAvoidingScrollView";
+import PremiumIcon from "@/components/ui/PremiumIcon";
+import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
 import { database } from "@/database";
 import { Transaction } from "@/database/models/mlTransaction"; // <-- 1. Importar el modelo
+import { useConfirmLeave } from "@/hooks/useConfirmLeave";
+import { useDirtyState } from "@/hooks/useDirtyState";
 import {
   createTransactionRecord,
   updateTransactionRecord, // <-- 2. Importar la función de actualización
 } from "@/services/transactionBalanceHelpers";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useFinanceCacheStore } from "@/store/useFinanceCacheStore";
-import { useConfirmLeave } from "@/hooks/useConfirmLeave";
-import { useDirtyState } from "@/hooks/useDirtyState";
+import { hideLoading, showAlert, showLoading } from "@/store/useOverlayStore";
 import { router, useLocalSearchParams } from "expo-router";
+import { useColorScheme } from "nativewind";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -21,10 +26,7 @@ import {
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useColorScheme } from "nativewind";
-import KeyboardAvoidingScrollView from "@/components/KeyboardAvoidingScrollView";
-import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
-import PremiumIcon from "@/components/ui/PremiumIcon";
+import { useShallow } from "zustand/react/shallow";
 
 type TxType = "income" | "expense" | "transfer";
 type TransferTarget = "own" | "person" | "bank";
@@ -58,7 +60,7 @@ export default function AddTransactionScreen() {
     return new Date(year, month - 1, day, 12, 0, 0, 0).getTime();
   };
 
-  const { userId } = useAuthStore();
+  const userId = useAuthStore((s) => s.userId);
   const todayString = formatLocalDate(new Date());
 
   const [selectedDate, setSelectedDate] = useState(formatLocalDate(new Date()));
@@ -68,10 +70,22 @@ export default function AddTransactionScreen() {
   const [loading, setLoading] = useState(false);
   const [calendarReady, setCalendarReady] = useState(false);
 
-  const accounts = useFinanceCacheStore((s) => s.accounts);
-  const categories = useFinanceCacheStore((s) => s.categories);
-  const cacheLoading = useFinanceCacheStore((s) => s.loading);
+  const { rawAccounts, categories, cacheLoading } = useFinanceCacheStore(
+    useShallow((s) => ({
+      rawAccounts: s.accounts,
+      categories: s.categories,
+      cacheLoading: s.loading,
+    })),
+  );
+
+  // 2. Las funciones siempre se extraen por separado (no cambian, no necesitan shallow)
   const loadFinanceCache = useFinanceCacheStore((s) => s.load);
+
+  // 3. Memorizamos el filtro y le ponemos el nombre exacto 'accounts'.
+  // Así no tienes que tocar ni una sola línea del resto de tu componente.
+  const accounts = useMemo(() => {
+    return rawAccounts.filter((a) => a.isActive !== false);
+  }, [rawAccounts]);
 
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
     null,
@@ -136,6 +150,7 @@ export default function AddTransactionScreen() {
       ? "Si sales ahora, los cambios de la transacción no se guardarán."
       : "Si sales ahora, la transacción no se guardará.",
     onDiscard: resetForm,
+    variant: "custom",
   });
 
   // 4. Cargar datos iniciales SI es edición
@@ -218,7 +233,10 @@ export default function AddTransactionScreen() {
       if (prev && accounts.some((acc) => acc.id === prev)) {
         return prev;
       }
-      if (presetAccountId && accounts.some((acc) => acc.id === presetAccountId)) {
+      if (
+        presetAccountId &&
+        accounts.some((acc) => acc.id === presetAccountId)
+      ) {
         return presetAccountId;
       }
       return accounts[0].id;
@@ -349,6 +367,7 @@ export default function AddTransactionScreen() {
     const dateTimestamp = localDateStringToTimestamp(selectedDate);
 
     setLoading(true);
+    showLoading(isEditing ? "Guardando cambios…" : "Guardando transacción…");
 
     try {
       if (isEditing && id) {
@@ -393,14 +412,29 @@ export default function AddTransactionScreen() {
         });
       }
 
+      hideLoading();
+      setLoading(false);
+
       resetForm();
       allowLeave();
       router.replace("/transactions/new");
+
+      showAlert({
+        type: "success",
+        title: isEditing ? "Cambios guardados" : "Transacción creada",
+        message: isEditing
+          ? "La transacción se actualizó correctamente."
+          : "Tu transacción se guardó correctamente.",
+      });
     } catch (error: any) {
       console.error("Save error:", error);
-      Alert.alert("Error", error.message || "No se pudo guardar");
-    } finally {
+      hideLoading();
       setLoading(false);
+      showAlert({
+        type: "error",
+        title: "No se pudo guardar",
+        message: error?.message || "Ocurrió un error inesperado.",
+      });
     }
   };
 
@@ -409,12 +443,17 @@ export default function AddTransactionScreen() {
   const categoriesLoading = cacheLoading && categories.length === 0;
 
   return (
-    <SafeAreaView className="flex-1 bg-deep dark:bg-deep-dark" edges={["bottom", "left", "right"]}>
+    <SafeAreaView
+      className="flex-1 bg-deep dark:bg-deep-dark"
+      edges={["bottom", "left", "right"]}
+    >
       <ScreenBackdrop />
       <KeyboardAvoidingScrollView className="flex-1 px-5 mt-4">
         {/* Tipo */}
         <View className="mb-4">
-          <Text className="text-sm font-medium text-ink dark:text-ink-dark mb-2">Tipo</Text>
+          <Text className="text-sm font-medium text-ink dark:text-ink-dark mb-2">
+            Tipo
+          </Text>
           <View className="flex-row gap-3">
             {(["income", "expense", "transfer"] as TxType[]).map((type) => {
               const labels: Record<TxType, string> = {
@@ -423,9 +462,12 @@ export default function AddTransactionScreen() {
                 transfer: "Transferencia",
               };
               const activeColors: Record<TxType, string> = {
-                income: "border-income dark:border-income-dark bg-income/10 dark:bg-income-dark/10",
-                expense: "border-expense dark:border-expense-dark bg-expense/10 dark:bg-expense-dark/10",
-                transfer: "border-accent dark:border-accent-dark bg-accent/10 dark:bg-accent-dark/10",
+                income:
+                  "border-income dark:border-income-dark bg-income/10 dark:bg-income-dark/10",
+                expense:
+                  "border-expense dark:border-expense-dark bg-expense/10 dark:bg-expense-dark/10",
+                transfer:
+                  "border-accent dark:border-accent-dark bg-accent/10 dark:bg-accent-dark/10",
               };
 
               return (
@@ -459,7 +501,9 @@ export default function AddTransactionScreen() {
 
         {/* Monto */}
         <View className="mb-4">
-          <Text className="text-sm font-medium text-ink dark:text-ink-dark mb-2">Monto *</Text>
+          <Text className="text-sm font-medium text-ink dark:text-ink-dark mb-2">
+            Monto *
+          </Text>
           <View className="relative">
             <Text className="absolute left-3 top-3 text-muted dark:text-muted-dark text-lg">
               $
@@ -508,7 +552,11 @@ export default function AddTransactionScreen() {
                     }`}
                     style={{ minWidth: 150 }}
                   >
-                    <PremiumIcon token={account.iconImage} size={32} fallback="🏦" />
+                    <PremiumIcon
+                      token={account.iconImage}
+                      size={32}
+                      fallback="🏦"
+                    />
                     <Text
                       numberOfLines={1}
                       className={`font-semibold ${isSelected ? "text-accent dark:text-accent-dark" : "text-ink dark:text-ink-dark"}`}
@@ -578,7 +626,11 @@ export default function AddTransactionScreen() {
                           }`}
                           style={{ minWidth: 150 }}
                         >
-                          <PremiumIcon token={account.iconImage} size={32} fallback="🏦" />
+                          <PremiumIcon
+                            token={account.iconImage}
+                            size={32}
+                            fallback="🏦"
+                          />
                           <Text
                             numberOfLines={1}
                             className={`font-semibold ${isSelected ? "text-accent dark:text-accent-dark" : "text-ink dark:text-ink-dark"}`}
@@ -622,7 +674,9 @@ export default function AddTransactionScreen() {
                   : "border-black/10 dark:border-white/10"
               }`}
             >
-              <Text className="font-medium text-ink dark:text-ink-dark">Es un cobro financiero</Text>
+              <Text className="font-medium text-ink dark:text-ink-dark">
+                Es un cobro financiero
+              </Text>
               <Text className="text-xs text-muted dark:text-muted-dark mt-1">
                 Úsalo para cuota de manejo, anualidad, mora, cajero, etc.
               </Text>
@@ -658,7 +712,9 @@ export default function AddTransactionScreen() {
                 >
                   <Text
                     className={
-                      feeType === item.value ? "text-accent dark:text-accent-dark" : "text-muted dark:text-muted-dark"
+                      feeType === item.value
+                        ? "text-accent dark:text-accent-dark"
+                        : "text-muted dark:text-muted-dark"
                     }
                   >
                     {item.label}
@@ -700,7 +756,11 @@ export default function AddTransactionScreen() {
                     }`}
                     style={{ minWidth: 70 }}
                   >
-                    <PremiumIcon token={cat.iconImage} size={28} fallback="📁" />
+                    <PremiumIcon
+                      token={cat.iconImage}
+                      size={28}
+                      fallback="📁"
+                    />
                     <Text
                       className={`text-xs mt-1 ${selectedCategoryId === cat.id ? "text-white" : "text-muted dark:text-muted-dark"}`}
                     >
@@ -721,7 +781,9 @@ export default function AddTransactionScreen() {
             </Text>
             <View className="flex-row gap-3">
               <View className="flex-1">
-                <Text className="text-xs text-muted dark:text-muted-dark mb-1">Totales</Text>
+                <Text className="text-xs text-muted dark:text-muted-dark mb-1">
+                  Totales
+                </Text>
                 <TextInput
                   className="px-4 py-3 border border-black/10 dark:border-white/10 bg-deepSoft dark:bg-deepSoft-dark rounded-lg text-ink dark:text-ink-dark"
                   keyboardType="numeric"
@@ -735,7 +797,9 @@ export default function AddTransactionScreen() {
                 />
               </View>
               <View className="flex-1">
-                <Text className="text-xs text-muted dark:text-muted-dark mb-1">Pagadas</Text>
+                <Text className="text-xs text-muted dark:text-muted-dark mb-1">
+                  Pagadas
+                </Text>
                 <TextInput
                   className="px-4 py-3 border border-black/10 dark:border-white/10 bg-deepSoft dark:bg-deepSoft-dark rounded-lg text-ink dark:text-ink-dark"
                   keyboardType="numeric"
@@ -759,34 +823,36 @@ export default function AddTransactionScreen() {
 
         {/* Fecha */}
         <View className="mb-4">
-          <Text className="text-sm font-medium text-muted dark:text-muted-dark mb-2">Fecha</Text>
+          <Text className="text-sm font-medium text-muted dark:text-muted-dark mb-2">
+            Fecha
+          </Text>
           {calendarReady ? (
-          <Calendar
-            onDayPress={(day: any) => setSelectedDate(day.dateString)}
-            maxDate={todayString}
-            markedDates={{
-              [selectedDate]: { selected: true, selectedColor: "#4b9aff" },
-            }}
-            current={selectedDate}
-            style={{
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: isDark ? "rgba(255,255,255,0.1)" : "#e7e2d8",
-              backgroundColor: isDark ? "#0a1220" : "#ffffff",
-              marginBottom: 10,
-            }}
-            theme={{
-              calendarBackground: isDark ? "#0a1220" : "#ffffff",
-              textSectionTitleColor: isDark ? "#97a4bb" : "#7a7266",
-              selectedDayBackgroundColor: "#4b9aff",
-              selectedDayTextColor: "#ffffff",
-              todayTextColor: "#4b9aff",
-              dayTextColor: isDark ? "#f6f8ff" : "#1c1917",
-              monthTextColor: isDark ? "#f6f8ff" : "#1c1917",
-              arrowColor: "#4b9aff",
-              textDisabledColor: isDark ? "#3a4a63" : "#d0cbbf",
-            }}
-          />
+            <Calendar
+              onDayPress={(day: any) => setSelectedDate(day.dateString)}
+              maxDate={todayString}
+              markedDates={{
+                [selectedDate]: { selected: true, selectedColor: "#4b9aff" },
+              }}
+              current={selectedDate}
+              style={{
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: isDark ? "rgba(255,255,255,0.1)" : "#e7e2d8",
+                backgroundColor: isDark ? "#0a1220" : "#ffffff",
+                marginBottom: 10,
+              }}
+              theme={{
+                calendarBackground: isDark ? "#0a1220" : "#ffffff",
+                textSectionTitleColor: isDark ? "#97a4bb" : "#7a7266",
+                selectedDayBackgroundColor: "#4b9aff",
+                selectedDayTextColor: "#ffffff",
+                todayTextColor: "#4b9aff",
+                dayTextColor: isDark ? "#f6f8ff" : "#1c1917",
+                monthTextColor: isDark ? "#f6f8ff" : "#1c1917",
+                arrowColor: "#4b9aff",
+                textDisabledColor: isDark ? "#3a4a63" : "#d0cbbf",
+              }}
+            />
           ) : (
             <TouchableOpacity
               onPress={() => setCalendarReady(true)}

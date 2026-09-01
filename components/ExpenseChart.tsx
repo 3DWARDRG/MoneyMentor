@@ -5,10 +5,8 @@ import { Q } from "@nozbe/watermelondb";
 import React, { useEffect, useMemo, useState } from "react";
 import { Text, View } from "react-native";
 import {
-  CHART_PALETTE,
   buildExpenseChartOption,
-  formatCOP,
-  type TopEntry,
+  type TopEntry
 } from "./charts/echartsOptions";
 import EChartsWebView from "./charts/EChartsWebView";
 
@@ -23,7 +21,7 @@ const MAX_BARS = 6;
 const CHART_HEIGHT = 324;
 
 const ExpenseChart = ({ expenseByCategory, typeTransaction }: Props) => {
-  const { userId } = useAuthStore();
+  const userId = useAuthStore((s) => s.userId);
   const { loading } = useFinanceData(userId || "");
 
   const [categoryMap, setCategoryMap] = useState<
@@ -106,8 +104,6 @@ const ExpenseChart = ({ expenseByCategory, typeTransaction }: Props) => {
       <Text className="font-bold text-base mb-2 text-slate-100">{`${typeTransaction} por categoría`}</Text>
 
       <EChartsWebView option={option} height={CHART_HEIGHT} />
-
-
     </View>
   );
 };

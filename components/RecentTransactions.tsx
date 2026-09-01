@@ -15,7 +15,7 @@ import TransactionItem from "../components/TransactionsItem";
 import CardBackdrop from "./ui/CardBackdrop";
 
 const RecentTransactions = ({ accountId }: { accountId?: string | null }) => {
-  const { userId } = useAuthStore();
+  const userId = useAuthStore((s) => s.userId);
   const { transactions, loading } = useFinanceData(userId || "");
 
   const [categoryMap, setCategoryMap] = useState<
@@ -90,7 +90,13 @@ const RecentTransactions = ({ accountId }: { accountId?: string | null }) => {
 
   return (
     <View className="mb-4 rounded-3xl overflow-hidden border border-black/10 dark:border-white/15">
-      <CardBackdrop glowColor="#1d7df0" glowOpacity={0.12} glowSize={200} glowTop={-80} glowRight={-60} />
+      <CardBackdrop
+        glowColor="#1d7df0"
+        glowOpacity={0.12}
+        glowSize={200}
+        glowTop={-80}
+        glowRight={-60}
+      />
       <View className="p-3">
         <View className="flex-row justify-between items-center mb-1">
           <Text className="font-bold text-base text-ink dark:text-ink-dark">
@@ -98,7 +104,9 @@ const RecentTransactions = ({ accountId }: { accountId?: string | null }) => {
           </Text>
 
           <TouchableOpacity onPress={() => router.push("/(tabs)/transactions")}>
-            <Text className="text-accent dark:text-accent-dark font-medium text-sm">Ver todas</Text>
+            <Text className="text-accent dark:text-accent-dark font-medium text-sm">
+              Ver todas
+            </Text>
           </TouchableOpacity>
         </View>
 

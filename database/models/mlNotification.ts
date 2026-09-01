@@ -6,7 +6,7 @@ export class Notification extends Model {
 
   static associations = {
     users: { type: "belongs_to", key: "user_id" },
-    Event: { type: "belongs_to", key: "event_id" },
+    events: { type: "belongs_to", key: "event_id" },
     financial_goals: { type: "belongs_to", key: "goal_id" },
   } as const;
 
@@ -21,6 +21,6 @@ export class Notification extends Model {
   @field("expo_notification_id") expoNotificationId!: string;
 
   @relation("users", "user_id") user: any;
-  @relation("event", "event_id") event: any;
+  @relation("events", "event_id") event: any;
   @relation("financial_goals", "goal_id") goal: any;
 }

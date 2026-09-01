@@ -68,7 +68,7 @@ const KeyboardAvoidingScrollView = forwardRef<ScrollView, ScrollViewProps>(
     return (
       <KeyboardAvoidingView
         onLayout={measureOffset}
-        className="flex-1 bg-red-700"
+        className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? verticalOffset : 0}
       >

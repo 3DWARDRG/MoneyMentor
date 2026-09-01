@@ -97,7 +97,12 @@ export default function ImportVerificationModal({
 
   // Categorías desde el caché de finanzas (fuente única, observado en vivo).
   const categories = useFinanceCacheStore((s) => s.categories);
-  const financeAccounts = useFinanceCacheStore((s) => s.accounts);
+const accountsF = useFinanceCacheStore((s) => s.accounts);
+const financeAccounts = useMemo(
+  () => accountsF.filter((a) => a.isActive !== false), 
+  [accountsF]
+);
+
   const loadFinanceCache = useFinanceCacheStore((s) => s.load);
 
   const [amountDrafts, setAmountDrafts] = useState<Record<string, string>>({});

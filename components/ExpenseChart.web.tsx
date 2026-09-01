@@ -1,17 +1,17 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Text, View } from "react-native";
-import ReactECharts from "echarts-for-react/lib/core";
 import { database } from "@/database";
 import { useFinanceData } from "@/hooks/useFinanceData";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Q } from "@nozbe/watermelondb";
-import { echarts } from "./echarts.web";
+import ReactECharts from "echarts-for-react/lib/core";
+import React, { useEffect, useMemo, useState } from "react";
+import { Text, View } from "react-native";
 import {
   CHART_PALETTE,
   buildExpenseChartOption,
   formatCOP,
   type TopEntry,
 } from "./charts/echartsOptions";
+import { echarts } from "./echarts.web";
 
 interface Props {
   expenseByCategory: Record<string, number>;
@@ -23,7 +23,7 @@ interface Props {
 const MAX_BARS = 6;
 
 const ExpenseChart = ({ expenseByCategory, typeTransaction }: Props) => {
-  const { userId } = useAuthStore();
+  const userId = useAuthStore((s) => s.userId);
   const { loading } = useFinanceData(userId || "");
 
   const [categoryMap, setCategoryMap] = useState<
@@ -120,8 +120,7 @@ const ExpenseChart = ({ expenseByCategory, typeTransaction }: Props) => {
             <View
               className="w-3 h-3 rounded-full mr-2"
               style={{
-                backgroundColor:
-                  CHART_PALETTE[index % CHART_PALETTE.length],
+                backgroundColor: CHART_PALETTE[index % CHART_PALETTE.length],
               }}
             />
             <Text className="text-xs text-slate-300">

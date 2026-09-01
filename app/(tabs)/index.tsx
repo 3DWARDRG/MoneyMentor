@@ -38,7 +38,7 @@ const SPRING_CONFIG = {
 };
 
 export default function Index() {
-  const { userId } = useAuthStore();
+  const  userId  = useAuthStore((s) => s.userId);
   const [userName, setUserName] = useState("Usuario");
   const [containerHeight, setContainerHeight] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);

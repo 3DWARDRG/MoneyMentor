@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
 export default function DebugDB({ onRefresh }: { onRefresh?: () => void }) {
-  const { userId } = useAuthStore();
+  const userId = useAuthStore((s) => s.userId);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -54,7 +54,9 @@ export default function DebugDB({ onRefresh }: { onRefresh?: () => void }) {
   return (
     <View className="p-2 bg-panel dark:bg-panel-dark mb-4 border border-black/10 dark:border-white/10 rounded-lg">
       <View className="flex-row justify-between items-center mb-2">
-        <Text className="font-bold text-lg text-ink dark:text-ink-dark">🔍 Debug DB</Text>
+        <Text className="font-bold text-lg text-ink dark:text-ink-dark">
+          🔍 Debug DB
+        </Text>
         <TouchableOpacity
           onPress={handleManualRefresh}
           className="bg-accent dark:bg-accent-dark px-4 py-1 rounded-full"
@@ -65,7 +67,9 @@ export default function DebugDB({ onRefresh }: { onRefresh?: () => void }) {
         </TouchableOpacity>
       </View>
 
-      <Text className="text-sm text-muted dark:text-muted-dark">Usuario ID: {userId}</Text>
+      <Text className="text-sm text-muted dark:text-muted-dark">
+        Usuario ID: {userId}
+      </Text>
       <Text className="text-sm text-muted dark:text-muted-dark">
         Refresh manual: {refreshCount}
       </Text>
@@ -78,10 +82,15 @@ export default function DebugDB({ onRefresh }: { onRefresh?: () => void }) {
         📊 Transacciones ({transactions.length})
       </Text>
       {transactions.length === 0 && (
-        <Text className="text-muted dark:text-muted-dark">No hay transacciones</Text>
+        <Text className="text-muted dark:text-muted-dark">
+          No hay transacciones
+        </Text>
       )}
       {transactions.map((tx) => (
-        <View key={tx.id} className="bg-deepSoft dark:bg-deepSoft-dark p-2 mb-1 rounded border border-black/10 dark:border-white/10">
+        <View
+          key={tx.id}
+          className="bg-deepSoft dark:bg-deepSoft-dark p-2 mb-1 rounded border border-black/10 dark:border-white/10"
+        >
           <Text className="text-ink dark:text-ink-dark">
             💰 {tx.description} - ${tx.amount} ({tx.type})
           </Text>
@@ -95,7 +104,10 @@ export default function DebugDB({ onRefresh }: { onRefresh?: () => void }) {
         📂 Categorías ({categories.length})
       </Text>
       {categories.slice(0, 5).map((cat) => (
-        <View key={cat.id} className="bg-deepSoft dark:bg-deepSoft-dark p-1 mb-1 rounded flex-row border border-black/10 dark:border-white/10">
+        <View
+          key={cat.id}
+          className="bg-deepSoft dark:bg-deepSoft-dark p-1 mb-1 rounded flex-row border border-black/10 dark:border-white/10"
+        >
           <Text className="text-ink dark:text-ink-dark">
             {cat.iconImage} {cat.name} ({cat.type})
           </Text>

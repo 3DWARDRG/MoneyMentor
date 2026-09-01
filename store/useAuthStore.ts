@@ -2,7 +2,9 @@ import { database } from "@/database";
 import { ensureDefaultCategoriesForUser } from "@/services/ensureDefaultCategories";
 import * as LocalAuthentication from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
+import * as Crypto from "expo-crypto";
 import { create } from "zustand";
+
 
 type LocalUser = {
   id: string;
@@ -37,6 +39,12 @@ interface AuthState {
 }
 
 const pinKey = (userId: string) => `pin_${userId}`;
+
+const hashPin = (userId: string, pin: string): Promise<string> =>
+  Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    `${userId}:${pin}`
+  );
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   isUnlocked: false,
@@ -136,7 +144,7 @@ console.log("Paso 4: SecureStore leído. Usuario:", lastSelectedUserId);
       const { selectedUserId } = get();
       if (!selectedUserId) return false;
 
-      await SecureStore.setItemAsync(pinKey(selectedUserId), pin);
+      await SecureStore.setItemAsync(pinKey(selectedUserId), await hashPin(selectedUserId, pin));
       await SecureStore.setItemAsync("lastSelectedUserId", selectedUserId);
 
       await ensureDefaultCategoriesForUser(selectedUserId); // ← aquí
@@ -163,7 +171,7 @@ console.log("Paso 4: SecureStore leído. Usuario:", lastSelectedUserId);
       }
 
       const storedPin = await SecureStore.getItemAsync(pinKey(selectedUserId));
-      if (storedPin !== pin) return false;
+      if (storedPin !== (await hashPin(selectedUserId, pin))) return false;
 
       await SecureStore.setItemAsync("lastSelectedUserId", selectedUserId);
       await ensureDefaultCategoriesForUser(selectedUserId);

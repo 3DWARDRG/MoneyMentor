@@ -1,11 +1,11 @@
 import LogOutButton from "@/components/LogOut";
-import { IconSymbol } from "@/components/ui/IconSymbol";
 import CardBackdrop from "@/components/ui/CardBackdrop";
+import { IconSymbol } from "@/components/ui/IconSymbol";
 import { database } from "@/database";
-import { useAccounts } from "@/hooks/useAccounts";
 import { useFinanceData } from "@/hooks/useFinanceData";
 import { useUser } from "@/hooks/useUser";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useFinanceCacheStore } from "@/store/useFinanceCacheStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { router } from "expo-router";
 import React, { useState } from "react";
@@ -84,9 +84,10 @@ const memberSince = (creationDate: number | null | undefined) => {
 };
 
 const ProfileScreen = () => {
-  const { userId } = useAuthStore();
+  const userId = useAuthStore((s) => s.userId);
   const { user, loading } = useUser(userId ?? "");
-  const { summary: accountsSummary } = useAccounts(userId ?? "");
+  // ✅ CORRECTO: Saca la variable directamente, cero objetos nuevos
+  const accountsSummary = useFinanceCacheStore((s) => s.summary);
   const { transactions } = useFinanceData(userId ?? "");
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
@@ -118,7 +119,8 @@ const ProfileScreen = () => {
         await user.update((record) => {
           record.names = names.trim();
           record.lastName = lastName.trim();
-          record.email = email.trim() || `local_${Date.now()}@moneymentor.local`;
+          record.email =
+            email.trim() || `local_${Date.now()}@moneymentor.local`;
         });
       });
       setEditVisible(false);
@@ -150,10 +152,18 @@ const ProfileScreen = () => {
       <View className="flex-1 box-border bg-transparent p-4">
         {/* Profile Header */}
         <View className="mb-6 rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 p-6">
-          <CardBackdrop glowColor="#1d7df0" glowOpacity={0.18} glowSize={240} glowTop={-90} glowRight={-60} />
+          <CardBackdrop
+            glowColor="#1d7df0"
+            glowOpacity={0.18}
+            glowSize={240}
+            glowTop={-90}
+            glowRight={-60}
+          />
           <View className="flex-row items-center mb-4">
             <View className="h-20 w-20 bg-accent/10 dark:bg-accent-dark/10 rounded-full flex items-center justify-center mr-4">
-              <Text className="text-ink dark:text-ink-dark text-3xl font-bold">{initial}</Text>
+              <Text className="text-ink dark:text-ink-dark text-3xl font-bold">
+                {initial}
+              </Text>
             </View>
             <View className="flex-1">
               <Text className="text-2xl font-bold text-ink dark:text-ink-dark">
@@ -186,19 +196,25 @@ const ProfileScreen = () => {
               <Text className="text-2xl font-bold text-ink dark:text-ink-dark">
                 {transactions.length}
               </Text>
-              <Text className="text-muted dark:text-muted-dark text-xs">Transacciones</Text>
+              <Text className="text-muted dark:text-muted-dark text-xs">
+                Transacciones
+              </Text>
             </View>
             <View className="items-center">
               <Text className="text-2xl font-bold text-ink dark:text-ink-dark">
                 ${accountsSummary.totalBalance.toLocaleString("es-CO")}
               </Text>
-              <Text className="text-muted dark:text-muted-dark text-xs">Balance actual</Text>
+              <Text className="text-muted dark:text-muted-dark text-xs">
+                Balance actual
+              </Text>
             </View>
             <View className="items-center">
               <Text className="text-2xl font-bold text-ink dark:text-ink-dark">
                 {accountsSummary.activeAccounts}
               </Text>
-              <Text className="text-muted dark:text-muted-dark text-xs">Cuentas activas</Text>
+              <Text className="text-muted dark:text-muted-dark text-xs">
+                Cuentas activas
+              </Text>
             </View>
           </View>
         </View>
@@ -217,7 +233,9 @@ const ProfileScreen = () => {
                 <IconSymbol size={20} name="person.circle" color={"#4b9aff"} />
               </View>
               <View className="flex-grow">
-                <Text className="font-medium text-ink dark:text-ink-dark">Gestionar usuarios</Text>
+                <Text className="font-medium text-ink dark:text-ink-dark">
+                  Gestionar usuarios
+                </Text>
                 <Text className="text-sm text-muted dark:text-muted-dark">
                   Crear, editar y cambiar usuarios
                 </Text>
@@ -232,10 +250,17 @@ const ProfileScreen = () => {
               className="p-4 border-b border-black/10 dark:border-white/10 flex-row items-center"
             >
               <View className="h-10 w-10 rounded-full bg-income/10 dark:bg-income-dark/10 flex items-center justify-center mr-3">
-                <SvgXml xml={privacySvg} width={20} height={20} fill="#4be0a6" />
+                <SvgXml
+                  xml={privacySvg}
+                  width={20}
+                  height={20}
+                  fill="#4be0a6"
+                />
               </View>
               <View className="flex-grow">
-                <Text className="font-medium text-ink dark:text-ink-dark">Seguridad y privacidad</Text>
+                <Text className="font-medium text-ink dark:text-ink-dark">
+                  Seguridad y privacidad
+                </Text>
                 <Text className="text-sm text-muted dark:text-muted-dark">
                   Configurar PIN y opciones de seguridad
                 </Text>
@@ -248,10 +273,17 @@ const ProfileScreen = () => {
               className="p-4 flex-row items-center"
             >
               <View className="h-10 w-10 rounded-full bg-accent/10 dark:bg-accent-dark/10 flex items-center justify-center mr-3">
-                <SvgXml xml={paymentSvg} width={20} height={20} fill="#4b9aff" />
+                <SvgXml
+                  xml={paymentSvg}
+                  width={20}
+                  height={20}
+                  fill="#4b9aff"
+                />
               </View>
               <View className="flex-grow">
-                <Text className="font-medium text-ink dark:text-ink-dark">Métodos de pago</Text>
+                <Text className="font-medium text-ink dark:text-ink-dark">
+                  Métodos de pago
+                </Text>
                 <Text className="text-sm text-muted dark:text-muted-dark">
                   Tarjetas y cuentas bancarias
                 </Text>
@@ -274,7 +306,9 @@ const ProfileScreen = () => {
                 <SvgXml xml={exportSvg} width={20} height={20} fill="#58a5ff" />
               </View>
               <View className="flex-grow">
-                <Text className="font-medium text-ink dark:text-ink-dark">Exportar datos</Text>
+                <Text className="font-medium text-ink dark:text-ink-dark">
+                  Exportar datos
+                </Text>
                 <Text className="text-sm text-muted dark:text-muted-dark">
                   Descargar transacciones y reportes
                 </Text>
@@ -304,10 +338,17 @@ const ProfileScreen = () => {
               className="p-4 flex-row items-center"
             >
               <View className="h-10 w-10 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center mr-3">
-                <SvgXml xml={settingsSvg} width={20} height={20} fill="#97a4bb" />
+                <SvgXml
+                  xml={settingsSvg}
+                  width={20}
+                  height={20}
+                  fill="#97a4bb"
+                />
               </View>
               <View className="flex-grow">
-                <Text className="font-medium text-ink dark:text-ink-dark">Configuración general</Text>
+                <Text className="font-medium text-ink dark:text-ink-dark">
+                  Configuración general
+                </Text>
                 <Text className="text-sm text-muted dark:text-muted-dark">
                   Moneda, idioma y preferencias
                 </Text>
@@ -319,9 +360,13 @@ const ProfileScreen = () => {
 
         {/* Apparence / Theme */}
         <View className="mb-6">
-          <Text className="font-bold text-ink dark:text-ink-dark mb-3">Apariencia</Text>
+          <Text className="font-bold text-ink dark:text-ink-dark mb-3">
+            Apariencia
+          </Text>
           <View className="bg-panel dark:bg-panel-dark rounded-lg shadow-sm border border-black/10 dark:border-white/10 p-4">
-            <Text className="font-medium text-ink dark:text-ink-dark mb-3">Tema</Text>
+            <Text className="font-medium text-ink dark:text-ink-dark mb-3">
+              Tema
+            </Text>
             <View className="flex-row gap-2">
               {(
                 [
@@ -361,25 +406,43 @@ const ProfileScreen = () => {
         </View>
 
         <View className="mb-6">
-          <Text className="font-bold text-ink dark:text-ink-dark mb-3">Soporte</Text>
+          <Text className="font-bold text-ink dark:text-ink-dark mb-3">
+            Soporte
+          </Text>
           <View className="bg-panel dark:bg-panel-dark rounded-lg shadow-sm border border-black/10 dark:border-white/10">
             <View className="p-4 border-b border-black/10 dark:border-white/10 flex-row items-center">
               <View className="h-10 w-10 rounded-full bg-income/10 dark:bg-income-dark/10 flex items-center justify-center mr-3">
-                <SvgXml xml={editIconSvg} width={20} height={20} fill="#4be0a6" />
+                <SvgXml
+                  xml={editIconSvg}
+                  width={20}
+                  height={20}
+                  fill="#4be0a6"
+                />
               </View>
               <View className="flex-grow">
-                <Text className="font-medium text-ink dark:text-ink-dark">Ayuda y soporte</Text>
-                <Text className="text-sm text-muted dark:text-muted-dark">FAQ y contacto</Text>
+                <Text className="font-medium text-ink dark:text-ink-dark">
+                  Ayuda y soporte
+                </Text>
+                <Text className="text-sm text-muted dark:text-muted-dark">
+                  FAQ y contacto
+                </Text>
               </View>
               <SvgXml xml={editIconSvg} width={20} height={20} fill="#97a4bb" />
             </View>
 
             <View className="p-4 border-b border-black/10 dark:border-white/10 flex-row items-center">
               <View className="h-10 w-10 rounded-full bg-accent/10 dark:bg-accent-dark/10 flex items-center justify-center mr-3">
-                <SvgXml xml={editIconSvg} width={20} height={20} fill="#4b9aff" />
+                <SvgXml
+                  xml={editIconSvg}
+                  width={20}
+                  height={20}
+                  fill="#4b9aff"
+                />
               </View>
               <View className="flex-grow">
-                <Text className="font-medium text-ink dark:text-ink-dark">Calificar la app</Text>
+                <Text className="font-medium text-ink dark:text-ink-dark">
+                  Calificar la app
+                </Text>
                 <Text className="text-sm text-muted dark:text-muted-dark">
                   Comparte tu experiencia
                 </Text>
@@ -393,7 +456,9 @@ const ProfileScreen = () => {
 
         {/* Footer */}
         <View className="p-6 mb-6 text-muted dark:text-muted-dark text-sm min-h-10">
-          <Text className="mt-5 text-center text-muted dark:text-muted-dark">FinApp versión 1.0.0</Text>
+          <Text className="mt-5 text-center text-muted dark:text-muted-dark">
+            FinApp versión 1.0.0
+          </Text>
           <Text className="mt-5 h-10 text-center text-muted dark:text-muted-dark">
             © 2023 FinApp. Todos los derechos reservados.
           </Text>
@@ -457,13 +522,17 @@ const ProfileScreen = () => {
                 onPress={() => setEditVisible(false)}
                 className="flex-1 items-center rounded-xl border border-black/10 dark:border-white/10 py-4"
               >
-                <Text className="font-semibold text-muted dark:text-muted-dark">Cancelar</Text>
+                <Text className="font-semibold text-muted dark:text-muted-dark">
+                  Cancelar
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSave}
                 disabled={saving}
                 className={`flex-1 items-center rounded-xl py-4 ${
-                  saving ? "bg-accent/60 dark:bg-accent-dark/60" : "bg-accent dark:bg-accent-dark"
+                  saving
+                    ? "bg-accent/60 dark:bg-accent-dark/60"
+                    : "bg-accent dark:bg-accent-dark"
                 }`}
               >
                 {saving ? (

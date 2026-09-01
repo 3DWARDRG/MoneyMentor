@@ -5,12 +5,7 @@ import { useGoals } from "@/hooks/useGoals";
 import { useAuthStore } from "@/store/useAuthStore";
 import { router } from "expo-router";
 import { useEffect } from "react";
-import {
-  FlatList,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { FlatList, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const formatCOP = (value: number) =>
@@ -20,7 +15,7 @@ const formatCOP = (value: number) =>
   }).format(value);
 
 export default function GoalsIndexScreen() {
-  const { userId } = useAuthStore();
+  const userId = useAuthStore((s) => s.userId);
   const { goals, loading, summary } = useGoals(userId ?? "");
 
   useEffect(() => {
@@ -28,7 +23,12 @@ export default function GoalsIndexScreen() {
     console.log("🔍 GoalsIndex loading:", loading);
     console.log("🔍 GoalsIndex metas:", goals.length, "| summary:", summary);
     if (goals.length > 0) {
-      console.log("🔍 Primera meta:", goals[0].id, goals[0].title, goals[0].amount);
+      console.log(
+        "🔍 Primera meta:",
+        goals[0].id,
+        goals[0].title,
+        goals[0].amount,
+      );
     }
   }, [userId, loading, goals, summary]);
 
@@ -37,7 +37,9 @@ export default function GoalsIndexScreen() {
       <ScreenBackdrop />
       <View className="flex-1 px-5 pt-4">
         <View className="flex-row items-center justify-between mb-6">
-          <Text className="text-2xl font-bold text-ink dark:text-ink-dark">Mis Metas</Text>
+          <Text className="text-2xl font-bold text-ink dark:text-ink-dark">
+            Mis Metas
+          </Text>
 
           <TouchableOpacity
             onPress={() => router.push("/goals/new")}
@@ -49,7 +51,9 @@ export default function GoalsIndexScreen() {
 
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <Text className="text-muted dark:text-muted-dark">Cargando metas...</Text>
+            <Text className="text-muted dark:text-muted-dark">
+              Cargando metas...
+            </Text>
           </View>
         ) : goals.length === 0 ? (
           <View className="flex-1 items-center justify-center px-6">
@@ -75,7 +79,13 @@ export default function GoalsIndexScreen() {
             contentContainerStyle={{ paddingBottom: 24 }}
             ListHeaderComponent={
               <View className="rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 mb-4">
-                <CardBackdrop glowColor="#1d7df0" glowOpacity={0.16} glowSize={240} glowTop={-100} glowRight={-80} />
+                <CardBackdrop
+                  glowColor="#1d7df0"
+                  glowOpacity={0.16}
+                  glowSize={240}
+                  glowTop={-100}
+                  glowRight={-80}
+                />
                 <View className="p-5">
                   <Text className="mb-4 text-xl font-semibold bg-black/5 dark:bg-white/10 text-ink dark:text-ink-dark rounded-md p-1 text-center">
                     Resumen de metas

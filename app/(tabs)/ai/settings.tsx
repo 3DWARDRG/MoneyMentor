@@ -1,6 +1,7 @@
 import InputBlock from "@/components/InputBlock";
 import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
 import { AI_PROVIDER_PRESETS } from "@/services/ai/presets";
+
 import { useAiChatStore } from "@/store/useAiChatStore";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -16,10 +17,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Shield } from "lucide-react-native";
+import { useAuthStore } from "@/store/useAuthStore";
+
 
 export default function AiSettingsScreen() {
-  const { config, hydrate, saveConfig, clearConfig } = useAiChatStore();
-
+  const { config, saveConfig, clearConfig } = useAiChatStore();
+  const id = useAuthStore((s)=> s.userId)
   const [providerId, setProviderId] = useState(config?.providerId ?? "openai");
   const [baseUrl, setBaseUrl] = useState(config?.baseUrl ?? "");
   const [model, setModel] = useState(config?.model ?? "");
@@ -28,11 +31,7 @@ export default function AiSettingsScreen() {
   const [testing, setTesting] = useState(false);
 
   const preset = AI_PROVIDER_PRESETS.find((p) => p.id === providerId);
-
-  useEffect(() => {
-    hydrate();
-  }, [hydrate]);
-
+  
   useEffect(() => {
     if (!config) return;
     setProviderId(config.providerId);
@@ -124,7 +123,7 @@ export default function AiSettingsScreen() {
           text: "Borrar",
           style: "destructive",
           onPress: async () => {
-            await clearConfig();
+            await clearConfig(id?? "");
             setProviderId("openai");
             setBaseUrl("");
             setModel("");

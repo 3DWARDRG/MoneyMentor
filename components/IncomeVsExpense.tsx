@@ -14,7 +14,7 @@ interface IncomeVsExpenseProps {
   typeTransaction: string;
 }
 
-const CHART_HEIGHT = 250;
+const CHART_HEIGHT = 350;
 
 const IncomeVsExpense: React.FC<IncomeVsExpenseProps> = ({
   income,

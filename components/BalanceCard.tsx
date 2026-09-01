@@ -1,11 +1,12 @@
-import { Account } from "@/database/models/mlAccount";
-import { useAccounts } from "@/hooks/useAccounts";
 import { useFinanceData } from "@/hooks/useFinanceData";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useFinanceCacheStore } from "@/store/useFinanceCacheStore";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
+import { useShallow } from "zustand/react/shallow";
+import type { CachedAccount } from "../store/useFinanceCacheStore";
 import CardBackdrop from "./ui/CardBackdrop";
 import PremiumIcon from "./ui/PremiumIcon";
 
@@ -41,12 +42,19 @@ const BalanceCard = (props: BalanceCardProps) => {
 };
 
 const BalanceCardCarousel = ({ onAccountChange }: BalanceCardProps) => {
-  const { userId } = useAuthStore();
+  const userId = useAuthStore((s) => s.userId);
   const {
     accounts,
     loading: accountsLoading,
     summary: accountsSummary,
-  } = useAccounts(userId || "");
+  } = useFinanceCacheStore(
+    useShallow((s) => ({
+      accounts: s.accounts,
+      loading: s.loading,
+      summary: s.summary,
+    })),
+  );
+
   const { summary, loading } = useFinanceData(userId || "");
   const [activeIndex, setActiveIndex] = useState(0);
   const [carouselWidth, setCarouselWidth] = useState(0);
@@ -56,13 +64,7 @@ const BalanceCardCarousel = ({ onAccountChange }: BalanceCardProps) => {
     () => ["total", ...accounts.map((account) => account.id)],
     [accounts],
   );
-
-  useEffect(() => {
-    if (!onAccountChange) return;
-    const accountId = activeIndex === 0 ? null : (slides[activeIndex] ?? null);
-    onAccountChange(accountId);
-  }, [activeIndex, slides, onAccountChange]);
-
+  
   const formatCOP = (value: number) =>
     new Intl.NumberFormat("es-CO", {
       style: "currency",
@@ -114,7 +116,15 @@ const BalanceCardCarousel = ({ onAccountChange }: BalanceCardProps) => {
           width={carouselWidth}
           height={CARD_HEIGHT}
           data={slides}
-          onSnapToItem={setActiveIndex}
+          onSnapToItem={(index) => {
+            setActiveIndex(index); // Actualizas tu estado local
+
+            // Le pasas el ID al Padre inmediatamente
+            if (onAccountChange) {
+              const accountId = index === 0 ? null : (slides[index] ?? null);
+              onAccountChange(accountId);
+            }
+          }}
           renderItem={({ item, index }) =>
             index === 0 ? (
               <Pressable
@@ -143,7 +153,7 @@ const BalanceCardCarousel = ({ onAccountChange }: BalanceCardProps) => {
   );
 };
 
-const AccountCard = ({ account }: { account: Account }) => {
+const AccountCard = ({ account }: { account: CachedAccount }) => {
   const isCredit = account.type === "credit";
   const subtypeLabel =
     CREDIT_SUBTYPE_LABELS[account.creditSubtype ?? ""] ?? "Crédito";
