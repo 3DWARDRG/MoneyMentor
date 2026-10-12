@@ -1,27 +1,18 @@
-import { database } from "@/database";
-import { ensureDefaultCategoriesForUser } from "@/services/ensureDefaultCategories";
+import { ensureDefaultCategoriesForUser } from "@/services/categoryService";
+import * as userService from "@/services/userService";
 import * as LocalAuthentication from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
 import * as Crypto from "expo-crypto";
 import { create } from "zustand";
 
 
-type LocalUser = {
-  id: string;
-  names: string;
-  lastName?: string;
-  email?: string;
-};
-
 interface AuthState {
   isUnlocked: boolean;
   isHydrating: boolean;
   userId: string | null;
   selectedUserId: string | null;
-  users: LocalUser[];
 
   hydrateAuth: () => Promise<void>;
-  refreshUsers: () => Promise<void>;
   selectUser: (userId: string) => void;
 
   createLocalUser: (data: {
@@ -51,20 +42,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isHydrating: true,
   userId: null,
   selectedUserId: null,
-  users: [],
 
   hydrateAuth: async () => {
     try {
-      console.log("Paso 1: Iniciando hydrateAuth");
       set({ isHydrating: true });
-      console.log("Paso 2: Ejecutando refreshUsers...");
-      await get().refreshUsers();
-console.log("Paso 2: Ejecutando refreshUsers...");
       const lastSelectedUserId =
         await SecureStore.getItemAsync("lastSelectedUserId");
-console.log("Paso 4: SecureStore leído. Usuario:", lastSelectedUserId);
       if (lastSelectedUserId) {
-        const exists = get().users.some((u) => u.id === lastSelectedUserId);
+        const exists = await userService.getUserById(lastSelectedUserId);
         if (exists) {
           set({ selectedUserId: lastSelectedUserId });
         }
@@ -72,28 +57,7 @@ console.log("Paso 4: SecureStore leído. Usuario:", lastSelectedUserId);
     } catch (error) {
       console.error("❌ Error en hydrateAuth:", error);
     } finally {
-      console.log("Paso 5: Finalizando hydrateAuth (apagando loading)");
       set({ isHydrating: false });
-    }
-  },
-
-  refreshUsers: async () => {
-    try {
-      const usersCollection = database.get("users");
-      const rows = await usersCollection.query().fetch();
-
-      const users: LocalUser[] = rows.map((u: any) => ({
-        id: u.id,
-        names: u.names ?? "Usuario",
-        lastName: u.lastName ?? "",
-        email: u.email ?? "",
-      }));
-
-      set({ users });
-      console.log("👥 Usuarios locales:", users.length);
-    } catch (error) {
-      console.error("❌ Error refrescando usuarios:", error);
-      set({ users: [] });
     }
   },
 
@@ -107,32 +71,13 @@ console.log("Paso 4: SecureStore leído. Usuario:", lastSelectedUserId);
 
   createLocalUser: async ({ names, lastName = "", email = "" }) => {
     try {
-      const usersCollection = database.get("users");
-      let createdId: string | null = null;
+      const user = await userService.createLocalUser({ names, lastName, email });
 
-      await database.write(async () => {
-        const newUser = await usersCollection.create((record: any) => {
-          record.names = names;
-          record.last_name = lastName;
-          record.email = email || `local_${Date.now()}@moneymentor.local`;
-          record.password = "";
-          record.confirm_email = true;
-          record.creation_date = Date.now();
-          record.last_access = Date.now();
-        });
+      set({ selectedUserId: user.id });
+      await SecureStore.setItemAsync("lastSelectedUserId", user.id);
+      console.log("✅ Usuario local creado:", user.id);
 
-        createdId = newUser.id;
-      });
-
-      await get().refreshUsers();
-
-      if (createdId) {
-        set({ selectedUserId: createdId });
-        await SecureStore.setItemAsync("lastSelectedUserId", createdId);
-        console.log("✅ Usuario local creado:", createdId);
-      }
-
-      return createdId;
+      return user.id;
     } catch (error) {
       console.error("❌ Error creando usuario local:", error);
       return null;
@@ -161,10 +106,10 @@ console.log("Paso 4: SecureStore leído. Usuario:", lastSelectedUserId);
 
   verifyPinForSelectedUser: async (pin: string) => {
     try {
-      const { selectedUserId, users } = get();
+      const { selectedUserId } = get();
       if (!selectedUserId) return false;
 
-      const exists = users.some((u) => u.id === selectedUserId);
+      const exists = await userService.getUserById(selectedUserId);
       if (!exists) {
         console.log("⚠️ El usuario seleccionado ya no existe");
         return false;
@@ -190,10 +135,10 @@ console.log("Paso 4: SecureStore leído. Usuario:", lastSelectedUserId);
 
   authenticateBiometricsForSelectedUser: async () => {
     try {
-      const { selectedUserId, users } = get();
+      const { selectedUserId } = get();
       if (!selectedUserId) return false;
 
-      const exists = users.some((u) => u.id === selectedUserId);
+      const exists = await userService.getUserById(selectedUserId);
       if (!exists) return false;
 
       const hasHardware = await LocalAuthentication.hasHardwareAsync();

@@ -1,6 +1,6 @@
 import { database } from "@/database";
 import { FinancialGoal } from "@/database/models/mlFinancialGoal";
-import { Q } from "@nozbe/watermelondb";
+import { Q, Query } from "@nozbe/watermelondb";
 import {
   applyCreate,
   applyUpdate,
@@ -44,16 +44,57 @@ export type FinancialGoalCreateInput = RequiredFinancialGoalFields &
 export type FinancialGoalUpdateInput = Partial<FinancialGoalWritable>;
 
 export class FinancialGoalRepository {
-  static async create(data: FinancialGoalCreateInput): Promise<FinancialGoal> {
+  // ── READ (radar)
+  static buildByUserIdQuery(userId: string): Query<FinancialGoal> {
+    return database.collections
+      .get<FinancialGoal>("financial_goals")
+      .query(Q.where("user_id", userId));
+  }
+
+  static buildAllQuery(): Query<FinancialGoal> {
+    return database.collections.get<FinancialGoal>("financial_goals").query();
+  }
+
+  // ── READ puntual
+  static async findById(id: string): Promise<FinancialGoal> {
+    return await database.collections
+      .get<FinancialGoal>("financial_goals")
+      .find(id);
+  }
+
+  // ── WRITE (empaquetador)
+  static prepareCreate(data: FinancialGoalCreateInput): FinancialGoal {
     assertValidKeys(data, WRITABLE_FIELDS, "FinancialGoalRepository");
     assertRequiredFields(data, REQUIRED_FIELDS, "FinancialGoalRepository");
 
-    return await database.write(async () => {
-      const collection =
-        database.collections.get<FinancialGoal>("financial_goals");
-      return await collection.create((goal) => {
+    return database.collections
+      .get<FinancialGoal>("financial_goals")
+      .prepareCreate((goal) => {
         applyCreate(goal, data, WRITABLE_FIELDS);
       });
+  }
+
+  static prepareUpdate(
+    record: FinancialGoal,
+    data: FinancialGoalUpdateInput
+  ): FinancialGoal {
+    assertValidKeys(data, WRITABLE_FIELDS, "FinancialGoalRepository");
+
+    return record.prepareUpdate((goal) => {
+      applyUpdate(goal, data, WRITABLE_FIELDS);
+    });
+  }
+
+  static prepareDelete(record: FinancialGoal): FinancialGoal {
+    return record.prepareDestroyPermanently();
+  }
+
+  // ── Conveniencia
+  static create(data: FinancialGoalCreateInput): Promise<FinancialGoal> {
+    return database.write(async () => {
+      const record = this.prepareCreate(data);
+      await database.batch(record);
+      return record;
     });
   }
 
@@ -61,42 +102,19 @@ export class FinancialGoalRepository {
     id: string,
     data: FinancialGoalUpdateInput
   ): Promise<FinancialGoal> {
-    assertValidKeys(data, WRITABLE_FIELDS, "FinancialGoalRepository");
-
     return await database.write(async () => {
-      const collection =
-        database.collections.get<FinancialGoal>("financial_goals");
-      const goal = await collection.find(id);
-      return await goal.update((g) => {
-        applyUpdate(g, data, WRITABLE_FIELDS);
-      });
+      const record = await this.findById(id);
+      const prepared = this.prepareUpdate(record, data);
+      await database.batch(prepared);
+      return prepared;
     });
   }
 
   static async delete(id: string): Promise<void> {
-    return await database.write(async () => {
-      const collection =
-        database.collections.get<FinancialGoal>("financial_goals");
-      const goal = await collection.find(id);
-      await goal.markAsDeleted();
+    await database.write(async () => {
+      const record = await this.findById(id);
+      const prepared = this.prepareDelete(record);
+      await database.batch(prepared);
     });
-  }
-
-  static async findById(id: string): Promise<FinancialGoal> {
-    const collection =
-      database.collections.get<FinancialGoal>("financial_goals");
-    return await collection.find(id);
-  }
-
-  static async findAllByUserId(userId: string): Promise<FinancialGoal[]> {
-    const collection =
-      database.collections.get<FinancialGoal>("financial_goals");
-    return await collection.query(Q.where("user_id", userId)).fetch();
-  }
-
-  static async findAll(): Promise<FinancialGoal[]> {
-    const collection =
-      database.collections.get<FinancialGoal>("financial_goals");
-    return await collection.query().fetch();
   }
 }

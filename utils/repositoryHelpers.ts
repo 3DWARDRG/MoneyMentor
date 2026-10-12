@@ -45,5 +45,5 @@ export function applyUpdate<T extends object>(
     if (value !== undefined) {
       target[key] = value;
     }
-  }
+  } 
 }

@@ -1,13 +1,13 @@
 // services/ai/tools.ts
+import { formatCOP } from "@/utils/format";
+import { getGoals } from "@/services/goalService";
+import { getAccountSummary } from "@/services/accountService";
+import { getUpcomingReminders } from "@/services/eventService";
 import {
-  fetchAccountSummary,
-  fetchExpensesByCategory,
-  fetchGoals,
-  fetchMonthlySummary,
-  fetchRecentTransactions,
-  fetchUpcomingReminders,
-  formatCOP,
-} from "@/services/financialQueries";
+  getExpensesByCategory,
+  getMonthlySummary,
+  getRecentTransactions,
+} from "@/services/transactionService";
 import type { AiToolDefinition } from "./types";
 import { getActiveImportSummary, registerImportedTransactions } from "./import";
 
@@ -21,7 +21,7 @@ import { getActiveImportSummary, registerImportedTransactions } from "./import";
  *
  * Diseño: registro data-driven. Cada tool es un objeto con su definición
  * (schema OpenAI), un flag `exposed` y su handler. Los handlers SOLO llaman
- * a las funciones reutilizables de `services/financialQueries.ts` y
+ * a las funciones reutilizables de los services de dominio y
  * serializan; la lógica de datos vive en un solo lugar.
  */
 
@@ -48,7 +48,7 @@ const tools: AiTool[] = [
       },
     },
     handler: async (userId) => {
-      const data = await fetchAccountSummary(userId);
+      const data = await getAccountSummary(userId);
       return JSON.stringify({
         ok: true,
         totalBalance: formatCOP(data.totalBalance),
@@ -79,7 +79,7 @@ const tools: AiTool[] = [
     },
     handler: async (userId, args) => {
       const offset = Math.max(0, Math.floor(args.months ?? 0));
-      const data = await fetchMonthlySummary(userId, offset);
+      const data = await getMonthlySummary(userId, offset);
       const monthName = new Date(data.period.start).toLocaleDateString("es-ES", {
         month: "long",
         year: "numeric",
@@ -121,7 +121,7 @@ const tools: AiTool[] = [
     handler: async (userId, args) => {
       const offset = Math.max(0, Math.floor(args.months ?? 0));
       const limit = Math.min(20, Math.max(1, Math.floor(args.limit ?? 5)));
-      const rows = await fetchExpensesByCategory(userId, offset, limit);
+      const rows = await getExpensesByCategory(userId, offset, limit);
       return JSON.stringify({
         ok: true,
         items: rows.map((r) => ({
@@ -153,7 +153,7 @@ const tools: AiTool[] = [
     },
     handler: async (userId, args) => {
       const limit = Math.min(20, Math.max(1, Math.floor(args.limit ?? 5)));
-      const rows = await fetchRecentTransactions(userId, limit);
+      const rows = await getRecentTransactions(userId, limit);
       return JSON.stringify({
         ok: true,
         items: rows.map((tx) => ({
@@ -179,7 +179,7 @@ const tools: AiTool[] = [
       },
     },
     handler: async (userId) => {
-      const goals = await fetchGoals(userId);
+      const goals = await getGoals(userId);
       return JSON.stringify({
         ok: true,
         totalGoals: goals.length,
@@ -216,7 +216,7 @@ const tools: AiTool[] = [
     },
     handler: async (userId, args) => {
       const limit = Math.min(10, Math.max(1, Math.floor(args.limit ?? 5)));
-      const events = await fetchUpcomingReminders(userId, limit);
+      const events = await getUpcomingReminders(userId, limit);
       return JSON.stringify({
         ok: true,
         items: events.map((e) => ({

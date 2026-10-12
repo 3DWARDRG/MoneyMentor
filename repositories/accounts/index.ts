@@ -1,6 +1,6 @@
 import { database } from "@/database";
 import { Account } from "@/database/models/mlAccount";
-import { Q } from "@nozbe/watermelondb";
+import { Q, Query } from "@nozbe/watermelondb";
 import {
   applyCreate,
   applyUpdate,
@@ -45,15 +45,73 @@ export type AccountCreateInput = RequiredAccountFields & OptionalAccountFields;
 export type AccountUpdateInput = Partial<AccountWritable>;
 
 export class AccountRepository {
-  static async create(data: AccountCreateInput): Promise<Account> {
+  // Columnas (snake_case) que pueden cambiar y deben re-emitir en observaciones.
+  static readonly OBSERVABLE_COLUMNS: string[] = [
+    "name",
+    "balance",
+    "type",
+    "credit_subtype",
+    "currency",
+    "is_active",
+    "icon_image",
+    "institution",
+    "credit_limit",
+    "interest_rate",
+    "payment_due_day",
+    "statement_closing_day",
+    "apr_annual",
+    "apr_monthly",
+    "card_last4",
+    "maintenance_fee_amount",
+    "maintenance_fee_frequency",
+  ];
+
+  // ── READ (radar): devuelven Query; el consumidor decide .observe()/.fetch()
+  static buildByUserIdQuery(userId: string): Query<Account> {
+    return database.collections
+      .get<Account>("accounts")
+      .query(Q.where("user_id", userId));
+  }
+
+  static buildAllQuery(): Query<Account> {
+    return database.collections.get<Account>("accounts").query();
+  }
+
+  // ── READ puntual: leer un registro para luego preparar una escritura
+  static async findById(id: string): Promise<Account> {
+    return await database.collections.get<Account>("accounts").find(id);
+  }
+
+  // ── WRITE (empaquetador): síncronos, devuelven el record preparado
+  static prepareCreate(data: AccountCreateInput): Account {
     assertValidKeys(data, WRITABLE_FIELDS, "AccountRepository");
     assertRequiredFields(data, REQUIRED_FIELDS, "AccountRepository");
 
-    return await database.write(async () => {
-      const collection = database.collections.get<Account>("accounts");
-      return await collection.create((account) => {
+    return database.collections
+      .get<Account>("accounts")
+      .prepareCreate((account) => {
         applyCreate(account, data, WRITABLE_FIELDS);
       });
+  }
+
+  static prepareUpdate(record: Account, data: AccountUpdateInput): Account {
+    assertValidKeys(data, WRITABLE_FIELDS, "AccountRepository");
+
+    return record.prepareUpdate((account) => {
+      applyUpdate(account, data, WRITABLE_FIELDS);
+    });
+  }
+
+  static prepareDelete(record: Account): Account {
+    return record.prepareDestroyPermanently();
+  }
+
+  // ── Conveniencia: envuelven prepare dentro de database.write
+  static create(data: AccountCreateInput): Promise<Account> {
+    return database.write(async () => {
+      const record = this.prepareCreate(data);
+      await database.batch(record);
+      return record;
     });
   }
 
@@ -61,37 +119,19 @@ export class AccountRepository {
     id: string,
     data: AccountUpdateInput
   ): Promise<Account> {
-    assertValidKeys(data, WRITABLE_FIELDS, "AccountRepository");
-
     return await database.write(async () => {
-      const collection = database.collections.get<Account>("accounts");
-      const account = await collection.find(id);
-      return await account.update((acc) => {
-        applyUpdate(acc, data, WRITABLE_FIELDS);
-      });
+      const record = await this.findById(id);
+      const prepared = this.prepareUpdate(record, data);
+      await database.batch(prepared);
+      return prepared;
     });
   }
 
   static async delete(id: string): Promise<void> {
-    return await database.write(async () => {
-      const collection = database.collections.get<Account>("accounts");
-      const account = await collection.find(id);
-      await account.markAsDeleted();
+    await database.write(async () => {
+      const record = await this.findById(id);
+      const prepared = this.prepareDelete(record);
+      await database.batch(prepared);
     });
-  }
-
-  static async findById(id: string): Promise<Account> {
-    const collection = database.collections.get<Account>("accounts");
-    return await collection.find(id);
-  }
-
-  static async findAllByUserId(userId: string): Promise<Account[]> {
-    const collection = database.collections.get<Account>("accounts");
-    return await collection.query(Q.where("user_id", userId)).fetch();
-  }
-
-  static async findAll(): Promise<Account[]> {
-    const collection = database.collections.get<Account>("accounts");
-    return await collection.query().fetch();
   }
 }

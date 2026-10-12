@@ -1,40 +1,18 @@
-// hooks/useUser.ts
-import { database } from "@/database";
 import { User } from "@/database/models/mlUser";
-import { useEffect, useState } from "react";
+import { useStream } from "@/hooks/useStream";
+import { UserRepository } from "@/repositories/users";
+import { of } from "@nozbe/watermelondb/utils/rx";
 
-export const useUser = (userId: string) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+/** Un usuario por id (reactivo a todos sus campos). */
+export function useUser(userId: string): {
+  user: User | null;
+  loading: boolean;
+} {
+  const user = useStream<User | null>(
+    () => (userId ? UserRepository.observeById(userId) : of<User | null>(null)),
+    null,
+    [userId]
+  );
 
-  useEffect(() => {
-    console.log("🔑 useUser userId:", userId);
-
-    if (!userId) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-
-    const subscription = database
-      .get<User>("users")
-      .findAndObserve(userId)
-      .subscribe({
-        next: (record) => {
-          console.log("📡 useUser observe emitió:", record?.names);
-          setUser(record);
-          setLoading(false);
-        },
-        error: (err) => {
-          console.error("❌ useUser observe error:", err);
-          setLoading(false);
-        },
-      });
-
-    return () => subscription.unsubscribe();
-  }, [userId]);
-
-  return { user, loading };
-};
+  return { user, loading: !!userId && user === null };
+}

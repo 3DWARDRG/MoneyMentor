@@ -10,8 +10,8 @@ import { processStatementPdf } from "../services/ai/import";
 jest.mock("@/database", () => ({
   database: { get: jest.fn() },
 }));
-jest.mock("@/services/transactionBalanceHelpers", () => ({
-  createTransactionRecord: jest.fn(),
+jest.mock("@/services/transactionService", () => ({
+  createTransaction: jest.fn(),
 }));
 
 const PAGE1 = `Bancolombia

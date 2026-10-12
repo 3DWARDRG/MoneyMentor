@@ -12,7 +12,8 @@ import {
   type ImportCandidate,
   type ImportCandidateType,
 } from "@/store/useImportStore";
-import { useFinanceCacheStore } from "@/store/useFinanceCacheStore";
+import { useAccounts } from "@/hooks/useAccounts";
+import { useCategories } from "@/hooks/useCategories";
 import { parseMoney } from "@/services/ai/statementParser";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -77,7 +78,6 @@ export default function ImportVerificationModal({
 
   const {
     candidates,
-    accounts,
     accountId,
     setAccountId,
     toggleCandidate,
@@ -95,15 +95,12 @@ export default function ImportVerificationModal({
     setPeriod,
   } = useImportStore();
 
-  // Categorías desde el caché de finanzas (fuente única, observado en vivo).
-  const categories = useFinanceCacheStore((s) => s.categories);
-const accountsF = useFinanceCacheStore((s) => s.accounts);
-const financeAccounts = useMemo(
-  () => accountsF.filter((a) => a.isActive !== false), 
-  [accountsF]
-);
-
-  const loadFinanceCache = useFinanceCacheStore((s) => s.load);
+  const { categories } = useCategories(userId);
+  const { accounts } = useAccounts(userId);
+  const financeAccounts = useMemo(
+    () => accounts.filter((a) => a.isActive !== false),
+    [accounts]
+  );
 
   const [amountDrafts, setAmountDrafts] = useState<Record<string, string>>({});
   const [showRaw, setShowRaw] = useState(false);
@@ -138,9 +135,8 @@ const financeAccounts = useMemo(
       setPeriodError(null);
       setExpandedGroups({});
       setGroupDrafts({});
-      if (userId) loadFinanceCache(userId);
     }
-  }, [visible, userId, loadFinanceCache]);
+  }, [visible, userId]);
 
   const selectedCount = useMemo(() => candidates.filter((c) => c.selected).length, [candidates]);
   const selectedTotal = useMemo(

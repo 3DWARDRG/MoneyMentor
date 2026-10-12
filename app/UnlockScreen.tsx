@@ -1,10 +1,10 @@
 import { usePreventBack } from "@/hooks/usePreventBack";
+import { useUsers } from "@/hooks/useUsers";
 import { useAuthStore } from "@/store/useAuthStore";
 import { router } from "expo-router";
-import { useEffect, useMemo, useState , useCallback   } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, Text, TextInput, TouchableOpacity, View  } from "react-native";
 import { SafeAreaView  } from "react-native-safe-area-context";
-import { useFocusEffect } from "@react-navigation/native";
 import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
 
 export default function UnlockScreen() {
@@ -14,10 +14,10 @@ export default function UnlockScreen() {
 
   const {
     selectedUserId,
-    users,
     verifyPinForSelectedUser,
     authenticateBiometricsForSelectedUser,
   } = useAuthStore();
+  const users = useUsers();
 
   const selectedUser = useMemo(
     () => users.find((u) => u.id === selectedUserId),

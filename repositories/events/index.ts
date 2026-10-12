@@ -1,6 +1,6 @@
 import { database } from "@/database";
 import { Event } from "@/database/models/mlEvent";
-import { Q } from "@nozbe/watermelondb";
+import { Q, Query } from "@nozbe/watermelondb";
 import {
   applyCreate,
   applyUpdate,
@@ -48,50 +48,84 @@ export type EventCreateInput = RequiredEventFields & OptionalEventFields;
 export type EventUpdateInput = Partial<EventWritable>;
 
 export class EventRepository {
-  static async create(data: EventCreateInput): Promise<Event> {
+  // ── READ (radar)
+  static buildByUserIdQuery(userId: string): Query<Event> {
+    return database.collections
+      .get<Event>("events")
+      .query(Q.where("user_id", userId));
+  }
+
+  static buildAllQuery(): Query<Event> {
+    return database.collections.get<Event>("events").query();
+  }
+
+  static buildUpcomingByUserIdQuery(
+    userId: string,
+    from: number,
+    limit: number
+  ): Query<Event> {
+    return database.collections
+      .get<Event>("events")
+      .query(
+        Q.where("user_id", userId),
+        Q.where("start_date", Q.gte(from)),
+        Q.sortBy("start_date", Q.asc),
+        Q.take(limit)
+      );
+  }
+
+  // ── READ puntual
+  static async findById(id: string): Promise<Event> {
+    return await database.collections.get<Event>("events").find(id);
+  }
+
+  // ── WRITE (empaquetador)
+  static prepareCreate(data: EventCreateInput): Event {
     assertValidKeys(data, WRITABLE_FIELDS, "EventRepository");
     assertRequiredFields(data, REQUIRED_FIELDS, "EventRepository");
 
-    return await database.write(async () => {
-      const collection = database.collections.get<Event>("events");
-      return await collection.create((event) => {
+    return database.collections
+      .get<Event>("events")
+      .prepareCreate((event) => {
         applyCreate(event, data, WRITABLE_FIELDS);
       });
+  }
+
+  static prepareUpdate(record: Event, data: EventUpdateInput): Event {
+    assertValidKeys(data, WRITABLE_FIELDS, "EventRepository");
+
+    return record.prepareUpdate((event) => {
+      applyUpdate(event, data, WRITABLE_FIELDS);
+    });
+  }
+
+  static prepareDelete(record: Event): Event {
+    return record.prepareDestroyPermanently();
+  }
+
+  // ── Conveniencia
+  static create(data: EventCreateInput): Promise<Event> {
+    return database.write(async () => {
+      const record = this.prepareCreate(data);
+      await database.batch(record);
+      return record;
     });
   }
 
   static async update(id: string, data: EventUpdateInput): Promise<Event> {
-    assertValidKeys(data, WRITABLE_FIELDS, "EventRepository");
-
     return await database.write(async () => {
-      const collection = database.collections.get<Event>("events");
-      const event = await collection.find(id);
-      return await event.update((evt) => {
-        applyUpdate(evt, data, WRITABLE_FIELDS);
-      });
+      const record = await this.findById(id);
+      const prepared = this.prepareUpdate(record, data);
+      await database.batch(prepared);
+      return prepared;
     });
   }
 
   static async delete(id: string): Promise<void> {
-    return await database.write(async () => {
-      const collection = database.collections.get<Event>("events");
-      const event = await collection.find(id);
-      await event.markAsDeleted();
+    await database.write(async () => {
+      const record = await this.findById(id);
+      const prepared = this.prepareDelete(record);
+      await database.batch(prepared);
     });
-  }
-
-  static async findById(id: string): Promise<Event> {
-    const collection = database.collections.get<Event>("events");
-    return await collection.find(id);
-  }
-
-  static async findAllByUserId(userId: string): Promise<Event[]> {
-    const collection = database.collections.get<Event>("events");
-    return await collection.query(Q.where("user_id", userId)).fetch();
-  }
-
-  static async findAll(): Promise<Event[]> {
-    const collection = database.collections.get<Event>("events");
-    return await collection.query().fetch();
   }
 }

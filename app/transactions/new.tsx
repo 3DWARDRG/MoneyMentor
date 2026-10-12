@@ -9,10 +9,12 @@ import {
   createTransactionRecord,
   updateTransactionRecord, // <-- 2. Importar la función de actualización
 } from "@/services/transactionBalanceHelpers";
+import { useAccounts } from "@/hooks/useAccounts";
+import { useCategories } from "@/hooks/useCategories";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useFinanceCacheStore } from "@/store/useFinanceCacheStore";
 import { hideLoading, showAlert, showLoading } from "@/store/useOverlayStore";
-import { router, useLocalSearchParams } from "expo-router";
+import { getScreenTitle } from "@/utils/screenUtils";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useColorScheme } from "nativewind";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -42,12 +44,13 @@ export default function AddTransactionScreen() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   // 3. Detección del modo Edición
+  const params = useLocalSearchParams();
   const { id, accountId: presetAccountId } = useLocalSearchParams<{
     id?: string;
     accountId?: string;
   }>();
   const isEditing = !!id;
-
+  const title = getScreenTitle("transactions", "form", params);
   const formatLocalDate = (date: Date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -70,19 +73,9 @@ export default function AddTransactionScreen() {
   const [loading, setLoading] = useState(false);
   const [calendarReady, setCalendarReady] = useState(false);
 
-  const { rawAccounts, categories, cacheLoading } = useFinanceCacheStore(
-    useShallow((s) => ({
-      rawAccounts: s.accounts,
-      categories: s.categories,
-      cacheLoading: s.loading,
-    })),
-  );
+  const { accounts: rawAccounts, loading: accountsLoadingRaw } = useAccounts(userId ?? "");
+  const { categories, loading: categoriesLoadingRaw } = useCategories(userId ?? "");
 
-  // 2. Las funciones siempre se extraen por separado (no cambian, no necesitan shallow)
-  const loadFinanceCache = useFinanceCacheStore((s) => s.load);
-
-  // 3. Memorizamos el filtro y le ponemos el nombre exacto 'accounts'.
-  // Así no tienes que tocar ni una sola línea del resto de tu componente.
   const accounts = useMemo(() => {
     return rawAccounts.filter((a) => a.isActive !== false);
   }, [rawAccounts]);
@@ -246,10 +239,9 @@ export default function AddTransactionScreen() {
   // Solo carga el caché una vez por usuario; luego se actualiza solo vía observe
   useEffect(() => {
     if (!userId) return;
-    loadFinanceCache(userId);
     const t = setTimeout(() => resetBaseline(), 150);
     return () => clearTimeout(t);
-  }, [userId, loadFinanceCache, resetBaseline]);
+  }, [userId, resetBaseline]);
 
   // El calendario es pesado: lo montamos después del primer frame para que la
   // pantalla se vea interactiva de inmediato (los campos críticos se pintan antes).
@@ -439,14 +431,20 @@ export default function AddTransactionScreen() {
   };
 
   // ─── UI ──────────────────────────────────────────────────────────────────────
-  const accountsLoading = cacheLoading && accounts.length === 0;
-  const categoriesLoading = cacheLoading && categories.length === 0;
+  const accountsLoading = accountsLoadingRaw && accounts.length === 0;
+  const categoriesLoading = categoriesLoadingRaw && categories.length === 0;
 
   return (
     <SafeAreaView
       className="flex-1 bg-deep dark:bg-deep-dark"
       edges={["bottom", "left", "right"]}
     >
+      <Stack.Screen
+        options={{
+          title,
+          headerTitleAlign: "center",
+        }}
+      />
       <ScreenBackdrop />
       <KeyboardAvoidingScrollView className="flex-1 px-5 mt-4">
         {/* Tipo */}

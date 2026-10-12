@@ -1,8 +1,8 @@
 import { HapticTab } from "@/components/HapticTab";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import TabBarBackground from "@/components/ui/TabBarBackground";
-import { useColorScheme } from "nativewind";
 import { Tabs } from "expo-router";
+import { useColorScheme } from "nativewind";
 import React from "react";
 import { Platform } from "react-native";
 import "../../global.css";
@@ -15,11 +15,9 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: isDark ? "#58a5ff" : "#2563eb",
         tabBarInactiveTintColor: isDark ? "#97a4bb" : "#8a8278",
-
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
-
         tabBarStyle: Platform.select({
           android: {
             position: "absolute",
@@ -45,6 +43,7 @@ export default function TabLayout() {
         },
       }}
     >
+      {/* ✅ ESTOS SÍ SE QUEDAN (Son tus pestañas reales) */}
       <Tabs.Screen
         name="index"
         options={{
@@ -66,22 +65,6 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="reminders/new"
-        options={{
-          href: null,
-           tabBarStyle: { display: "none" }, // oculta barra al estar en esa pantalla
-        }}
-      />
-
-            <Tabs.Screen
-        name="reminders/[id]"
-        options={{
-          href: null,
-           tabBarStyle: { display: "none" }, // oculta barra al estar en esa pantalla
-        }}
-      />
-
-      <Tabs.Screen
         name="ai"
         options={{
           title: "Asistente",
@@ -89,42 +72,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="sparkles" color={color} />
           ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="accounts/index"
-        options={{
-          href: null,
-        }}
-      />
-
-      <Tabs.Screen
-        name="accounts/new"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="accounts/[id]"
-        options={{
-          href: null,
-        }}
-      />
-
-      <Tabs.Screen
-        name="goals"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" },
-        }}
-      />
-
-      <Tabs.Screen
-        name="transactions"
-        options={{
-          href: null,
-          tabBarStyle: { display: "none" }, // oculta barra al estar en esa pantalla
         }}
       />
 
@@ -151,6 +98,11 @@ export default function TabLayout() {
           ),
         }}
       />
+      {/* 👻 LAS PESTAÑAS "FANTASMA" OCULTAS */}
+      {/* Si tienes archivos de accounts, goals o transactions dentro de (tabs), ocúltalos así: */}
+      <Tabs.Screen name="accounts/index" options={{ href: null }} />
+      <Tabs.Screen name="goals" options={{ href: null }} />
+      <Tabs.Screen name="transactions" options={{ href: null }} />
     </Tabs>
   );
 }

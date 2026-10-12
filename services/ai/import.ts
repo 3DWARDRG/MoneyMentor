@@ -14,7 +14,7 @@
 
 import { Q } from "@nozbe/watermelondb";
 import { database } from "@/database";
-import { createTransactionRecord } from "@/services/transactionBalanceHelpers";
+import { createTransaction } from "@/services/transactionService";
 import { recognizeImageText } from "./ocr";
 import { extractPdfPages, type PdfPage } from "./pdf";
 import { redactSensitiveData } from "./redact";
@@ -391,7 +391,7 @@ export const registerImportedTransactions = async ({
 
   let total = 0;
   for (const item of normalized) {
-    await createTransactionRecord({
+    await createTransaction({
       userId,
       date: item.date,
       amount: item.amount,

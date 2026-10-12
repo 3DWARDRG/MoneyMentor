@@ -1,6 +1,6 @@
 import { database } from "@/database";
 import { MerchantLearning } from "@/database/models/mlMerchantLearning";
-import { Q } from "@nozbe/watermelondb";
+import { Q, Query } from "@nozbe/watermelondb";
 import {
   applyCreate,
   applyUpdate,
@@ -42,18 +42,79 @@ export type MerchantLearningCreateInput = RequiredMerchantLearningFields &
 export type MerchantLearningUpdateInput = Partial<MerchantLearningWritable>;
 
 export class MerchantLearningRepository {
-  static async create(
+  // ── READ (radar)
+  static buildByUserIdQuery(userId: string): Query<MerchantLearning> {
+    return database.collections
+      .get<MerchantLearning>("merchant_learnings")
+      .query(Q.where("user_id", userId));
+  }
+
+  static buildAllQuery(): Query<MerchantLearning> {
+    return database.collections
+      .get<MerchantLearning>("merchant_learnings")
+      .query();
+  }
+
+  static buildByUserAndKeyQuery(
+    userId: string,
+    merchantKey: string
+  ): Query<MerchantLearning> {
+    return database.collections
+      .get<MerchantLearning>("merchant_learnings")
+      .query(Q.where("user_id", userId), Q.where("merchant_key", merchantKey));
+  }
+
+  static buildByUserAndKeysQuery(
+    userId: string,
+    keys: string[]
+  ): Query<MerchantLearning> {
+    return database.collections
+      .get<MerchantLearning>("merchant_learnings")
+      .query(Q.where("user_id", userId), Q.where("merchant_key", Q.oneOf(keys)));
+  }
+
+  // ── READ puntual
+  static async findById(id: string): Promise<MerchantLearning> {
+    return await database.collections
+      .get<MerchantLearning>("merchant_learnings")
+      .find(id);
+  }
+
+  // ── WRITE (empaquetador)
+  static prepareCreate(
     data: MerchantLearningCreateInput
-  ): Promise<MerchantLearning> {
+  ): MerchantLearning {
     assertValidKeys(data, WRITABLE_FIELDS, "MerchantLearningRepository");
     assertRequiredFields(data, REQUIRED_FIELDS, "MerchantLearningRepository");
 
-    return await database.write(async () => {
-      const collection =
-        database.collections.get<MerchantLearning>("merchant_learnings");
-      return await collection.create((merchant) => {
+    return database.collections
+      .get<MerchantLearning>("merchant_learnings")
+      .prepareCreate((merchant) => {
         applyCreate(merchant, data, WRITABLE_FIELDS);
       });
+  }
+
+  static prepareUpdate(
+    record: MerchantLearning,
+    data: MerchantLearningUpdateInput
+  ): MerchantLearning {
+    assertValidKeys(data, WRITABLE_FIELDS, "MerchantLearningRepository");
+
+    return record.prepareUpdate((merchant) => {
+      applyUpdate(merchant, data, WRITABLE_FIELDS);
+    });
+  }
+
+  static prepareDelete(record: MerchantLearning): MerchantLearning {
+    return record.prepareDestroyPermanently();
+  }
+
+  // ── Conveniencia
+  static create(data: MerchantLearningCreateInput): Promise<MerchantLearning> {
+    return database.write(async () => {
+      const record = this.prepareCreate(data);
+      await database.batch(record);
+      return record;
     });
   }
 
@@ -61,42 +122,19 @@ export class MerchantLearningRepository {
     id: string,
     data: MerchantLearningUpdateInput
   ): Promise<MerchantLearning> {
-    assertValidKeys(data, WRITABLE_FIELDS, "MerchantLearningRepository");
-
     return await database.write(async () => {
-      const collection =
-        database.collections.get<MerchantLearning>("merchant_learnings");
-      const merchant = await collection.find(id);
-      return await merchant.update((m) => {
-        applyUpdate(m, data, WRITABLE_FIELDS);
-      });
+      const record = await this.findById(id);
+      const prepared = this.prepareUpdate(record, data);
+      await database.batch(prepared);
+      return prepared;
     });
   }
 
   static async delete(id: string): Promise<void> {
-    return await database.write(async () => {
-      const collection =
-        database.collections.get<MerchantLearning>("merchant_learnings");
-      const merchant = await collection.find(id);
-      await merchant.markAsDeleted();
+    await database.write(async () => {
+      const record = await this.findById(id);
+      const prepared = this.prepareDelete(record);
+      await database.batch(prepared);
     });
-  }
-
-  static async findById(id: string): Promise<MerchantLearning> {
-    const collection =
-      database.collections.get<MerchantLearning>("merchant_learnings");
-    return await collection.find(id);
-  }
-
-  static async findAllByUserId(userId: string): Promise<MerchantLearning[]> {
-    const collection =
-      database.collections.get<MerchantLearning>("merchant_learnings");
-    return await collection.query(Q.where("user_id", userId)).fetch();
-  }
-
-  static async findAll(): Promise<MerchantLearning[]> {
-    const collection =
-      database.collections.get<MerchantLearning>("merchant_learnings");
-    return await collection.query().fetch();
   }
 }

@@ -3,16 +3,15 @@ import "../global.css";
 
 global.Buffer = Buffer;
 
+import ThemeSync from "@/components/ThemeSync";
+import AppOverlay from "@/components/ui/AppOverlay";
+import { resetGlobalSession } from "@/store/resetSession";
+import { useAuthStore } from "@/store/useAuthStore";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { useColorScheme } from "nativewind";
 import { useEffect, useRef } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import ThemeSync from "@/components/ThemeSync";
-import { useColorScheme } from "nativewind";
-import AppOverlay from "@/components/ui/AppOverlay";
-import { useAuthStore } from "@/store/useAuthStore";
-import { useFinanceCacheStore } from "@/store/useFinanceCacheStore";
-import { resetGlobalSession } from "@/store/resetSession";
 
 // 1. Evitamos que la pantalla de inicio desaparezca antes de tiempo
 SplashScreen.preventAutoHideAsync();
@@ -22,24 +21,19 @@ function SessionWatcher() {
 
   const prevUserId = useRef<string | null>(null);
 
-useEffect(() => {
+  useEffect(() => {
     const changed = userId !== prevUserId.current;
     prevUserId.current = userId;
 
     if (!userId) {
       // ✅ Llama al método directamente desde el store, sin pasarlo por el hook
-      resetGlobalSession(); 
+      resetGlobalSession();
       return;
     }
 
     if (changed) {
       resetGlobalSession();
     }
-    
-    // ✅ Llama al load directamente. 
-    // Al hacerlo así, React no lo vigila, matando el bucle infinito al 100%.
-    useFinanceCacheStore.getState().load(userId);
-
   }, [userId]); // 🎯 MÁGIA: Ahora la única dependencia real es el userId
 
   return null;
@@ -59,7 +53,7 @@ export default function RootLayout() {
       fontSize: 17,
       fontWeight: "600" as const,
     },
-    headerShadowVisible: false,
+    headerShadowVisible: true,
   };
   // 2. Ocultamos el Splash Screen nativo en cuanto este componente se monte
   useEffect(() => {
@@ -76,58 +70,15 @@ export default function RootLayout() {
       <ThemeSync />
       <AppOverlay />
       <Stack screenOptions={stackHeaderStyle}>
+        {/* Las pestañas */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
+        {/* Pantallas sueltas sin tabs */}
         <Stack.Screen name="SetupPinScreen" options={{ headerShown: false }} />
         <Stack.Screen name="UnlockScreen" options={{ headerShown: false }} />
         <Stack.Screen
           name="SelectUserScreen"
           options={{ headerShown: false }}
-        />
-
-        <Stack.Screen
-          name="reminders/new"
-          options={{ title: "Nuevo recordatorio", headerTitleAlign: "center" }}
-        />
-
-        <Stack.Screen
-          name="reminders/[id]"
-          options={{ title: "Editar recordatorio", headerTitleAlign: "center" }}
-        />
-
-        <Stack.Screen
-          name="accounts/new"
-          options={{ title: "Nueva Cuenta", headerTitleAlign: "center" }}
-        />
-
-        <Stack.Screen
-          name="accounts/[id]"
-          options={{ title: "Detalle Cuenta", headerTitleAlign: "center" }}
-        />
-
-        <Stack.Screen
-          name="transactions/new"
-          options={({ route }: any) => ({
-            title: route.params?.id
-              ? "Editar transacción"
-              : "Nueva transacción",
-            headerTitleAlign: "center",
-          })}
-        />
-
-        <Stack.Screen
-          name="transactions/[id]"
-          options={{ title: "Detalle transacción", headerTitleAlign: "center" }}
-        />
-
-        <Stack.Screen
-          name="goals/new"
-          options={{ title: "Nueva meta", headerTitleAlign: "center" }}
-        />
-
-        <Stack.Screen
-          name="goals/[id]"
-          options={{ title: "Detalle meta", headerTitleAlign: "center" }}
         />
       </Stack>
     </GestureHandlerRootView>

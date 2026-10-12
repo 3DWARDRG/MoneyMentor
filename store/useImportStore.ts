@@ -4,8 +4,9 @@
 // edición, verificación del usuario y confirmación. Todo vive en memoria
 // (nada se persiste) y el texto del documento jamás se envía a la IA.
 
-import { Q } from "@nozbe/watermelondb";
-import { database } from "@/database";
+import { Category } from "@/database/models/mlCategory";
+import { getAccounts } from "@/services/accountService";
+import { getCategories } from "@/services/categoryService";
 import {
   addSessionCandidate,
   cancelImportSession,
@@ -29,9 +30,8 @@ import {
   learnFromConfirmedItems,
   normalizeMerchant,
   type MerchantLearningRow,
-} from "@/services/merchantLearning";
+} from "@/services/merchantService";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useFinanceCacheStore, type CachedCategory } from "@/store/useFinanceCacheStore";
 import { create } from "zustand";
 
 export type ImportKind = "image" | "pdf";
@@ -83,7 +83,6 @@ interface ImportState {
   sessionId: string | null;
   token: string | null;
   accountId: string | null;
-  accounts: AccountOption[];
   /**
    * Líneas del texto ya redactado agrupadas por página/imagen, para el modo
    * manual de verificación. Cada página se revisa y agrupa por separado.
@@ -136,14 +135,11 @@ export const parseDateText = (text: string): number | null => {
 };
 
 const fetchAccounts = async (userId: string): Promise<AccountOption[]> => {
-  const rows = await database
-    .get("accounts")
-    .query(Q.where("user_id", userId))
-    .fetch();
-  return rows.map((a: any) => ({
-    id: a.id,
-    name: a.name ?? "Cuenta",
-    type: a.type ?? "savings",
+  const rows = await getAccounts(userId);
+  return rows.map((account) => ({
+    id: account.id,
+    name: account.name ?? "Cuenta",
+    type: account.type ?? "savings",
   }));
 };
 
@@ -200,7 +196,7 @@ const normalizeForCategory = (s: string) =>
 const guessCategoryId = (
   description: string,
   type: ParsedTransactionType,
-  categories: CachedCategory[],
+  categories: Category[],
 ): string | null => {
   const desc = normalizeForCategory(description ?? "");
   for (const rule of CATEGORY_KEYWORDS) {
@@ -227,7 +223,7 @@ const applyLearning = (
     categoryId: string | null;
   },
   learning: MerchantLearningRow | undefined,
-  categories: CachedCategory[],
+  categories: Category[],
 ): {
   description: string;
   type: ParsedTransactionType | "transfer";
@@ -272,7 +268,6 @@ const resetState = {
   sessionId: null,
   token: null,
   accountId: null,
-  accounts: [],
   pages: [],
   period: null,
 };
@@ -318,10 +313,8 @@ export const useImportStore = create<ImportState>((set, get) => ({
         return;
       }
 
-      // Categorías desde el caché de finanzas (fuente única). Se asegura de
-      // que esté cargado antes de adivinar la categoría por defecto.
-      await useFinanceCacheStore.getState().load(userId);
-      const categories = useFinanceCacheStore.getState().categories;
+      // Categorías del usuario para adivinar la categoría por defecto.
+      const categories = await getCategories(userId);
 
       // Diccionario aprendido: pre-llenar con lo que el usuario ya asignó a
       // estos comercios en importaciones anteriores (machine learning local).
@@ -418,7 +411,6 @@ export const useImportStore = create<ImportState>((set, get) => ({
         sessionId: result.sessionId,
         token: result.token,
         accountId: accounts[0]?.id ?? null,
-        accounts,
         pages: result.pages,
         period: result.period,
       });
@@ -480,8 +472,8 @@ export const useImportStore = create<ImportState>((set, get) => ({
 
     // Diccionario aprendido: aplica descripción/categoría/tipo ya asignados a
     // este comercio en importaciones anteriores.
-    const categories = useFinanceCacheStore.getState().categories;
     const userId = useAuthStore.getState().userId;
+    const categories = userId ? await getCategories(userId) : [];
     const merchantKey = normalizeMerchant(parsed.description);
     const learning = userId && merchantKey
       ? await getMerchantLearning(userId, merchantKey)
@@ -586,8 +578,8 @@ export const useImportStore = create<ImportState>((set, get) => ({
       // el usuario ya editó (descripción, monto, categoría…); solo cambia la
       // fecha, que es lo que re-parsea el nuevo periodo.
       const previousById = new Map(get().candidates.map((c) => [c.id, c]));
-      const categories = useFinanceCacheStore.getState().categories;
       const userId = useAuthStore.getState().userId;
+      const categories = userId ? await getCategories(userId) : [];
       const merchantKeys = updated.map((c) => normalizeMerchant(c.description));
       const learnings = await getMerchantLearningsByKeys(userId ?? "", merchantKeys);
 
@@ -659,9 +651,9 @@ export const useImportStore = create<ImportState>((set, get) => ({
     set({ saving: true, error: null });
 
     try {
+      const accountOptions = await fetchAccounts(userId);
       const items = selected.map((c) => {
         const isTransfer = c.type === "transfer";
-        const accountOptions = get().accounts;
         let description = c.description.trim();
         let categoryId = c.categoryId ?? null;
 

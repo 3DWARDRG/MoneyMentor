@@ -1,6 +1,6 @@
 import { database } from "@/database";
 import { Category } from "@/database/models/mlCategory";
-import { Q } from "@nozbe/watermelondb";
+import { Q, Query } from "@nozbe/watermelondb";
 import {
   applyCreate,
   applyUpdate,
@@ -26,15 +26,59 @@ export type CategoryCreateInput = RequiredCategoryFields &
 export type CategoryUpdateInput = Partial<CategoryWritable>;
 
 export class CategoryRepository {
-  static async create(data: CategoryCreateInput): Promise<Category> {
+  // Columnas (snake_case) que pueden cambiar y deben re-emitir en observaciones.
+  static readonly OBSERVABLE_COLUMNS: string[] = [
+    "name",
+    "icon_image",
+    "type",
+  ];
+
+  // ── READ (radar)
+  static buildByUserIdQuery(userId: string): Query<Category> {
+    return database.collections
+      .get<Category>("categories")
+      .query(Q.where("user_id", userId));
+  }
+
+  static buildAllQuery(): Query<Category> {
+    return database.collections.get<Category>("categories").query();
+  }
+
+  // ── READ puntual
+  static async findById(id: string): Promise<Category> {
+    return await database.collections.get<Category>("categories").find(id);
+  }
+
+  // ── WRITE (empaquetador)
+  static prepareCreate(data: CategoryCreateInput): Category {
     assertValidKeys(data, WRITABLE_FIELDS, "CategoryRepository");
     assertRequiredFields(data, REQUIRED_FIELDS, "CategoryRepository");
 
-    return await database.write(async () => {
-      const collection = database.collections.get<Category>("categories");
-      return await collection.create((category) => {
+    return database.collections
+      .get<Category>("categories")
+      .prepareCreate((category) => {
         applyCreate(category, data, WRITABLE_FIELDS);
       });
+  }
+
+  static prepareUpdate(record: Category, data: CategoryUpdateInput): Category {
+    assertValidKeys(data, WRITABLE_FIELDS, "CategoryRepository");
+
+    return record.prepareUpdate((category) => {
+      applyUpdate(category, data, WRITABLE_FIELDS);
+    });
+  }
+
+  static prepareDelete(record: Category): Category {
+    return record.prepareDestroyPermanently();
+  }
+
+  // ── Conveniencia
+  static create(data: CategoryCreateInput): Promise<Category> {
+    return database.write(async () => {
+      const record = this.prepareCreate(data);
+      await database.batch(record);
+      return record;
     });
   }
 
@@ -42,37 +86,19 @@ export class CategoryRepository {
     id: string,
     data: CategoryUpdateInput
   ): Promise<Category> {
-    assertValidKeys(data, WRITABLE_FIELDS, "CategoryRepository");
-
     return await database.write(async () => {
-      const collection = database.collections.get<Category>("categories");
-      const category = await collection.find(id);
-      return await category.update((cat) => {
-        applyUpdate(cat, data, WRITABLE_FIELDS);
-      });
+      const record = await this.findById(id);
+      const prepared = this.prepareUpdate(record, data);
+      await database.batch(prepared);
+      return prepared;
     });
   }
 
   static async delete(id: string): Promise<void> {
-    return await database.write(async () => {
-      const collection = database.collections.get<Category>("categories");
-      const category = await collection.find(id);
-      await category.markAsDeleted();
+    await database.write(async () => {
+      const record = await this.findById(id);
+      const prepared = this.prepareDelete(record);
+      await database.batch(prepared);
     });
-  }
-
-  static async findById(id: string): Promise<Category> {
-    const collection = database.collections.get<Category>("categories");
-    return await collection.find(id);
-  }
-
-  static async findAllByUserId(userId: string): Promise<Category[]> {
-    const collection = database.collections.get<Category>("categories");
-    return await collection.query(Q.where("user_id", userId)).fetch();
-  }
-
-  static async findAll(): Promise<Category[]> {
-    const collection = database.collections.get<Category>("categories");
-    return await collection.query().fetch();
   }
 }

@@ -2,7 +2,8 @@
 import CardBackdrop from "@/components/ui/CardBackdrop";
 import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
 import FloatingActionButton from "@/components/FloatingActionButton";
-import { useFinanceCacheStore } from "@/store/useFinanceCacheStore";
+import { useAccountSummary } from "@/hooks/useAccountSummary";
+import { useAccounts } from "@/hooks/useAccounts";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
@@ -17,7 +18,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import PremiumIcon from "@/components/ui/PremiumIcon";
-import { useShallow } from "zustand/react/shallow";
 
 const CREDIT_SUBTYPE_LABELS: Record<string, string> = {
   credit_card: "Tarjeta de crédito",
@@ -28,18 +28,8 @@ const CREDIT_SUBTYPE_LABELS: Record<string, string> = {
 
 export default function AccountsScreen() {
   const userId = useAuthStore((s) => s.userId);
-
-const {
-    accounts,
-    loading,
-    summary,
-  } = useFinanceCacheStore(
-    useShallow((s) => ({
-      accounts: s.accounts,
-      loading: s.loading,
-      summary: s.summary,
-    })));
-
+  const { accounts, loading } = useAccounts(userId ?? "");
+  const summary = useAccountSummary(accounts);
 
   const router = useRouter();
 

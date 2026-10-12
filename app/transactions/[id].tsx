@@ -1,7 +1,8 @@
 import { database } from "@/database";
 import { Transaction } from "@/database/models/mlTransaction";
 import { deleteTransactionRecord } from "@/services/transactionBalanceHelpers";
-import { router, useLocalSearchParams, useNavigation } from "expo-router";
+import { getScreenTitle } from "@/utils/screenUtils";
+import { Stack ,  router, useLocalSearchParams, useNavigation } from "expo-router";
 import React, { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -12,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
 
 // ==========================================
 // 1. COMPONENTE VISUAL (Read-Only)
@@ -143,6 +145,7 @@ export default function TransactionDetailWrapper() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
+  const title= getScreenTitle("transactions","details")
 
   useEffect(() => {
     if (!id) return;
@@ -173,6 +176,12 @@ export default function TransactionDetailWrapper() {
         className="flex-1 items-center justify-center bg-deep dark:bg-deep-dark"
         edges={["bottom", "left", "right"]}
       >
+        <Stack.Screen 
+        options={{ 
+          title,
+          headerTitleAlign: "center"
+        }} 
+      />
         <ActivityIndicator size="large" color="#4b9aff" />
       </SafeAreaView>
     );

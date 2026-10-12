@@ -1,3 +1,4 @@
+import { useUsers } from "@/hooks/useUsers";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Redirect } from "expo-router";
 import { useEffect } from "react";
@@ -9,9 +10,9 @@ export default function IndexGate() {
     isUnlocked,
     userId,
     selectedUserId,
-    users,
     hydrateAuth,
   } = useAuthStore();
+  const users = useUsers();
 
   useEffect(() => {
     hydrateAuth();

@@ -2,10 +2,11 @@ import LogOutButton from "@/components/LogOut";
 import CardBackdrop from "@/components/ui/CardBackdrop";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { database } from "@/database";
+import { useAccountSummary } from "@/hooks/useAccountSummary";
+import { useAccounts } from "@/hooks/useAccounts";
 import { useFinanceData } from "@/hooks/useFinanceData";
 import { useUser } from "@/hooks/useUser";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useFinanceCacheStore } from "@/store/useFinanceCacheStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { router } from "expo-router";
 import React, { useState } from "react";
@@ -86,8 +87,8 @@ const memberSince = (creationDate: number | null | undefined) => {
 const ProfileScreen = () => {
   const userId = useAuthStore((s) => s.userId);
   const { user, loading } = useUser(userId ?? "");
-  // ✅ CORRECTO: Saca la variable directamente, cero objetos nuevos
-  const accountsSummary = useFinanceCacheStore((s) => s.summary);
+  const { accounts } = useAccounts(userId ?? "");
+  const accountsSummary = useAccountSummary(accounts);
   const { transactions } = useFinanceData(userId ?? "");
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);

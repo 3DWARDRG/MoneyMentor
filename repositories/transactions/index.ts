@@ -1,6 +1,6 @@
 import { database } from "@/database";
 import { Transaction } from "@/database/models/mlTransaction";
-import { Q } from "@nozbe/watermelondb";
+import { Q, Query } from "@nozbe/watermelondb";
 import {
   applyCreate,
   applyUpdate,
@@ -47,16 +47,78 @@ export type TransactionCreateInput = RequiredTransactionFields &
 export type TransactionUpdateInput = Partial<TransactionWritable>;
 
 export class TransactionRepository {
-  static async create(data: TransactionCreateInput): Promise<Transaction> {
+  // ── READ (radar)
+  static buildByUserIdQuery(userId: string): Query<Transaction> {
+    return database.collections
+      .get<Transaction>("transactions")
+      .query(Q.where("user_id", userId));
+  }
+
+  static buildAllQuery(): Query<Transaction> {
+    return database.collections.get<Transaction>("transactions").query();
+  }
+
+  static buildByUserAndDateRangeQuery(
+    userId: string,
+    start: number,
+    end: number
+  ): Query<Transaction> {
+    return database.collections
+      .get<Transaction>("transactions")
+      .query(Q.where("user_id", userId), Q.where("date", Q.between(start, end)));
+  }
+
+  static buildRecentByUserIdQuery(
+    userId: string,
+    limit: number
+  ): Query<Transaction> {
+    return database.collections
+      .get<Transaction>("transactions")
+      .query(
+        Q.where("user_id", userId),
+        Q.sortBy("date", Q.desc),
+        Q.take(limit)
+      );
+  }
+
+  // ── READ puntual
+  static async findById(id: string): Promise<Transaction> {
+    return await database.collections.get<Transaction>("transactions").find(id);
+  }
+
+  // ── WRITE (empaquetador)
+  static prepareCreate(data: TransactionCreateInput): Transaction {
     assertValidKeys(data, WRITABLE_FIELDS, "TransactionRepository");
     assertRequiredFields(data, REQUIRED_FIELDS, "TransactionRepository");
 
-    return await database.write(async () => {
-      const collection =
-        database.collections.get<Transaction>("transactions");
-      return await collection.create((transaction) => {
+    return database.collections
+      .get<Transaction>("transactions")
+      .prepareCreate((transaction) => {
         applyCreate(transaction, data, WRITABLE_FIELDS);
       });
+  }
+
+  static prepareUpdate(
+    record: Transaction,
+    data: TransactionUpdateInput
+  ): Transaction {
+    assertValidKeys(data, WRITABLE_FIELDS, "TransactionRepository");
+
+    return record.prepareUpdate((transaction) => {
+      applyUpdate(transaction, data, WRITABLE_FIELDS);
+    });
+  }
+
+  static prepareDelete(record: Transaction): Transaction {
+    return record.prepareDestroyPermanently();
+  }
+
+  // ── Conveniencia
+  static create(data: TransactionCreateInput): Promise<Transaction> {
+    return database.write(async () => {
+      const record = this.prepareCreate(data);
+      await database.batch(record);
+      return record;
     });
   }
 
@@ -64,39 +126,19 @@ export class TransactionRepository {
     id: string,
     data: TransactionUpdateInput
   ): Promise<Transaction> {
-    assertValidKeys(data, WRITABLE_FIELDS, "TransactionRepository");
-
     return await database.write(async () => {
-      const collection =
-        database.collections.get<Transaction>("transactions");
-      const transaction = await collection.find(id);
-      return await transaction.update((tx) => {
-        applyUpdate(tx, data, WRITABLE_FIELDS);
-      });
+      const record = await this.findById(id);
+      const prepared = this.prepareUpdate(record, data);
+      await database.batch(prepared);
+      return prepared;
     });
   }
 
   static async delete(id: string): Promise<void> {
-    return await database.write(async () => {
-      const collection =
-        database.collections.get<Transaction>("transactions");
-      const transaction = await collection.find(id);
-      await transaction.markAsDeleted();
+    await database.write(async () => {
+      const record = await this.findById(id);
+      const prepared = this.prepareDelete(record);
+      await database.batch(prepared);
     });
-  }
-
-  static async findById(id: string): Promise<Transaction> {
-    const collection = database.collections.get<Transaction>("transactions");
-    return await collection.find(id);
-  }
-
-  static async findAllByUserId(userId: string): Promise<Transaction[]> {
-    const collection = database.collections.get<Transaction>("transactions");
-    return await collection.query(Q.where("user_id", userId)).fetch();
-  }
-
-  static async findAll(): Promise<Transaction[]> {
-    const collection = database.collections.get<Transaction>("transactions");
-    return await collection.query().fetch();
   }
 }

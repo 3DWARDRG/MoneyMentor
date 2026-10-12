@@ -1,12 +1,12 @@
+import { useAccountSummary } from "@/hooks/useAccountSummary";
+import { useAccounts } from "@/hooks/useAccounts";
 import { useFinanceData } from "@/hooks/useFinanceData";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useFinanceCacheStore } from "@/store/useFinanceCacheStore";
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
-import { useShallow } from "zustand/react/shallow";
-import type { CachedAccount } from "../store/useFinanceCacheStore";
+import type { Account } from "@/database/models/mlAccount";
 import CardBackdrop from "./ui/CardBackdrop";
 import PremiumIcon from "./ui/PremiumIcon";
 
@@ -43,17 +43,8 @@ const BalanceCard = (props: BalanceCardProps) => {
 
 const BalanceCardCarousel = ({ onAccountChange }: BalanceCardProps) => {
   const userId = useAuthStore((s) => s.userId);
-  const {
-    accounts,
-    loading: accountsLoading,
-    summary: accountsSummary,
-  } = useFinanceCacheStore(
-    useShallow((s) => ({
-      accounts: s.accounts,
-      loading: s.loading,
-      summary: s.summary,
-    })),
-  );
+  const { accounts, loading: accountsLoading } = useAccounts(userId || "");
+  const accountsSummary = useAccountSummary(accounts);
 
   const { summary, loading } = useFinanceData(userId || "");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -153,7 +144,7 @@ const BalanceCardCarousel = ({ onAccountChange }: BalanceCardProps) => {
   );
 };
 
-const AccountCard = ({ account }: { account: CachedAccount }) => {
+const AccountCard = ({ account }: { account: Account }) => {
   const isCredit = account.type === "credit";
   const subtypeLabel =
     CREDIT_SUBTYPE_LABELS[account.creditSubtype ?? ""] ?? "Crédito";

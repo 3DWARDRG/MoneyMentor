@@ -1,6 +1,6 @@
+import { useUsers } from "@/hooks/useUsers";
 import { useAuthStore } from "@/store/useAuthStore";
 import { router } from "expo-router";
-import { useEffect } from "react";
 import {
   FlatList,
   
@@ -13,13 +13,10 @@ import { usePreventBack } from "@/hooks/usePreventBack";
 import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
 
 export default function SelectUserScreen() {
-  const { users, refreshUsers, selectUser, isHydrating } = useAuthStore();
+  const { selectUser, isHydrating } = useAuthStore();
+  const users = useUsers();
 
   usePreventBack();
-
-  useEffect(() => {
-    refreshUsers();
-  }, []);
 
   const handleSelectUser = async (userId: string) => {
     selectUser(userId);
