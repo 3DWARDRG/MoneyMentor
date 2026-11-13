@@ -1,6 +1,7 @@
 import { database } from "@/database";
 import { Transaction } from "@/database/models/mlTransaction";
 import { Q, Query } from "@nozbe/watermelondb";
+import { Observable } from "@nozbe/watermelondb/utils/rx";
 import {
   applyCreate,
   applyUpdate,
@@ -47,6 +48,15 @@ export type TransactionCreateInput = RequiredTransactionFields &
 export type TransactionUpdateInput = Partial<TransactionWritable>;
 
 export class TransactionRepository {
+  // Columnas (snake_case) que pueden cambiar y deben re-emitir en observaciones.
+  static readonly OBSERVABLE_COLUMNS: string[] = [
+    "description",
+    "amount",
+    "date",
+    "type",
+    "category_id",
+  ];
+
   // ── READ (radar)
   static buildByUserIdQuery(userId: string): Query<Transaction> {
     return database.collections
@@ -84,6 +94,13 @@ export class TransactionRepository {
   // ── READ puntual
   static async findById(id: string): Promise<Transaction> {
     return await database.collections.get<Transaction>("transactions").find(id);
+  }
+
+  // ── READ reactivo de un registro (reacciona a TODOS sus campos)
+  static observeById(id: string): Observable<Transaction> {
+    return database.collections
+      .get<Transaction>("transactions")
+      .findAndObserve(id);
   }
 
   // ── WRITE (empaquetador)

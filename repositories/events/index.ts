@@ -1,6 +1,7 @@
 import { database } from "@/database";
 import { Event } from "@/database/models/mlEvent";
 import { Q, Query } from "@nozbe/watermelondb";
+import { Observable } from "@nozbe/watermelondb/utils/rx";
 import {
   applyCreate,
   applyUpdate,
@@ -48,6 +49,18 @@ export type EventCreateInput = RequiredEventFields & OptionalEventFields;
 export type EventUpdateInput = Partial<EventWritable>;
 
 export class EventRepository {
+  // Columnas (snake_case) que pueden cambiar y deben re-emitir en observaciones.
+  static readonly OBSERVABLE_COLUMNS: string[] = [
+    "title",
+    "amount",
+    "start_date",
+    "end_date",
+    "category",
+    "status",
+    "recurrence",
+    "description",
+  ];
+
   // ── READ (radar)
   static buildByUserIdQuery(userId: string): Query<Event> {
     return database.collections
@@ -74,9 +87,24 @@ export class EventRepository {
       );
   }
 
+  static buildPendingByUserIdQuery(userId: string): Query<Event> {
+    return database.collections
+      .get<Event>("events")
+      .query(
+        Q.where("user_id", userId),
+        Q.where("status", "pending"),
+        Q.sortBy("start_date", Q.asc)
+      );
+  }
+
   // ── READ puntual
   static async findById(id: string): Promise<Event> {
     return await database.collections.get<Event>("events").find(id);
+  }
+
+  // ── READ reactivo de un registro (reacciona a TODOS sus campos)
+  static observeById(id: string): Observable<Event> {
+    return database.collections.get<Event>("events").findAndObserve(id);
   }
 
   // ── WRITE (empaquetador)

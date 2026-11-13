@@ -1,6 +1,7 @@
 import { database } from "@/database";
 import { FinancialGoal } from "@/database/models/mlFinancialGoal";
 import { Q, Query } from "@nozbe/watermelondb";
+import { Observable } from "@nozbe/watermelondb/utils/rx";
 import {
   applyCreate,
   applyUpdate,
@@ -44,6 +45,16 @@ export type FinancialGoalCreateInput = RequiredFinancialGoalFields &
 export type FinancialGoalUpdateInput = Partial<FinancialGoalWritable>;
 
 export class FinancialGoalRepository {
+  // Columnas (snake_case) que pueden cambiar y deben re-emitir en observaciones.
+  static readonly OBSERVABLE_COLUMNS: string[] = [
+    "title",
+    "amount",
+    "saved_amount",
+    "progress",
+    "deadline",
+    "description",
+  ];
+
   // ── READ (radar)
   static buildByUserIdQuery(userId: string): Query<FinancialGoal> {
     return database.collections
@@ -60,6 +71,13 @@ export class FinancialGoalRepository {
     return await database.collections
       .get<FinancialGoal>("financial_goals")
       .find(id);
+  }
+
+  // ── READ reactivo de un registro (reacciona a TODOS sus campos)
+  static observeById(id: string): Observable<FinancialGoal> {
+    return database.collections
+      .get<FinancialGoal>("financial_goals")
+      .findAndObserve(id);
   }
 
   // ── WRITE (empaquetador)

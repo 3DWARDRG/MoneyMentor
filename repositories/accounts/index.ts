@@ -1,6 +1,7 @@
 import { database } from "@/database";
 import { Account } from "@/database/models/mlAccount";
 import { Q, Query } from "@nozbe/watermelondb";
+import { Observable } from "@nozbe/watermelondb/utils/rx";
 import {
   applyCreate,
   applyUpdate,
@@ -80,6 +81,11 @@ export class AccountRepository {
   // ── READ puntual: leer un registro para luego preparar una escritura
   static async findById(id: string): Promise<Account> {
     return await database.collections.get<Account>("accounts").find(id);
+  }
+
+  // ── READ reactivo de un registro (reacciona a TODOS sus campos)
+  static observeById(id: string): Observable<Account> {
+    return database.collections.get<Account>("accounts").findAndObserve(id);
   }
 
   // ── WRITE (empaquetador): síncronos, devuelven el record preparado
