@@ -1,47 +1,51 @@
-// Fallback for using MaterialIcons on Android and web.
+// Importamos los íconos que necesitas (buscamos los equivalentes más cercanos)
+import {
+  AlarmClock,
+  ArrowRight,
+  Bot,
+  Code,
+  Home,
+  Send,
+  Shield,
+  Sparkles,
+  TrendingUp,
+  User,
+  UserRound,
+} from "lucide-react-native";
+import React from "react";
+import { OpaqueColorValue, StyleProp, TextStyle } from "react-native";
 
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { SymbolWeight, SymbolViewProps } from 'expo-symbols';
-import { ComponentProps } from 'react';
-import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
-
-type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
-type IconSymbolName = keyof typeof MAPPING;
-
-/**
- * Add your SF Symbols to Material Icons mappings here.
- * - see Material Icons in the [Icons Directory](https://icons.expo.fyi).
- * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
- */
+// 1. Nuestro diccionario ahora mapea nombres a COMPONENTES
 const MAPPING = {
-  'house.fill': 'home',
-  'paperplane.fill': 'send',
-  'chevron.left.forwardslash.chevron.right': 'code',
-  'alarm': 'access-alarm',
-  'person': 'person',
-  'chart.line.uptrend.xyaxis': 'auto-graph',
-  'shield': 'security',
-  'person.circle': 'person-pin',
-  'arrow.right': 'arrow-right'
+  "house.fill": Home,
+  "paperplane.fill": Send,
+  "chevron.left.forwardslash.chevron.right": Code,
+  alarm: AlarmClock,
+  person: User,
+  "chart.line.uptrend.xyaxis": TrendingUp,
+  shield: Shield,
+  "person.circle": UserRound,
+  "arrow.right": ArrowRight,
+  sparkles: Sparkles,
+  bot: Bot,
+} as const;
 
-} as IconMapping;
+export type IconSymbolName = keyof typeof MAPPING;
 
-/**
- * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.
- * This ensures a consistent look across platforms, and optimal resource usage.
- * Icon `name`s are based on SF Symbols and require manual mapping to Material Icons.
- */
 export function IconSymbol({
   name,
   size = 24,
   color,
-  style,
 }: {
   name: IconSymbolName;
   size?: number;
   color: string | OpaqueColorValue;
-  style?: StyleProp<TextStyle>;
-  weight?: SymbolWeight;
+  style?: StyleProp<TextStyle>; // Lo dejamos por compatibilidad de tipos
 }) {
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  // 2. Extraemos el componente de Lucide del diccionario
+  const IconComponent = MAPPING[name];
+
+  // 3. Renderizamos el ícono directamente
+  // Importante: Aseguramos que color sea un string plano
+  return <IconComponent size={size} color={color.toString()} />;
 }

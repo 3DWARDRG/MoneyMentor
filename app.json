@@ -4,6 +4,10 @@
     "slug": "Moneymentor",
     "version": "1.0.0",
     "orientation": "portrait",
+    "locales": {
+      "es": "./languages/es.json",
+      "en": "./languages/en.json"
+    },
     "icon": "./assets/images/icon.png",
     "scheme": "moneymentor",
     "userInterfaceStyle": "automatic",
@@ -16,7 +20,6 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
       "package": "com.edwardrg.moneymentor"
     },
     "web": {
@@ -36,6 +39,19 @@
         }
       ],
       "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "MoneyMentor usa tus imágenes para leer movimientos bancarios localmente en tu dispositivo.",
+          "cameraPermission": "MoneyMentor usa la cámara para capturar extractos bancarios. Las imágenes nunca salen de tu dispositivo."
+        }
+      ],
+      [
+        "expo-document-picker",
+        {
+          "applePasteFromSheet": false
+        }
+      ],
       "expo-font",
       [
         "@lovesworking/watermelondb-expo-plugin-sdk-52-plus"

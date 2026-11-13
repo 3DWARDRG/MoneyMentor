@@ -1,42 +1,79 @@
-import React from 'react';
-import { View, Text } from 'react-native';
-import ExpenseBar from './ExpenseBar';
+import { useCategories } from "@/hooks/useCategories";
+import { useAuthStore } from "@/store/useAuthStore";
+import React, { useMemo } from "react";
+import { Text, View } from "react-native";
+import {
+  buildExpenseChartOption,
+  type TopEntry,
+} from "./charts/echartsOptions";
+import EChartsWebView from "./charts/EChartsWebView";
 
-const expenseData = [
-  { label: 'Comida', color: 'bg-blue-500', height: 60, value: '$540' },
-  { label: 'Trans.', color: 'bg-green-500', height: 40, value: '$360' },
-  { label: 'Hogar', color: 'bg-purple-500', height: 75, value: '$675' },
-  { label: 'Ocio', color: 'bg-amber-500', height: 25, value: '$225' },
-  { label: 'Salud', color: 'bg-red-500', height: 50, value: '$450' },
-  { label: 'Otros', color: 'bg-indigo-500', height: 30, value: '$270' },
-];
+interface Props {
+  expenseByCategory: Record<string, number>;
+  loading: boolean;
+  categoryMap?: Record<string, { name: string; icon: string }>;
+  typeTransaction: string;
+}
 
-const ExpenseChart: React.FC = () => {
+const MAX_BARS = 6;
+const CHART_HEIGHT = 324;
+
+const ExpenseChart = ({ expenseByCategory, typeTransaction, loading }: Props) => {
+  const userId = useAuthStore((s) => s.userId);
+  const { categories } = useCategories(userId || "");
+
+  const categoryMap = useMemo(() => {
+    const map: Record<string, { name: string; icon: string }> = {};
+    for (const c of categories) {
+      map[c.id] = { name: c.name, icon: c.iconImage || "📁" };
+    }
+    return map;
+  }, [categories]);
+
+  const entries = useMemo(
+    () => Object.entries(expenseByCategory).sort(([, a], [, b]) => b - a),
+    [expenseByCategory],
+  );
+
+  const topEntries = useMemo<TopEntry[]>(
+    () =>
+      entries.slice(0, MAX_BARS).map(([id, value]) => ({
+        id,
+        name: categoryMap[id]?.name ?? "Otro",
+        value,
+      })),
+    [entries, categoryMap],
+  );
+
+  const option = useMemo(
+    () => buildExpenseChartOption(topEntries, typeTransaction),
+    [topEntries, typeTransaction],
+  );
+
+  if (loading) {
+    return (
+      <View className="bg-slate-900/60 border border-white/10 rounded-2xl p-4 mb-5">
+        <Text className="text-slate-300 text-center py-4">Cargando...</Text>
+      </View>
+    );
+  }
+
+  if (topEntries.length === 0) {
+    return (
+      <View className="bg-slate-900/60 border border-white/10 rounded-2xl p-4 mb-5">
+        <Text className="font-bold text-base mb-2 text-slate-100">{`${typeTransaction} por categoría`}</Text>
+        <Text className="text-slate-400 text-center py-4">
+          {`No hay ${typeTransaction} en este período`}
+        </Text>
+      </View>
+    );
+  }
+
   return (
-    <View className="bg-white rounded-xl p-5 mb-5 shadow-sm">
-      <View className="flex-row justify-between items-center mb-4">
-        <Text className="font-bold text-base">Gastos por categoría</Text>
-      </View>
+    <View className="bg-slate-900/60 border border-white/10 rounded-2xl p-4 mb-5">
+      <Text className="font-bold text-base mb-2 text-slate-100">{`${typeTransaction} por categoría`}</Text>
 
-      <View className="flex-row items-end h-40 space-x-2 mb-4">
-        {expenseData.map((item) => (
-          <ExpenseBar
-            key={item.label}
-            color={item.color}
-            heightPercentage={item.height}
-            label={item.label}
-          />
-        ))}
-      </View>
-
-      <View className="flex-row flex-wrap justify-between gap-y-2">
-        {expenseData.map((item) => (
-          <View key={item.label} className="flex-row items-center w-[48%]">
-            <View className={`w-3 h-3 ${item.color} rounded-full mr-2`} />
-            <Text className="text-xs">{`${item.label}: ${item.value}`}</Text>
-          </View>
-        ))}
-      </View>
+      <EChartsWebView option={option} height={CHART_HEIGHT} />
     </View>
   );
 };

@@ -1,3 +1,4 @@
+import { useUsers } from "@/hooks/useUsers";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Redirect } from "expo-router";
 import { useEffect } from "react";
@@ -9,9 +10,9 @@ export default function IndexGate() {
     isUnlocked,
     userId,
     selectedUserId,
-    users,
     hydrateAuth,
   } = useAuthStore();
+  const users = useUsers();
 
   useEffect(() => {
     hydrateAuth();
@@ -20,15 +21,10 @@ export default function IndexGate() {
   if (isHydrating) {
     return (
       <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "white",
-        }}
+        className="flex-1 bg-black justify-items-center"
       >
         <ActivityIndicator size="large" />
-        <Text style={{ marginTop: 12 }}>Cargando MoneyMentor...</Text>
+        <Text className="text-black" style={{ marginTop: 12 }}>Cargando MoneyMentor...</Text>
       </View>
     );
   }

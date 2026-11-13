@@ -1,5 +1,10 @@
 import { Model } from "@nozbe/watermelondb";
-import { children, field, relation } from "@nozbe/watermelondb/decorators";
+import {
+  children,
+  field,
+  relation,
+  text,
+} from "@nozbe/watermelondb/decorators";
 
 export class Account extends Model {
   static table = "accounts";
@@ -10,18 +15,29 @@ export class Account extends Model {
   } as const;
 
   @field("user_id") userId!: string;
-  @field("name") name!: string;
-  @field("icon_image") iconImage!: string;
+
+  @text("name") name!: string;
+  @text("icon_image") iconImage!: string;
 
   @field("balance") balance!: number | null;
-  @field("type") type!: string | null;
-  @field("institution") institution!: string | null;
-  @field("currency") currency!: string | null;
+  @text("type") type!: string | null;
+  @text("institution") institution!: string | null;
+  @text("currency") currency!: string | null;
   @field("is_active") isActive!: boolean | null;
+
   @field("credit_limit") creditLimit!: number | null;
   @field("interest_rate") interestRate!: number | null;
   @field("payment_due_day") paymentDueDay!: number | null;
-  @field("closing_day") closingDay!: number | null;
+  @field("statement_closing_day") statementClosingDay!: number | null;
+  @field("apr_annual") aprAnnual!: number | null;
+  @field("apr_monthly") aprMonthly!: number | null;
+
+  @text("card_last4") cardLast4!: string | null;
+  @text("credit_subtype") creditSubtype!: string | null;
+
+  @field("maintenance_fee_amount") maintenanceFeeAmount!: number | null;
+  @text("maintenance_fee_frequency")
+  maintenanceFeeFrequency!: "monthly" | "annual" | "quarterly" | null;
 
   @relation("users", "user_id") user: any;
   @children("transactions") transactions!: any;

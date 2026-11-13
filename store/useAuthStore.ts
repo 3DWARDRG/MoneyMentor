@@ -1,25 +1,18 @@
-import { database } from "@/database";
-import { ensureDefaultCategoriesForUser } from "@/utils/ensureDefaultCategories";
+import { ensureDefaultCategoriesForUser } from "@/services/categoryService";
+import * as userService from "@/services/userService";
 import * as LocalAuthentication from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
+import * as Crypto from "expo-crypto";
 import { create } from "zustand";
 
-type LocalUser = {
-  id: string;
-  names: string;
-  lastName?: string;
-  email?: string;
-};
 
 interface AuthState {
   isUnlocked: boolean;
   isHydrating: boolean;
   userId: string | null;
   selectedUserId: string | null;
-  users: LocalUser[];
 
   hydrateAuth: () => Promise<void>;
-  refreshUsers: () => Promise<void>;
   selectUser: (userId: string) => void;
 
   createLocalUser: (data: {
@@ -38,23 +31,25 @@ interface AuthState {
 
 const pinKey = (userId: string) => `pin_${userId}`;
 
+const hashPin = (userId: string, pin: string): Promise<string> =>
+  Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    `${userId}:${pin}`
+  );
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   isUnlocked: false,
   isHydrating: true,
   userId: null,
   selectedUserId: null,
-  users: [],
 
   hydrateAuth: async () => {
     try {
       set({ isHydrating: true });
-      await get().refreshUsers();
-
       const lastSelectedUserId =
         await SecureStore.getItemAsync("lastSelectedUserId");
-
       if (lastSelectedUserId) {
-        const exists = get().users.some((u) => u.id === lastSelectedUserId);
+        const exists = await userService.getUserById(lastSelectedUserId);
         if (exists) {
           set({ selectedUserId: lastSelectedUserId });
         }
@@ -63,26 +58,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.error("❌ Error en hydrateAuth:", error);
     } finally {
       set({ isHydrating: false });
-    }
-  },
-
-  refreshUsers: async () => {
-    try {
-      const usersCollection = database.get("users");
-      const rows = await usersCollection.query().fetch();
-
-      const users: LocalUser[] = rows.map((u: any) => ({
-        id: u.id,
-        names: u.names ?? "Usuario",
-        lastName: u.lastName ?? "",
-        email: u.email ?? "",
-      }));
-
-      set({ users });
-      console.log("👥 Usuarios locales:", users.length);
-    } catch (error) {
-      console.error("❌ Error refrescando usuarios:", error);
-      set({ users: [] });
     }
   },
 
@@ -96,32 +71,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   createLocalUser: async ({ names, lastName = "", email = "" }) => {
     try {
-      const usersCollection = database.get("users");
-      let createdId: string | null = null;
+      const user = await userService.createLocalUser({ names, lastName, email });
 
-      await database.write(async () => {
-        const newUser = await usersCollection.create((record: any) => {
-          record.names = names;
-          record.last_name = lastName;
-          record.email = email || `local_${Date.now()}@moneymentor.local`;
-          record.password = "";
-          record.confirm_email = true;
-          record.creation_date = Date.now();
-          record.last_access = Date.now();
-        });
+      set({ selectedUserId: user.id });
+      await SecureStore.setItemAsync("lastSelectedUserId", user.id);
+      console.log("✅ Usuario local creado:", user.id);
 
-        createdId = newUser.id;
-      });
-
-      await get().refreshUsers();
-
-      if (createdId) {
-        set({ selectedUserId: createdId });
-        await SecureStore.setItemAsync("lastSelectedUserId", createdId);
-        console.log("✅ Usuario local creado:", createdId);
-      }
-
-      return createdId;
+      return user.id;
     } catch (error) {
       console.error("❌ Error creando usuario local:", error);
       return null;
@@ -133,7 +89,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { selectedUserId } = get();
       if (!selectedUserId) return false;
 
-      await SecureStore.setItemAsync(pinKey(selectedUserId), pin);
+      await SecureStore.setItemAsync(pinKey(selectedUserId), await hashPin(selectedUserId, pin));
       await SecureStore.setItemAsync("lastSelectedUserId", selectedUserId);
 
       await ensureDefaultCategoriesForUser(selectedUserId); // ← aquí
@@ -150,17 +106,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   verifyPinForSelectedUser: async (pin: string) => {
     try {
-      const { selectedUserId, users } = get();
+      const { selectedUserId } = get();
       if (!selectedUserId) return false;
 
-      const exists = users.some((u) => u.id === selectedUserId);
+      const exists = await userService.getUserById(selectedUserId);
       if (!exists) {
         console.log("⚠️ El usuario seleccionado ya no existe");
         return false;
       }
 
       const storedPin = await SecureStore.getItemAsync(pinKey(selectedUserId));
-      if (storedPin !== pin) return false;
+      if (storedPin !== (await hashPin(selectedUserId, pin))) return false;
 
       await SecureStore.setItemAsync("lastSelectedUserId", selectedUserId);
       await ensureDefaultCategoriesForUser(selectedUserId);
@@ -179,10 +135,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   authenticateBiometricsForSelectedUser: async () => {
     try {
-      const { selectedUserId, users } = get();
+      const { selectedUserId } = get();
       if (!selectedUserId) return false;
 
-      const exists = users.some((u) => u.id === selectedUserId);
+      const exists = await userService.getUserById(selectedUserId);
       if (!exists) return false;
 
       const hasHardware = await LocalAuthentication.hasHardwareAsync();

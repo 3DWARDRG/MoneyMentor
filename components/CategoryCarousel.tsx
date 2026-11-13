@@ -10,6 +10,7 @@ import Animated, {
     withTiming,
 } from "react-native-reanimated";
 import Carousel, { ICarouselInstance } from "react-native-reanimated-carousel";
+import PremiumIcon from "./ui/PremiumIcon";
 
 const { width: PAGE_WIDTH } = Dimensions.get("window");
 const ITEM_SIZE = 80;
@@ -47,7 +48,7 @@ export default function CategoryCarousel({
   if (categories.length === 0) {
     return (
       <View className="p-4">
-        <Text className="text-center text-gray-500">No hay categorías</Text>
+        <Text className="text-center text-muted dark:text-muted-dark">No hay categorías</Text>
       </View>
     );
   }
@@ -58,7 +59,7 @@ export default function CategoryCarousel({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "white",
+        backgroundColor: "#07101e",
         height: 100,
       }}
     >
@@ -126,7 +127,7 @@ const AnimatedItem: React.FC<ItemProps> = ({
     const color = interpolateColor(
       animationValue.value,
       [-1, 0, 1],
-      ["#888888", "#002a57", "#888888"],
+      ["#97a4bb", "#4b9aff", "#97a4bb"],
     );
     return {
       transform: [{ scale }, { translateY: translateY.value }],
@@ -158,18 +159,18 @@ const AnimatedItem: React.FC<ItemProps> = ({
             justifyContent: "center",
             borderRadius: 50,
             borderWidth: 2,
-            borderColor: isActive ? "#002a57" : "#cccccc",
-            backgroundColor: "#f9f9f9",
+            borderColor: isActive ? "#4b9aff" : "rgba(255,255,255,0.1)",
+            backgroundColor: "#0c1324",
           },
           containerStyle,
         ]}
       >
+        <PremiumIcon token={text} size={28} fallback="📁" textColor="#97a4bb" />
         <Animated.Text
-          style={[{ fontSize: 14, fontWeight: "bold" }, labelStyle]}
+          style={[{ fontSize: 11, fontWeight: "bold" }, labelStyle]}
         >
           {label}
         </Animated.Text>
-        <Text style={{ fontSize: 10, color: "#555" }}>{text}</Text>
       </Animated.View>
     </Pressable>
   );

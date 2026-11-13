@@ -14,7 +14,7 @@ const ExpenseBar = ({ color, heightPercentage, label }: ExpenseBarProps) => {
         className={`w-full rounded-t-md ${color}`}
         style={{ height: `${heightPercentage}%` }}
       />
-      <Text className="text-xs mt-1">{label}</Text>
+      <Text className="text-xs mt-1 text-muted dark:text-muted-dark">{label}</Text>
     </View>
   );
 };

@@ -34,11 +34,11 @@ export default function SocialButton({ provider }: Props) {
   );
 
   return (
-<TouchableOpacity className="flex-row max-h-14 p-3 px-2 border border-gray-300 rounded-lg bg-white min-w-50 flex-1 justify-center items-center">
+<TouchableOpacity className="flex-row max-h-14 p-3 px-2 border border-black/10 dark:border-white/10 rounded-lg bg-deepSoft dark:bg-deepSoft-dark min-w-50 flex-1 justify-center items-center">
   <View className="min-w-3 h-5 ">
   {icon}
   </View>
-  <Text className="ml-2 text-sm font-medium text-gray-500 p-0 m-0 ">
+  <Text className="ml-2 text-sm font-medium text-muted dark:text-muted-dark p-0 m-0 ">
     {provider}
   </Text>
 </TouchableOpacity>
