@@ -28,9 +28,9 @@ import {
   getMerchantLearning,
   getMerchantLearningsByKeys,
   learnFromConfirmedItems,
-  normalizeMerchant,
   type MerchantLearningRow,
 } from "@/services/merchantService";
+import { normalizeMerchant } from "@/utils/merchantNormalizer";
 import { useAuthStore } from "@/store/useAuthStore";
 import { create } from "zustand";
 
