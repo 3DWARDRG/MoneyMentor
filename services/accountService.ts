@@ -1,5 +1,9 @@
 import { Account } from "@/database/models/mlAccount";
-import { AccountRepository } from "@/repositories/accounts";
+import {
+  AccountCreateInput,
+  AccountRepository,
+  AccountUpdateInput,
+} from "@/repositories/accounts";
 
 export interface AccountSummaryData {
   totalBalance: number;
@@ -35,6 +39,32 @@ export async function getAccountSummary(
 /** Lista de cuentas del usuario (lectura one-shot para código no-React). */
 export async function getAccounts(userId: string): Promise<Account[]> {
   return await AccountRepository.buildByUserIdQuery(userId).fetch();
+}
+
+/** Lee una cuenta por id; devuelve null si no existe. */
+export async function getAccountById(id: string): Promise<Account | null> {
+  try {
+    return await AccountRepository.findById(id);
+  } catch {
+    return null;
+  }
+}
+
+export async function createAccount(
+  data: AccountCreateInput
+): Promise<Account> {
+  return await AccountRepository.create(data);
+}
+
+export async function updateAccount(
+  id: string,
+  data: AccountUpdateInput
+): Promise<Account> {
+  return await AccountRepository.update(id, data);
+}
+
+export async function deleteAccount(id: string): Promise<void> {
+  await AccountRepository.delete(id);
 }
 
 /** ¿Es una tarjeta de crédito? (el signo del balance se invierte) */

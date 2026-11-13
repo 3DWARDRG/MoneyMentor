@@ -137,11 +137,16 @@ export async function prepareCreateTransaction(
   input: CreateTransactionInput
 ): Promise<PreparedTransaction> {
   const sourceAccount = await AccountRepository.findById(input.accountId);
+
+  const isOwnTransfer =
+    input.type === "transfer" && input.transferTarget === "own";
+  const destinationAccountId = isOwnTransfer
+    ? input.destinationAccountId
+    : null;
+
   const destinationAccount =
-    input.type === "transfer" &&
-    input.transferTarget === "own" &&
-    input.destinationAccountId
-      ? await AccountRepository.findById(input.destinationAccountId)
+    isOwnTransfer && destinationAccountId
+      ? await AccountRepository.findById(destinationAccountId)
       : null;
 
   const balanceUpdates = prepareBalanceUpdates(
@@ -161,7 +166,7 @@ export async function prepareCreateTransaction(
       (input.type === "transfer" ? "Transferencia interna" : "Sin descripción"),
     type: input.type,
     accountId: input.accountId,
-    destinationAccountId: input.destinationAccountId,
+    destinationAccountId,
     categoryId: input.categoryId,
     goalId: input.goalId ?? null,
     transferTarget: input.transferTarget,
@@ -227,11 +232,16 @@ export async function updateTransaction({
   const nextSource = nextValues.accountId
     ? await AccountRepository.findById(nextValues.accountId)
     : null;
+
+  const isNextOwnTransfer =
+    nextValues.type === "transfer" && nextValues.transferTarget === "own";
+  const nextDestinationAccountId = isNextOwnTransfer
+    ? nextValues.destinationAccountId
+    : null;
+
   const nextDestination =
-    nextValues.type === "transfer" &&
-    nextValues.transferTarget === "own" &&
-    nextValues.destinationAccountId
-      ? await AccountRepository.findById(nextValues.destinationAccountId)
+    isNextOwnTransfer && nextDestinationAccountId
+      ? await AccountRepository.findById(nextDestinationAccountId)
       : null;
 
   const applyChanges = computeBalanceChanges({
@@ -250,7 +260,7 @@ export async function updateTransaction({
     description: nextValues.description.trim() || "Sin descripción",
     date: nextValues.date,
     accountId: nextValues.accountId,
-    destinationAccountId: nextValues.destinationAccountId,
+    destinationAccountId: nextDestinationAccountId,
     categoryId: nextValues.categoryId,
     transferTarget: nextValues.transferTarget,
     installmentsTotal: nextValues.installmentsTotal,
@@ -288,6 +298,17 @@ export async function deleteTransaction(transactionId: string): Promise<void> {
   const preparedDelete = TransactionRepository.prepareDelete(transaction);
 
   await runBatch(preparedDelete, ...accountUpdates);
+}
+
+/** Lee una transacción por id; devuelve null si no existe. */
+export async function getTransactionById(
+  id: string
+): Promise<Transaction | null> {
+  try {
+    return await TransactionRepository.findById(id);
+  } catch {
+    return null;
+  }
 }
 
 // ---------------------------------------------------------------------------

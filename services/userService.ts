@@ -17,10 +17,15 @@ export async function createLocalUser(
 ): Promise<User> {
   const { names, lastName = "", email = "" } = input;
 
+  const cleanNames = names.trim();
+  if (!cleanNames) {
+    throw new Error("El nombre es obligatorio");
+  }
+
   return await UserRepository.create({
-    names,
-    lastName,
-    email: email || `local_${Date.now()}@moneymentor.local`,
+    names: cleanNames,
+    lastName: lastName.trim(),
+    email: email.trim() || `local_${Date.now()}@moneymentor.local`,
     password: "",
     confirmEmail: true,
     creationDate: Date.now(),
@@ -35,4 +40,27 @@ export async function getUserById(userId: string): Promise<User | null> {
   } catch {
     return null;
   }
+}
+
+export interface UpdateUserProfileInput {
+  names: string;
+  lastName: string;
+  email: string;
+}
+
+/** Actualiza el perfil del usuario (trim + email de respaldo). */
+export async function updateUserProfile(
+  userId: string,
+  input: UpdateUserProfileInput
+): Promise<User> {
+  const cleanNames = input.names.trim();
+  if (!cleanNames) {
+    throw new Error("El nombre es obligatorio");
+  }
+
+  return await UserRepository.update(userId, {
+    names: cleanNames,
+    lastName: input.lastName.trim(),
+    email: input.email.trim() || `local_${Date.now()}@moneymentor.local`,
+  });
 }

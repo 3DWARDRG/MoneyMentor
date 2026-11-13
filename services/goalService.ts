@@ -1,4 +1,5 @@
 import { runBatch } from "@/database/batch";
+import { FinancialGoal } from "@/database/models/mlFinancialGoal";
 import { FinancialGoalRepository } from "@/repositories/financialGoals";
 import { ensureAhorroCategory } from "@/services/categoryService";
 import { prepareCreateTransaction } from "@/services/transactionService";
@@ -23,6 +24,69 @@ export async function getGoals(userId: string): Promise<GoalRow[]> {
     progress: goal.progress ?? 0,
     deadline: goal.deadline ?? null,
   }));
+}
+
+/** Lee una meta por id; devuelve null si no existe. */
+export async function getGoalById(
+  goalId: string
+): Promise<FinancialGoal | null> {
+  try {
+    return await FinancialGoalRepository.findById(goalId);
+  } catch {
+    return null;
+  }
+}
+
+export interface CreateGoalInput {
+  userId: string;
+  title: string;
+  description: string;
+  amount: number;
+  deadline: number;
+}
+
+export async function createGoal(input: CreateGoalInput): Promise<FinancialGoal> {
+  return await FinancialGoalRepository.create({
+    userId: input.userId,
+    title: input.title.trim(),
+    description: input.description.trim(),
+    amount: input.amount,
+    deadline: input.deadline,
+    creationDate: Date.now(),
+    progress: 0,
+    savedAmount: 0,
+  });
+}
+
+export interface UpdateGoalInput {
+  title: string;
+  description: string;
+  amount: number;
+  deadline: number;
+}
+
+export async function updateGoal(
+  goalId: string,
+  input: UpdateGoalInput
+): Promise<FinancialGoal> {
+  const goal = await FinancialGoalRepository.findById(goalId);
+  const savedAmount = Number(goal.savedAmount ?? 0);
+  const progress = Math.min(
+    100,
+    Math.round((savedAmount / (input.amount || 1)) * 100)
+  );
+
+  return await FinancialGoalRepository.update(goalId, {
+    title: input.title.trim(),
+    description: input.description.trim(),
+    amount: input.amount,
+    deadline: input.deadline,
+    progress,
+  });
+}
+
+export async function deleteGoal(goalId: string): Promise<void> {
+  await FinancialGoalRepository.delete(goalId);
 }
 
 export interface CreateGoalContributionInput {

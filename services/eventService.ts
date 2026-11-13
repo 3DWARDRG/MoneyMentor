@@ -6,7 +6,16 @@ import { NotificationRepository } from "@/repositories/notifications";
 import {
   cancelScheduledNotification,
   scheduleEventNotification,
-} from "@/services/notifications";
+} from "@/services/pushNotifications";
+
+/** Lee un evento por id; devuelve null si no existe. */
+export async function getEventById(eventId: string): Promise<Event | null> {
+  try {
+    return await EventRepository.findById(eventId);
+  } catch {
+    return null;
+  }
+}
 
 export interface CreateEventInput {
   userId: string;
@@ -129,6 +138,31 @@ export async function deleteEvent(eventId: string): Promise<void> {
   }
 
   const prepared: Model[] = [EventRepository.prepareDelete(event)];
+  if (notification) {
+    prepared.push(NotificationRepository.prepareDelete(notification));
+  }
+
+  await runBatch(...prepared);
+}
+
+/**
+ * Marca el evento como pagado: cancela la alarma del OS y borra su notificación
+ * (consistente con deleteEvent). Los writes de DB van juntos.
+ */
+export async function markEventAsPaid(eventId: string): Promise<void> {
+  const event = await EventRepository.findById(eventId);
+  const notifications = await NotificationRepository.buildByEventIdQuery(
+    eventId
+  ).fetch();
+  const notification = notifications[0] ?? null;
+
+  if (notification?.expoNotificationId) {
+    await cancelScheduledNotification(notification.expoNotificationId);
+  }
+
+  const prepared: Model[] = [
+    EventRepository.prepareUpdate(event, { status: "paid" }),
+  ];
   if (notification) {
     prepared.push(NotificationRepository.prepareDelete(notification));
   }

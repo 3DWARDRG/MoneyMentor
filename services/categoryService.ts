@@ -43,7 +43,7 @@ export async function getCategoriesMap(
   for (const category of categories) {
     map[category.id] = {
       name: category.name,
-      icon: category.iconImage ?? "📁",
+      icon: category.iconImage || "📁",
     };
   }
   return map;
