@@ -4,7 +4,7 @@ import ExpenseChart from "@/components/ExpenseChart";
 import IncomeVsExpense from "@/components/IncomeVsExpense";
 import MonthlyOverview from "@/components/MonthlyOverview";
 import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
-import { database } from "@/database";
+import { useCategories } from "@/hooks/useCategories";
 import {
   getDateRange,
   useStatisticsData,
@@ -17,18 +17,9 @@ import {
   TRANSACTIONS_ES,
   transactionsTypesES,
 } from "@/utils/translateDataDropdowns";
-import { Q } from "@nozbe/watermelondb";
-import { useFocusEffect } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-interface CategoryOption {
-  id: string;
-  name: string;
-  icon: string;
-  type: string;
-}
 
 const formatRange = (start: number, end: number) => {
   const fmt = (d: Date) =>
@@ -51,7 +42,7 @@ export default function Statistics() {
     useState<TypeTransactions>("income");
   const [categoryId, setCategoryId] = useState<string>("");
   const [pickerVisible, setPickerVisible] = useState(false);
-  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const { categories } = useCategories(userId ?? "");
 
   const { start, end } = useMemo(
     () => customRange ?? getDateRange(period),
@@ -70,27 +61,6 @@ export default function Statistics() {
     end,
     transactionsType,
     categoryId || undefined,
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      const load = async () => {
-        if (!userId) return;
-        const cats = await database
-          .get("categories")
-          .query(Q.where("user_id", userId))
-          .fetch();
-        setCategories(
-          cats.map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            icon: c.iconImage ?? "📁",
-            type: c.type,
-          })),
-        );
-      };
-      load();
-    }, [userId]),
   );
 
   const categoryOptions = useMemo<DropdownOption<string>[]>(

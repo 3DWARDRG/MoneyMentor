@@ -1,7 +1,11 @@
-import { database } from "@/database";
 import { Account } from "@/database/models/mlAccount"; // 1. Agregado el modelo
 import { useConfirmLeave } from "@/hooks/useConfirmLeave";
 import { useDirtyState } from "@/hooks/useDirtyState";
+import {
+  createAccount,
+  getAccountById,
+  updateAccount,
+} from "@/services/accountService";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useFocusEffect } from "@react-navigation/native";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
@@ -195,7 +199,8 @@ export default function NewAccountScreen() {
     const loadAccount = async () => {
       if (isEditing && id) {
         try {
-          const record = await database.get<Account>("accounts").find(id);
+          const record = await getAccountById(id);
+          if (!record) throw new Error("Cuenta no encontrada");
           setAccount(record);
 
           setName(record.name ?? "");
@@ -311,43 +316,29 @@ export default function NewAccountScreen() {
     setLoading(true);
 
     try {
-      const accountsCollection = database.get<Account>("accounts");
+      const data = {
+        name: name.trim(),
+        iconImage: iconImage || selectedType?.icon || "savings",
+        balance: parsedBalance,
+        type,
+        creditSubtype: isCreditType ? creditSubtype : null,
+        institution: institution.trim() || null,
+        currency,
+        isActive,
+        creditLimit: isCreditCard ? parsedCreditLimit : null,
+        interestRate: null,
+        paymentDueDay: isCreditCard ? parsedPaymentDueDay : null,
+        statementClosingDay: isCreditCard ? parsedStatementClosingDay : null,
+        aprAnnual: isCreditCard ? parsedAprAnnual : null,
+        aprMonthly: isCreditCard ? parsedAprMonthly : null,
+        cardLast4: isCreditCard && cardLast4.trim() ? cardLast4.trim() : null,
+      };
 
-      await database.write(async () => {
-        // Centralizamos la inyección de datos para no repetirlos
-        const populateRecord = (record: any) => {
-          record.name = name.trim();
-          record.iconImage = iconImage || selectedType?.icon || "savings";
-          record.balance = parsedBalance;
-          record.type = type;
-          record.creditSubtype = isCreditType ? creditSubtype : null;
-          record.institution = institution.trim() || null;
-          record.currency = currency;
-          record.isActive = isActive;
-
-          record.creditLimit = isCreditCard ? parsedCreditLimit : null;
-          record.interestRate = null;
-          record.paymentDueDay = isCreditCard ? parsedPaymentDueDay : null;
-          record.statementClosingDay = isCreditCard
-            ? parsedStatementClosingDay
-            : null;
-          record.aprAnnual = isCreditCard ? parsedAprAnnual : null;
-          record.aprMonthly = isCreditCard ? parsedAprMonthly : null;
-          record.cardLast4 =
-            isCreditCard && cardLast4.trim() ? cardLast4.trim() : null;
-        };
-
-        if (isEditing && account) {
-          // ACTUALIZAR CUENTA EXISTENTE
-          await account.update(populateRecord);
-        } else {
-          // CREAR CUENTA NUEVA
-          await accountsCollection.create((record: any) => {
-            record.userId = userId;
-            populateRecord(record);
-          });
-        }
-      });
+      if (isEditing && account) {
+        await updateAccount(account.id, data);
+      } else {
+        await createAccount({ userId: userId!, ...data });
+      }
 
       allowLeave();
       router.back();

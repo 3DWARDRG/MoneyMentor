@@ -1,10 +1,18 @@
-import { database } from "@/database";
+import PremiumIcon from "@/components/ui/PremiumIcon";
 import { Account } from "@/database/models/mlAccount";
-import {withObservables} from "@nozbe/watermelondb/react";
+import { useAccount } from "@/hooks/useAccount";
+import { deleteAccount } from "@/services/accountService";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import React, { useCallback, useLayoutEffect } from "react";
-import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import PremiumIcon from "@/components/ui/PremiumIcon";
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // Diccionarios para mostrar los nombres bonitos en lugar de "savings" o "credit_card"
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
@@ -16,52 +24,18 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
 
 interface AccountDetailProps {
   account: Account;
+  onDelete: () => void;
 }
 
-const AccountDetailScreen = ({ account }: AccountDetailProps) => {
-  const navigation = useNavigation();
-
-  // Acción: Navegar al formulario dual pasándole el ID
-  const handleEdit = useCallback(() => {
-    router.push({ pathname: "/accounts/new", params: { id: account.id } });
-  }, [account]);
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerLeft: () => (
-        <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
-          <Text className="text-accent dark:text-accent-dark font-medium">Cerrar</Text>
-        </TouchableOpacity>
-      ),
-      headerRight: () => (
-        <TouchableOpacity onPress={handleEdit} hitSlop={8}>
-          <Text className="text-accent dark:text-accent-dark font-medium">Editar</Text>
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation, handleEdit]);
-
-  // Acción: Eliminar la cuenta
+const AccountDetailScreen = ({ account, onDelete }: AccountDetailProps) => {
+  // Acción: confirmar y eliminar la cuenta
   const handleDelete = () => {
     Alert.alert(
       "Eliminar Cuenta",
       "¿Estás seguro? Esta acción no se puede deshacer.",
       [
         { text: "Cancelar", style: "cancel" },
-        {
-          text: "Eliminar",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await database.write(async () => {
-                await account.markAsDeleted(); // O destroyPermanently()
-              });
-              router.back();
-            } catch (error) {
-              Alert.alert("Error", "No se pudo eliminar la cuenta.");
-            }
-          },
-        },
+        { text: "Eliminar", style: "destructive", onPress: onDelete },
       ],
     );
   };
@@ -124,24 +98,57 @@ const AccountDetailScreen = ({ account }: AccountDetailProps) => {
             Eliminar Cuenta
           </Text>
         </TouchableOpacity>
-
       </ScrollView>
     </View>
   );
 };
 
-// MAGIA REACTIVA: Si editas en 'new.tsx' y vuelves aquí, los datos se actualizan solos
-const enhance = withObservables(["id"], ({ id }: { id: string }) => ({
-  account: database.collections.get<Account>("accounts").findAndObserve(id),
-}));
-
-const EnhancedAccountDetailScreen = enhance(AccountDetailScreen);
-
-// Wrapper para extraer el ID de la URL
+// Wrapper: lee el id, observa la cuenta y configura el header reactivo
 export default function AccountDetailWrapper() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const navigation = useNavigation();
+  const { account, loading } = useAccount(id);
+
+  const handleEdit = useCallback(() => {
+    if (account) {
+      router.push({ pathname: "/accounts/new", params: { id: account.id } });
+    }
+  }, [account]);
+
+  const handleDelete = useCallback(async () => {
+    if (!account) return;
+    try {
+      await deleteAccount(account.id);
+      router.back();
+    } catch {
+      Alert.alert("Error", "No se pudo eliminar la cuenta.");
+    }
+  }, [account]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
+          <Text className="text-accent dark:text-accent-dark font-medium">Cerrar</Text>
+        </TouchableOpacity>
+      ),
+      headerRight: () => (
+        <TouchableOpacity onPress={handleEdit} hitSlop={8}>
+          <Text className="text-accent dark:text-accent-dark font-medium">Editar</Text>
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, handleEdit]);
 
   if (!id) return null;
 
-  return <EnhancedAccountDetailScreen id={id} />;
+  if (loading || !account) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-deep dark:bg-deep-dark">
+        <ActivityIndicator size="large" color="#4b9aff" />
+      </SafeAreaView>
+    );
+  }
+
+  return <AccountDetailScreen account={account} onDelete={handleDelete} />;
 }

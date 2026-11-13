@@ -1,8 +1,8 @@
-// hooks/useGoals.ts
-import { database } from "@/database";
+import { useMemo } from "react";
+import { of } from "@nozbe/watermelondb/utils/rx";
 import { FinancialGoal } from "@/database/models/mlFinancialGoal";
-import { Q } from "@nozbe/watermelondb";
-import { useEffect, useState } from "react";
+import { useStreamState } from "@/hooks/useStream";
+import { FinancialGoalRepository } from "@/repositories/financialGoals";
 
 interface GoalsSummary {
   totalGoals: number;
@@ -10,59 +10,35 @@ interface GoalsSummary {
   completedGoals: number;
 }
 
+/** Lista reactiva de metas del usuario + resumen derivado. */
 export const useGoals = (userId: string) => {
-  const [goals, setGoals] = useState<FinancialGoal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState<GoalsSummary>({
-    totalGoals: 0,
-    totalAmount: 0,
-    completedGoals: 0,
-  });
+  const { data, loading } = useStreamState<FinancialGoal[]>(
+    () =>
+      userId
+        ? FinancialGoalRepository.buildByUserIdQuery(userId).observeWithColumns(
+            FinancialGoalRepository.OBSERVABLE_COLUMNS
+          )
+        : of<FinancialGoal[]>([]),
+    [],
+    [userId]
+  );
 
-  useEffect(() => {
-    console.log("🔑 useGoals userId:", userId);
+  const goals = useMemo(
+    () => [...data].sort((a, b) => b.creationDate - a.creationDate),
+    [data]
+  );
 
-    if (!userId) {
-      setLoading(false);
-      return;
+  const summary = useMemo<GoalsSummary>(() => {
+    let totalAmount = 0;
+    let completedGoals = 0;
+
+    for (const goal of goals) {
+      totalAmount += goal.amount || 0;
+      if (goal.progress === 100) completedGoals += 1;
     }
 
-    setLoading(true);
-
-    const subscription = database
-      .get<FinancialGoal>("financial_goals")
-      .query(Q.where("user_id", userId))
-      .observe()
-      .subscribe({
-        next: (all) => {
-          console.log("📡 useGoals observe emitió:", all.length, "metas");
-
-          const sorted = [...all].sort((a, b) => b.creationDate - a.creationDate);
-
-          const totalAmount = sorted.reduce(
-            (sum, goal) => sum + (goal.amount || 0),
-            0,
-          );
-          const completedGoals = sorted.filter(
-            (goal) => goal.progress === 100,
-          ).length;
-
-          setGoals(sorted);
-          setSummary({
-            totalGoals: sorted.length,
-            totalAmount,
-            completedGoals,
-          });
-          setLoading(false);
-        },
-        error: (err) => {
-          console.error("❌ useGoals observe error:", err);
-          setLoading(false);
-        },
-      });
-
-    return () => subscription.unsubscribe();
-  }, [userId]);
+    return { totalGoals: goals.length, totalAmount, completedGoals };
+  }, [goals]);
 
   return { goals, loading, summary };
 };

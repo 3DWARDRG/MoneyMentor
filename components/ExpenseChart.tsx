@@ -1,12 +1,10 @@
-import { database } from "@/database";
-import { useFinanceData } from "@/hooks/useFinanceData";
+import { useCategories } from "@/hooks/useCategories";
 import { useAuthStore } from "@/store/useAuthStore";
-import { Q } from "@nozbe/watermelondb";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Text, View } from "react-native";
 import {
   buildExpenseChartOption,
-  type TopEntry
+  type TopEntry,
 } from "./charts/echartsOptions";
 import EChartsWebView from "./charts/EChartsWebView";
 
@@ -20,45 +18,17 @@ interface Props {
 const MAX_BARS = 6;
 const CHART_HEIGHT = 324;
 
-const ExpenseChart = ({ expenseByCategory, typeTransaction }: Props) => {
+const ExpenseChart = ({ expenseByCategory, typeTransaction, loading }: Props) => {
   const userId = useAuthStore((s) => s.userId);
-  const { loading } = useFinanceData(userId || "");
+  const { categories } = useCategories(userId || "");
 
-  const [categoryMap, setCategoryMap] = useState<
-    Record<string, { name: string; icon: string }>
-  >({});
-
-  useEffect(() => {
-    const loadCategoryMap = async () => {
-      if (!userId) {
-        setCategoryMap({});
-        return;
-      }
-
-      try {
-        const catsCollection = database.get("categories");
-        const cats = await catsCollection
-          .query(Q.where("user_id", userId))
-          .fetch();
-
-        const map: Record<string, { name: string; icon: string }> = {};
-
-        cats.forEach((c: any) => {
-          map[c.id] = {
-            name: c.name,
-            icon: c.iconImage || "📁",
-          };
-        });
-
-        setCategoryMap(map);
-      } catch (error) {
-        console.error("❌ Error cargando categoryMap:", error);
-        setCategoryMap({});
-      }
-    };
-
-    loadCategoryMap();
-  }, [userId]);
+  const categoryMap = useMemo(() => {
+    const map: Record<string, { name: string; icon: string }> = {};
+    for (const c of categories) {
+      map[c.id] = { name: c.name, icon: c.iconImage || "📁" };
+    }
+    return map;
+  }, [categories]);
 
   const entries = useMemo(
     () => Object.entries(expenseByCategory).sort(([, a], [, b]) => b - a),

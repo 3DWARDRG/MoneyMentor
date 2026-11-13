@@ -1,11 +1,11 @@
 import LogOutButton from "@/components/LogOut";
 import CardBackdrop from "@/components/ui/CardBackdrop";
 import { IconSymbol } from "@/components/ui/IconSymbol";
-import { database } from "@/database";
 import { useAccountSummary } from "@/hooks/useAccountSummary";
 import { useAccounts } from "@/hooks/useAccounts";
-import { useFinanceData } from "@/hooks/useFinanceData";
+import { useTransactions } from "@/hooks/useTransactions";
 import { useUser } from "@/hooks/useUser";
+import { updateUserProfile } from "@/services/userService";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { router } from "expo-router";
@@ -89,7 +89,7 @@ const ProfileScreen = () => {
   const { user, loading } = useUser(userId ?? "");
   const { accounts } = useAccounts(userId ?? "");
   const accountsSummary = useAccountSummary(accounts);
-  const { transactions } = useFinanceData(userId ?? "");
+  const { transactions } = useTransactions(userId ?? "");
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
 
@@ -116,14 +116,7 @@ const ProfileScreen = () => {
 
     setSaving(true);
     try {
-      await database.write(async () => {
-        await user.update((record) => {
-          record.names = names.trim();
-          record.lastName = lastName.trim();
-          record.email =
-            email.trim() || `local_${Date.now()}@moneymentor.local`;
-        });
-      });
+      await updateUserProfile(user.id, { names, lastName, email });
       setEditVisible(false);
       Alert.alert("Listo", "Tus datos se actualizaron correctamente.");
     } catch (error) {

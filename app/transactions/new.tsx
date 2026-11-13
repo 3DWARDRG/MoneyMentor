@@ -1,14 +1,13 @@
 import KeyboardAvoidingScrollView from "@/components/KeyboardAvoidingScrollView";
 import PremiumIcon from "@/components/ui/PremiumIcon";
 import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
-import { database } from "@/database";
-import { Transaction } from "@/database/models/mlTransaction"; // <-- 1. Importar el modelo
 import { useConfirmLeave } from "@/hooks/useConfirmLeave";
 import { useDirtyState } from "@/hooks/useDirtyState";
 import {
-  createTransactionRecord,
-  updateTransactionRecord, // <-- 2. Importar la función de actualización
-} from "@/services/transactionBalanceHelpers";
+  createTransaction,
+  getTransactionById,
+  updateTransaction,
+} from "@/services/transactionService";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -151,7 +150,8 @@ export default function AddTransactionScreen() {
     const loadTransaction = async () => {
       if (isEditing && id) {
         try {
-          const tx = await database.get<Transaction>("transactions").find(id);
+          const tx = await getTransactionById(id);
+          if (!tx) throw new Error("Transacción no encontrada");
 
           setTransactionType(tx.type as TxType);
           setAmountRaw(formatCOP(String(tx.amount)));
@@ -364,7 +364,7 @@ export default function AddTransactionScreen() {
     try {
       if (isEditing && id) {
         // 5. Lógica de ACTUALIZACIÓN
-        await updateTransactionRecord({
+        await updateTransaction({
           transactionId: id,
           nextValues: {
             type: transactionType!,
@@ -386,7 +386,7 @@ export default function AddTransactionScreen() {
         });
       } else {
         // 6. Lógica original de CREACIÓN
-        await createTransactionRecord({
+        await createTransaction({
           userId: userId!,
           date: dateTimestamp,
           amount: numericAmount,

@@ -1,6 +1,7 @@
 import { useAccountSummary } from "@/hooks/useAccountSummary";
 import { useAccounts } from "@/hooks/useAccounts";
-import { useFinanceData } from "@/hooks/useFinanceData";
+import { useTransactions } from "@/hooks/useTransactions";
+import { useTransactionsSummary } from "@/hooks/useTransactionsSummary";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
@@ -46,7 +47,8 @@ const BalanceCardCarousel = ({ onAccountChange }: BalanceCardProps) => {
   const { accounts, loading: accountsLoading } = useAccounts(userId || "");
   const accountsSummary = useAccountSummary(accounts);
 
-  const { summary, loading } = useFinanceData(userId || "");
+  const { transactions, loading } = useTransactions(userId || "");
+  const summary = useTransactionsSummary(transactions);
   const [activeIndex, setActiveIndex] = useState(0);
   const [carouselWidth, setCarouselWidth] = useState(0);
   const router = useRouter();

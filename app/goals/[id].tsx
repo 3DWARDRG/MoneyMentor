@@ -1,14 +1,13 @@
 import PremiumIcon from "@/components/ui/PremiumIcon";
-import { database } from "@/database";
-import { Account } from "@/database/models/mlAccount";
 import { FinancialGoal } from "@/database/models/mlFinancialGoal";
-import { createGoalContribution } from "@/services/goalHelpers";
+import { useAccounts } from "@/hooks/useAccounts";
+import { useGoal } from "@/hooks/useGoal";
+import { createGoalContribution, deleteGoal } from "@/services/goalService";
 import { useAuthStore } from "@/store/useAuthStore";
-import { Q } from "@nozbe/watermelondb";
-import { withObservables } from "@nozbe/watermelondb/react";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
-import React, { useCallback, useLayoutEffect, useState } from "react";
+import React, { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Keyboard,
   Modal,
@@ -52,7 +51,14 @@ const GoalDetailScreen = ({ goal }: GoalDetailProps) => {
 
   const [contributionVisible, setContributionVisible] = useState(false);
   const [amountRaw, setAmountRaw] = useState("");
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const { accounts: allAccounts } = useAccounts(userId ?? "");
+  const accounts = useMemo(
+    () =>
+      allAccounts
+        .filter((acc) => acc.isActive !== false)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [allAccounts]
+  );
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
     null,
   );
@@ -77,24 +83,10 @@ const GoalDetailScreen = ({ goal }: GoalDetailProps) => {
     return numeric.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   }, []);
 
-  const openContributionModal = async () => {
+  const openContributionModal = () => {
     setAmountRaw("");
-    setSelectedAccountId(null);
+    setSelectedAccountId(accounts[0]?.id ?? null);
     setContributionVisible(true);
-
-    if (!userId) return;
-
-    try {
-      const accCollection = database.get<Account>("accounts");
-      const all = await accCollection.query(Q.where("user_id", userId)).fetch();
-      const active = all
-        .filter((acc) => acc.isActive !== false)
-        .sort((a, b) => a.name.localeCompare(b.name));
-      setAccounts(active);
-      if (active.length > 0) setSelectedAccountId(active[0].id);
-    } catch (error) {
-      console.error("❌ Error cargando cuentas para aporte:", error);
-    }
   };
 
   const handleContribute = async () => {
@@ -164,12 +156,7 @@ const GoalDetailScreen = ({ goal }: GoalDetailProps) => {
         style: "destructive",
         onPress: async () => {
           try {
-            await database.write(async () => {
-              const record = await database
-                .get<FinancialGoal>("financial_goals")
-                .find(goal.id);
-              await record.destroyPermanently();
-            });
+            await deleteGoal(goal.id);
             router.back();
           } catch (error: any) {
             Alert.alert("Error", error.message || "No se pudo eliminar");
@@ -378,18 +365,19 @@ const GoalDetailScreen = ({ goal }: GoalDetailProps) => {
   );
 };
 
-const enhance = withObservables(["id"], ({ id }: { id: string }) => ({
-  goal: database.collections
-    .get<FinancialGoal>("financial_goals")
-    .findAndObserve(id),
-}));
-
-const EnhancedGoalDetail = enhance(GoalDetailScreen);
-
 export default function GoalDetailWrapper() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { goal, loading } = useGoal(id);
 
   if (!id) return null;
 
-  return <EnhancedGoalDetail id={id} />;
+  if (loading || !goal) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-deep dark:bg-deep-dark">
+        <ActivityIndicator size="large" color="#4b9aff" />
+      </SafeAreaView>
+    );
+  }
+
+  return <GoalDetailScreen goal={goal} />;
 }

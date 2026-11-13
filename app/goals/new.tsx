@@ -1,7 +1,6 @@
-import { database } from "@/database";
-import { FinancialGoal } from "@/database/models/mlFinancialGoal";
 import { useConfirmLeave } from "@/hooks/useConfirmLeave";
 import { useDirtyState } from "@/hooks/useDirtyState";
+import { createGoal, getGoalById, updateGoal } from "@/services/goalService";
 import { useAuthStore } from "@/store/useAuthStore";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -77,9 +76,8 @@ export default function GoalFormScreen() {
     const loadGoal = async () => {
       if (isEditing && id) {
         try {
-          const goal = await database
-            .get<FinancialGoal>("financial_goals")
-            .find(id);
+          const goal = await getGoalById(id);
+          if (!goal) throw new Error("Meta no encontrada");
 
           setTitle(goal.title ?? "");
           setDescription(goal.description ?? "");
@@ -133,65 +131,23 @@ export default function GoalFormScreen() {
     setLoading(true);
 
     try {
-      await database.write(async () => {
-        if (isEditing && id) {
-          const goal = await database
-            .get<FinancialGoal>("financial_goals")
-            .find(id);
-          const savedAmount = Number(goal.savedAmount ?? 0);
-          const recomputedProgress = Math.min(
-            100,
-            Math.round((savedAmount / (numericAmount || 1)) * 100),
-          );
-          await goal.update((record: any) => {
-            record.title = title.trim();
-            record.description = description.trim();
-            record.amount = numericAmount;
-            record.deadline = localDateStringToTimestamp(deadline);
-            record.progress = recomputedProgress;
-          });
-          console.log("✅ Meta ACTUALIZADA:", goal.id, "| userId:", goal.userId);
-        } else {
-          const created = await database
-            .get<FinancialGoal>("financial_goals")
-            .create((record: any) => {
-              record.userId = activeUserId;
-              record.title = title.trim();
-              record.description = description.trim();
-              record.amount = numericAmount;
-              record.deadline = localDateStringToTimestamp(deadline);
-              record.creationDate = Date.now();
-              record.progress = 0;
-            });
-          console.log(
-            "✅ Meta CREADA:",
-            created.id,
-            "| userId accessor:",
-            created.userId,
-            "| raw:",
-            (created as any)._raw?.user_id,
-            "| título:",
-            created.title,
-          );
+      if (isEditing && id) {
+        await updateGoal(id, {
+          title,
+          description,
+          amount: numericAmount,
+          deadline: localDateStringToTimestamp(deadline),
+        });
+      } else {
+        await createGoal({
+          userId: activeUserId!,
+          title,
+          description,
+          amount: numericAmount,
+          deadline: localDateStringToTimestamp(deadline),
+        });
+      }
 
-          const allGoals = await database
-            .get<FinancialGoal>("financial_goals")
-            .query()
-            .fetch();
-          console.log(
-            "🔍 DUMP metas en DB:",
-            allGoals.length,
-            allGoals.map((g) => ({
-              id: g.id,
-              userId: g.userId,
-              raw: (g as any)._raw?.user_id,
-              title: g.title,
-            })),
-          );
-        }
-      });
-
-      console.log("💾 Save finalizado. Volviendo atrás...");
       allowLeave();
       router.back();
     } catch (error: any) {

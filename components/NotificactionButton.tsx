@@ -1,4 +1,4 @@
-import { requestPushPermissions } from "@/services/notifications"; // La función que acabas de hacer
+import { requestPushPermissions } from "@/services/pushNotifications";
 import { useSettingsStore } from "@/store/useSettingsStore"; // Ajusta tu ruta
 import * as Notifications from "expo-notifications";
 import React, { useEffect, useState } from "react";

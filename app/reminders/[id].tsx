@@ -1,12 +1,16 @@
 // app/(tabs)/reminders/[id].tsx
-import { database } from "@/database";
 import { Event } from "@/database/models/mlEvent";
-import { deleteExpenseEvent } from "@/services/eventsHelper";
-
-import { withObservables } from '@nozbe/watermelondb/react'
+import { useEvent } from "@/hooks/useEvent";
+import { deleteEvent, markEventAsPaid } from "@/services/eventService";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import React, { useCallback, useLayoutEffect } from "react";
-import { Alert, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 interface EventDetailProps {
   event: Event;
@@ -49,7 +53,7 @@ const EventDetailScreen = ({ event }: EventDetailProps) => {
           style: "destructive",
           onPress: async () => {
             try {
-              await deleteExpenseEvent(event.id);
+              await deleteEvent(event.id);
               router.push("/reminders");
             } catch (error) {
               Alert.alert("Error", "No se pudo eliminar.");
@@ -63,13 +67,7 @@ const EventDetailScreen = ({ event }: EventDetailProps) => {
   // Función rápida para marcar como pagado (Actualiza la DB directamente)
   const handleMarkAsPaid = async () => {
     try {
-      await database.write(async () => {
-        await event.update((e) => {
-          e.status = "paid";
-        });
-      });
-      // Si quieres, aquí también puedes llamar a Expo para cancelar la alarma
-      // ya que el gasto ya fue pagado.
+      await markEventAsPaid(event.id);
       Alert.alert("¡Pagado!", "Has marcado este gasto como completado.", [
         { text: "Genial", onPress: () =>  router.push("/reminders") },
       ]);
@@ -119,16 +117,20 @@ const EventDetailScreen = ({ event }: EventDetailProps) => {
   );
 };
 
-// Conectamos a WatermelonDB para que sea reactivo a los cambios (ej. si volvemos de la pantalla de edición)
-const enhance = withObservables(["id"], ({ id }: { id: string }) => ({
-  event: database.collections.get<Event>("events").findAndObserve(id),
-}));
-
-const EnhancedDetailScreen = enhance(EventDetailScreen);
-
-// Wrapper para capturar el ID de la URL y evitar errores
+// Wrapper: captura el ID y observa el evento
 export default function DetailScreenWrapper() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { event, loading } = useEvent(id);
+
   if (!id) return null;
-  return <EnhancedDetailScreen id={id} />;
+
+  if (loading || !event) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-deep dark:bg-deep-dark">
+        <ActivityIndicator size="large" color="#4b9aff" />
+      </SafeAreaView>
+    );
+  }
+
+  return <EventDetailScreen event={event} />;
 }

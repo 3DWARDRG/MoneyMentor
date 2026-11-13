@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useFinanceData } from "./useFinanceData";
+import { useTransactions } from "./useTransactions";
 
 export const PERIODS = ["Mensual", "Trimestral", "Anual"] as const;
 export type Period = (typeof PERIODS)[number];
@@ -51,7 +51,7 @@ export const useStatisticsData = (
   TransactionType: TypeTransactions,
   categoryId?: string,
 ) => {
-  const { transactions, loading } = useFinanceData(userId);
+  const { transactions, loading } = useTransactions(userId);
 
   const filtered = useMemo(
     () => transactions.filter((tx) => tx.date >= start && tx.date <= end),

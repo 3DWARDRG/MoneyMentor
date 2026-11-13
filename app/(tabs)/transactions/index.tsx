@@ -1,25 +1,15 @@
 import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
-import { database } from "@/database";
+import { useTransactions } from "@/hooks/useTransactions";
 import { useAuthStore } from "@/store/useAuthStore";
-import { Q } from "@nozbe/watermelondb";
-import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
-import { useCallback, useState } from "react";
 import { FlatList, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-type TransactionItem = {
-  id: string;
-  description: string;
-  amount: number;
-  date: number;
-  type: "income" | "expense" | "transfer";
-};
+type TxType = "income" | "expense" | "transfer";
 
 export default function TransactionsIndexScreen() {
   const userId = useAuthStore((s) => s.userId);
-  const [transactions, setTransactions] = useState<TransactionItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { transactions, loading } = useTransactions(userId ?? "");
 
   const formatCurrency = (amount: number) =>
     `$ ${Number(amount ?? 0).toLocaleString("es-CO")}`;
@@ -33,46 +23,13 @@ export default function TransactionsIndexScreen() {
     });
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      const loadTransactions = async () => {
-        if (!userId) return;
-
-        try {
-          setLoading(true);
-
-          const txCollection = database.get("transactions");
-          const records = await txCollection
-            .query(Q.where("user_id", userId), Q.sortBy("date", Q.desc))
-            .fetch();
-
-          const formatted: TransactionItem[] = records.map((tx: any) => ({
-            id: tx.id,
-            description: tx.description ?? "Sin descripción",
-            amount: tx.amount ?? 0,
-            date: tx.date,
-            type: tx.type,
-          }));
-
-          setTransactions(formatted);
-        } catch (error) {
-          console.error("Error cargando transacciones:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      loadTransactions();
-    }, [userId]),
-  );
-
-  const getTypeLabel = (type: TransactionItem["type"]) => {
+  const getTypeLabel = (type: TxType) => {
     if (type === "income") return "Ingreso";
     if (type === "expense") return "Gasto";
     return "Transferencia";
   };
 
-  const getAmountColor = (type: TransactionItem["type"]) => {
+  const getAmountColor = (type: TxType) => {
     if (type === "income") return "text-income dark:text-income-dark";
     if (type === "expense") return "text-expense dark:text-expense-dark";
     return "text-accent dark:text-accent-dark";

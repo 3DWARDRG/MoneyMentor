@@ -1,39 +1,12 @@
-import { database } from "@/database";
-import { Event } from "@/database/models/mlEvent";
+import { useEvents } from "@/hooks/useEvents";
 import { useAuthStore } from "@/store/useAuthStore";
-import { Q } from "@nozbe/watermelondb";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { FlatList, Text, View } from "react-native";
 import ReminderItem2 from "./ReminderItem2";
 
 export default function RemindersList() {
   const userId = useAuthStore((s) => s.userId);
-  const [events, setEvents] = useState<Event[]>([]);
-
-  useEffect(() => {
-    if (!userId) {
-      setEvents([]);
-      return;
-    }
-
-    const subscription = database.collections
-      .get<Event>("events")
-      .query(
-        Q.where("user_id", userId),
-        Q.where("status", "pending"),
-        Q.sortBy("start_date", Q.asc),
-      )
-      .observe()
-      .subscribe({
-        next: (rows) => setEvents(rows),
-        error: (error) => {
-          console.error("❌ Error observando recordatorios:", error);
-          setEvents([]);
-        },
-      });
-
-    return () => subscription.unsubscribe();
-  }, [userId]);
+  const { events } = useEvents(userId ?? "");
 
   return (
     <View className="flex-1 w-full p-6">

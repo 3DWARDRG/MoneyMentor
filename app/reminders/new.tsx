@@ -1,15 +1,14 @@
 import { Dropdown } from "@/components/Dropdown";
 import KeyboardAvoidingScrollView from "@/components/KeyboardAvoidingScrollView";
 import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
-import { database } from "@/database";
-import { Event } from "@/database/models/mlEvent";
 import { useConfirmLeave } from "@/hooks/useConfirmLeave";
 import { useDirtyState } from "@/hooks/useDirtyState";
 import {
-  createExpenseEventWithNotification,
-  updateExpenseEvent,
-} from "@/services/eventsHelper";
-import { scheduleEventNotification } from "@/services/notifications";
+  createEventWithNotification,
+  getEventById,
+  updateEvent,
+} from "@/services/eventService";
+import { scheduleEventNotification } from "@/services/pushNotifications";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import {
@@ -132,7 +131,7 @@ export default function CreateEventScreen() {
     try {
       if (isEditing && id) {
         // Lógica de EDICIÓN (Llamamos al helper que hicimos antes)
-        await updateExpenseEvent({
+        await updateEvent({
           eventId: id,
           title,
           amount: cleanAmount(amount),
@@ -157,7 +156,7 @@ export default function CreateEventScreen() {
 
         // 4. Delegamos a nuestro Helper (Base de Datos)
         // Asumimos que obtienes el userId de tu store de Auth (ej. authStore.userId)
-        await createExpenseEventWithNotification({
+        await createEventWithNotification({
           userId: userId ?? "", // <- Reemplazar por tu usuario real
           title,
           amount: cleanAmount(amount),
@@ -196,7 +195,8 @@ export default function CreateEventScreen() {
       });
       const loadEvent = async () => {
         try {
-          const record = await database.get<Event>("events").find(id);
+          const record = await getEventById(id);
+          if (!record) throw new Error("Recordatorio no encontrado");
           setTitle(record.title);
           setAmount(String(record.amount));
           setEventRecurrence(record.recurrence ?? "none");

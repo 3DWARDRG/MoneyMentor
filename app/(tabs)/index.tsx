@@ -5,13 +5,12 @@ import FloatingActionButton from "@/components/FloatingActionButton";
 import RecentGoals from "@/components/RecentGoals";
 import RecentTransactions from "@/components/RecentTransactions";
 import ScreenBackdrop from "@/components/ui/ScreenBackdrop";
-import { database } from "@/database";
-import { User } from "@/database/models/mlUser";
 import { useGoals } from "@/hooks/useGoals";
+import { useUser } from "@/hooks/useUser";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Href } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -38,8 +37,9 @@ const SPRING_CONFIG = {
 };
 
 export default function Index() {
-  const  userId  = useAuthStore((s) => s.userId);
-  const [userName, setUserName] = useState("Usuario");
+  const userId = useAuthStore((s) => s.userId);
+  const { user } = useUser(userId ?? "");
+  const userName = user?.names || "Usuario";
   const [containerHeight, setContainerHeight] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
@@ -54,20 +54,6 @@ export default function Index() {
     loading: goalsLoading,
     summary: goalsSummary,
   } = useGoals(userId ?? "");
-
-  useEffect(() => {
-    const loadUserName = async () => {
-      if (userId) {
-        try {
-          const user = await database.get<User>("users").find(userId);
-          setUserName(user.names || "Usuario");
-        } catch (error) {
-          console.error("Error cargando nombre:", error);
-        }
-      }
-    };
-    loadUserName();
-  }, [userId]);
 
   const pan = Gesture.Pan()
     .activeOffsetY([-10, 10])

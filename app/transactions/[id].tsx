@@ -1,9 +1,9 @@
-import { database } from "@/database";
 import { Transaction } from "@/database/models/mlTransaction";
-import { deleteTransactionRecord } from "@/services/transactionBalanceHelpers";
+import { useTransaction } from "@/hooks/useTransaction";
+import { deleteTransaction } from "@/services/transactionService";
 import { getScreenTitle } from "@/utils/screenUtils";
 import { Stack ,  router, useLocalSearchParams, useNavigation } from "expo-router";
-import React, { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import React, { useCallback, useLayoutEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -68,7 +68,7 @@ const TransactionDetailScreen = ({ transaction }: TransactionDetailProps) => {
         onPress: async () => {
           try {
             // Usamos tu helper existente para eliminar
-            await deleteTransactionRecord(transaction.id);
+            await deleteTransaction(transaction.id);
             router.back();
           } catch (error: any) {
             Alert.alert("Error", error.message || "No se pudo eliminar");
@@ -143,29 +143,8 @@ const TransactionDetailScreen = ({ transaction }: TransactionDetailProps) => {
 // ==========================================
 export default function TransactionDetailWrapper() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [transaction, setTransaction] = useState<Transaction | null>(null);
-  const [loading, setLoading] = useState(true);
-  const title= getScreenTitle("transactions","details")
-
-  useEffect(() => {
-    if (!id) return;
-
-    const subscription = database.collections
-      .get<Transaction>("transactions")
-      .findAndObserve(id)
-      .subscribe({
-        next: (tx) => {
-          setTransaction(tx);
-          setLoading(false);
-        },
-        error: (err) => {
-          console.error("Error observando la transacción:", err);
-          setLoading(false);
-        },
-      });
-
-    return () => subscription.unsubscribe();
-  }, [id]);
+  const title = getScreenTitle("transactions", "details");
+  const { transaction, loading } = useTransaction(id);
 
   // Si no hay ID o si Expo Router está inicializando, protegemos la vista
   if (!id) return null;

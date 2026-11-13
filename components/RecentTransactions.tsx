@@ -1,9 +1,8 @@
-import { database } from "@/database";
-import { useFinanceData } from "@/hooks/useFinanceData";
+import { useCategories } from "@/hooks/useCategories";
+import { useTransactions } from "@/hooks/useTransactions";
 import { useAuthStore } from "@/store/useAuthStore";
-import { Q } from "@nozbe/watermelondb";
 import { router } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -16,43 +15,16 @@ import CardBackdrop from "./ui/CardBackdrop";
 
 const RecentTransactions = ({ accountId }: { accountId?: string | null }) => {
   const userId = useAuthStore((s) => s.userId);
-  const { transactions, loading } = useFinanceData(userId || "");
+  const { transactions, loading } = useTransactions(userId || "");
+  const { categories } = useCategories(userId || "");
 
-  const [categoryMap, setCategoryMap] = useState<
-    Record<string, { name: string; icon: string }>
-  >({});
-
-  useEffect(() => {
-    const loadCategoryMap = async () => {
-      if (!userId) {
-        setCategoryMap({});
-        return;
-      }
-
-      try {
-        const catsCollection = database.get("categories");
-        const cats = await catsCollection
-          .query(Q.where("user_id", userId))
-          .fetch();
-
-        const map: Record<string, { name: string; icon: string }> = {};
-
-        cats.forEach((c: any) => {
-          map[c.id] = {
-            name: c.name,
-            icon: c.iconImage || "📁",
-          };
-        });
-
-        setCategoryMap(map);
-      } catch (error) {
-        console.error("❌ Error cargando categoryMap:", error);
-        setCategoryMap({});
-      }
-    };
-
-    loadCategoryMap();
-  }, [userId]);
+  const categoryMap = useMemo(() => {
+    const map: Record<string, { name: string; icon: string }> = {};
+    for (const c of categories) {
+      map[c.id] = { name: c.name, icon: c.iconImage || "📁" };
+    }
+    return map;
+  }, [categories]);
 
   const recentTransactions = useMemo(() => {
     const filtered = accountId
